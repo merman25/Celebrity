@@ -5,4 +5,3 @@ To run, edit the hard-coded IP address in Server.java to your own IP address, th
 
 Open your browser to http://localhost:8080/celebrity.html
 
-Currently only works in Firefox for whatever reason.
