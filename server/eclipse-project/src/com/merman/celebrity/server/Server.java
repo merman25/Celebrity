@@ -100,9 +100,6 @@ public class Server {
 					if ( game != null ) {
 						game.addPlayer( session.getPlayer() );
 					}
-//					else {
-//						sendResponse(aExchange, 206, "<script>console.log( \"test 206\" );</script>" );
-//					}
 				}
 				else {
 					System.err.println( "Session not found: " + sessionID );
@@ -142,13 +139,11 @@ public class Server {
 
 			@Override
 			protected void _handle(HttpExchange aExchange) throws IOException {
-//				dumpRequest(aExchange);
 				LinkedHashMap<String, String> requestBody = HttpExchangeUtil.getRequestBodyAsMap(aExchange);
 				String gameID = requestBody.get("gameID");
 				if ( gameID != null ) {
 					Game game = GameManager.getGame(gameID);
 					if ( game != null ) {
-//						System.out.format("Passing state of game %s [%s] to Player %s\n", game.getID(), game.getState(), SessionManager.getSession( HttpExchangeUtil.getSessionID(aExchange) ).getPlayer().getName() );
 						String serialisedGame = GameManager.serialise(game);
 						sendResponse(aExchange, HTTPResponseConstants.OK, serialisedGame);
 					}
@@ -305,7 +300,6 @@ public class Server {
 				Session session = SessionManager.getSession(sessionID);
 				if ( session != null ) {
 					Player player = session.getPlayer();
-					String gameIDResponse;
 					if ( player.getGame() != null ) {
 						player.getGame().setState(GameState.WAITING_FOR_NAMES);
 					}
@@ -408,27 +402,6 @@ public class Server {
 			}
 		} );
 
-//		server.createContext( "/finishRound", new AHttpHandler() {
-//
-//			@Override
-//			public String getHandlerName() {
-//				return "finishRound";
-//			}
-//
-//			@Override
-//			protected void _handle(HttpExchange aExchange) throws IOException {
-//				System.out.println( "finishing round" );
-//
-//				String sessionID = HttpExchangeUtil.getSessionID(aExchange);
-//				Session session = SessionManager.getSession(sessionID);
-//				if ( session != null ) {
-//					Player player = session.getPlayer();
-//					Game game = player.getGame();
-//					game.stopTurn();
-//				}
-//			}
-//		} );
-
 		server.createContext( "/setCurrentNameIndex", new AHttpHandler() {
 			
 			@Override
@@ -483,7 +456,7 @@ public class Server {
 							int passNameIndex = Integer.parseInt(passNameIndexString);
 							game.setPassOnNameIndex( passNameIndex );
 							
-							sendResponse(aExchange, HTTPResponseConstants.OK, "dummy=" + Math.random() + "&nameList=" + String.join(",", game.getShuffledNameList()));
+							sendResponse(aExchange, HTTPResponseConstants.OK, "nameList=" + String.join(",", game.getShuffledNameList()));
 						}
 						catch ( NumberFormatException e ) {
 							e.printStackTrace();
