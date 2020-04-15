@@ -126,6 +126,7 @@ function updateGameState(gameID) {
 
 		if ( iAmPlaying ) {
 		    document.getElementById("startTurnButton").style.display = 'block'
+		    document.getElementById("gameStatusDiv").innerHTML = "It's your turn!"
 		}
 		else {
 		    var currentPlayerName = game_arr["currentPlayer"]
@@ -432,7 +433,7 @@ function setGameState(newState) {
 	updateGameInfo("<hr>Playing round " + roundIndex + " of " + game_arr["rounds"])
     }
 
-    if ( game_state == "READY_TO_START_NEXT_ROUND" ) {
+    if ( newState == "READY_TO_START_NEXT_ROUND" ) {
 	document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
 	document.getElementById("startNextRoundButton").style.display = 'block'
     }
@@ -543,22 +544,7 @@ function gotName() {
 
 function finishRound() {
     document.getElementById("gameStatusDiv").innerHTML = "Finished Round!"
-
-/*    setTimeout( function() {
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
-		
-		
-	    };
-	}
-	xhttp.onload = function() {}
-	xhttp.open("POST", "finishRound", true);
-	xhttp.send("");
-	
-    }, 1500 );
-*/
+    document.getElementById("currentNameDiv").innerHTML = ""
 }
 
 function startNextRound() {
