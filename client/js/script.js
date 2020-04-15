@@ -285,10 +285,15 @@ function updateGameState(gameID) {
 		    for ( var j=1; j<totalScoresForTeam.length; j++ ) {
 			tableColumns[0][j-1] = j;
 			tableColumns[i+1][j-1] = totalScoresForTeam[j];
+			total += parseInt(totalScoresForTeam[j]);
+		    }
+		    if ( totalScoresForTeam.length > 0 ) {
+			tableColumns[0][totalScoresForTeam.length-1] = "Total";
+			tableColumns[i+1][totalScoresForTeam.length-1] = total;
 		    }
 		}
 
-		if ( tableColumns[0].length > 0 ) {
+		if ( tableColumns[0].length > 1 ) {
 		    totalScoresHTML += "<h2>Total Scores</h2>\n";
 		    totalScoresHTML += '<table style="border-width: 2px; border-style: outset;">\n';
 
