@@ -222,6 +222,7 @@ public class Game {
 			endRound();
 		}
 		else {
+			setPassOnNameIndex(currentNameIndex);
 			setState(GameState.READY_TO_START_NEXT_TURN);
 		}
 	}
