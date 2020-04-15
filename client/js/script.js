@@ -7,24 +7,6 @@ var iAmPlaying = false
 var nameList = []
 var gameStateLogging = false
 
-function revealMessage() {
-    document.getElementById("hiddenMessage").style.display = 'block';
-}
-
-function textAjax() {
-    document.getElementById("ajaxResult").innerHTML = "If you can read this, the js function was invoked, but the AJAX request failed"
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-	if (this.readyState == 4 && this.status == 200) {
-	    document.getElementById("ajaxResult").innerHTML =
-		this.responseText;
-	}
-    };
-    xhttp.open("POST", "test", true);
-    xhttp.send("param=paramValue&param2=paramValue2");
-
-}
-
 function setCookie(cname, cvalue, exdays) {
   var d = new Date();
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
