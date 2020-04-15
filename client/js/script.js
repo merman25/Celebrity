@@ -188,6 +188,13 @@ function updateGameState(gameID) {
 		    document.getElementById("gameStatusDiv").innerHTML = ""
 		}
 
+		if ( numPlayersToWaitFor == null
+		     || numPlayersToWaitFor == "0" ) {
+		    document.getElementById("startGameButton").style.display = 'block'
+		    showHostDutiesElements();
+		}
+		
+
 		if ( gameStateLogging ) {
 		    console.log("Finished processing WAITING_FOR_NAMES");
 		}
@@ -385,7 +392,9 @@ function waitForGameIDResponse() {
 
 function requestNames() {
     document.getElementById("requestNamesButton").style.display = 'none'
-    document.getElementById("teamsButton").style.display = 'none'
+    document.getElementById("allocateTeamsDiv").style.display = 'none'
+    hideHostDutiesElements();
+    
     setTimeout( function() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
@@ -440,10 +449,16 @@ function setGameState(newState) {
 
     if ( newState == "READY_TO_START_NEXT_ROUND" ) {
 	document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
+	showHostDutiesElements();
 	document.getElementById("startNextRoundButton").style.display = 'block'
     }
     else {
 	document.getElementById("startNextRoundButton").style.display = 'none'
+    }
+
+    if ( newState != "READY_TO_START_NEXT_ROUND"
+	 && game_state == "READY_TO_START_NEXT_ROUND" ) {
+	hideHostDutiesElements();
     }
 
     game_state = newState
@@ -468,14 +483,30 @@ function nameListSubmitted() {
     setTimeout( function() {
 	var element = document.getElementById("nameList");
 	element.style.display = 'none'
-	document.getElementById("startGameButton").style.display = 'block'
     }, 200 );
+}
+
+function hideHostDutiesElements() {
+    performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
+    for ( var i=0; i<performHostDutiesElements.length; i++) {
+	performHostDutiesElements[i].style.display = 'none';
+    }
+}
+
+function showHostDutiesElements() {
+    performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
+    for ( var i=0; i<performHostDutiesElements.length; i++) {
+	performHostDutiesElements[i].style.display = 'block';
+    }
 }
 
 function startGame() {
     setTimeout( function() {
 	document.getElementById("startGameButton").style.display = 'none'
 	document.getElementById("gameStatusDiv").innerHTML = ""
+
+	hideHostDutiesElements();
+
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {

@@ -56,8 +56,8 @@
     
     
     <div id="hostGameDiv" style="display:none">
-      <hr>
       <form id="gameParamsForm" method="post" onsubmit="gameParamsSubmitted()">
+	<hr>
 	<label for="numRoundsField">Number of Rounds</label>
 	<input id="numRoundsField" name="numRounds" type="text" value="3"><br>
 	<label for="roundDurationField">Length of a Round in Seconds</label>
@@ -68,14 +68,14 @@
 	  <input type="submit" value="Set">
       </form>
       
-      <br>
-      <br>
-      <button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
-      <br>
-      <button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button><br>
-      <button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button><br>
-      
-      <button id="startNextRoundButton" onclick="startNextRound()" style="display:non">Start Next Round</button>
+      <hr class="performHostDutiesClass">
+      <div id="allocateTeamsDiv">
+	<button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
+	<br>
+      </div>
+	<button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
+	<button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
+	<button id="startNextRoundButton" onclick="startNextRound()" style="display:non">Start Next Round</button>
     </div>
     
     <div id="playGameDiv" style="display:none">
