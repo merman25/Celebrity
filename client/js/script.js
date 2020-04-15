@@ -261,7 +261,55 @@ function updateGameState(gameID) {
 		console.log("Finished processing namesAchievedString");
 	    }
 
+	    var totalScoresString = game_arr["scores"]
 
+	    if ( totalScoresString != null ) {
+		totalScoresHTML = ""
+
+		var tableHeaders = [ "Round" ];
+		var tableColumns = [[]];
+
+		var totalScoresPerTeamArr = totalScoresString.split(",");
+		for ( var i=0; i<totalScoresPerTeamArr.length; i++ ) {
+		    var totalScoresForTeamString = totalScoresPerTeamArr[i];
+		    var totalScoresForTeam = totalScoresForTeamString.split("\|");
+		    var teamName = totalScoresForTeam[0];
+
+		    tableHeaders[i + 1] = teamName;
+
+		    var total = 0;
+		    if ( totalScoresForTeam.length > 0 ) {
+			tableColumns[i+1] = [];
+		    }
+		    for ( var j=1; j<totalScoresForTeam.length; j++ ) {
+			tableColumns[0][j-1] = j;
+			tableColumns[i+1][j-1] = totalScoresForTeam[j];
+		    }
+		}
+
+		if ( tableColumns[0].length > 0 ) {
+		    totalScoresHTML += "<h2>Total Scores</h2>\n";
+		    totalScoresHTML += '<table style="border-width: 2px; border-style: outset;">\n';
+
+		    totalScoresHTML += "<tr>\n";
+		    for ( var i=0; i<tableHeaders.length; i++ ) {
+			totalScoresHTML += '<th style="border-width: 1px; border-style: inset;">' + tableHeaders[i] + "</th>";
+		    }
+		    totalScoresHTML += "</tr>\n";
+
+		    for ( var row=0; row < tableColumns[0].length; row++ ) {
+			totalScoresHTML += '<tr>\n';
+			for ( var col=0; col<tableColumns.length; col++) {
+			    totalScoresHTML += '<td style="border-width: 1px; border-style: inset;">' + tableColumns[col][row] + "</td>";
+			}
+			totalScoresHTML += "</tr>\n";
+		    }
+
+		    totalScoresHTML += "</table>";
+		}
+
+		document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
+	    }
 	}
     }
 
@@ -385,7 +433,7 @@ function setGameState(newState) {
     }
 
     if ( game_state == "READY_TO_START_NEXT_ROUND" ) {
-	document.getElementById("gameStatusDiv").innerHTML = "Finished Round! Please remember your teams' scores - I will forget them :("
+	document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
 	document.getElementById("startNextRoundButton").style.display = 'block'
     }
     else {

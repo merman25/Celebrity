@@ -9,29 +9,29 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 public class Game {
-	private String ID;
-	private Player host;
-	private List<Team> teamList = new ArrayList<>();
-	private List<Player> playersWithoutTeams = new ArrayList<>();
-	private Map<Player, Team> mapPlayersToTeams		= new HashMap<Player, Team>();
-	private GameState state = GameState.WAITING_FOR_PLAYERS;
-	private Map<Player, List<String>>	mapPlayersToNameLists		= new HashMap<Player, List<String>>();
-	private List<String> shuffledNameList = new ArrayList<>();
-	private Turn currentTurn;
-	private int previousNameIndex;
-	private int currentNameIndex;
-	private Map<Team, List<String>> mapTeamsToAchievedNames = new HashMap<Team, List<String>>();
-	
-	private int numRounds;
-	private int roundDurationInSec;
-	private int numNamesPerPlayer;
-	
-	
-	private int nextTeamIndex = -1;
-	private Map<Team, Integer>		mapTeamsToNextPlayerIndices		= new HashMap<Team, Integer>();
-	private Player currentPlayer;
-	
-	private int roundIndex;
+	private String                    ID;
+	private Player                    host;
+	private List<Team>                teamList                    = new ArrayList<>();
+	private List<Player>              playersWithoutTeams         = new ArrayList<>();
+	private Map<Player, Team>         mapPlayersToTeams           = new HashMap<Player, Team>();
+	private GameState                 state                       = GameState.WAITING_FOR_PLAYERS;
+	private Map<Player, List<String>> mapPlayersToNameLists       = new HashMap<Player, List<String>>();
+	private List<String>              shuffledNameList            = new ArrayList<>();
+	private Turn                      currentTurn;
+	private int                       previousNameIndex;
+	private int                       currentNameIndex;
+	private Map<Team, List<String>>   mapTeamsToAchievedNames     = new HashMap<Team, List<String>>();
+
+	private int                       numRounds;
+	private int                       roundDurationInSec;
+	private int                       numNamesPerPlayer;
+
+	private int                       nextTeamIndex               = -1;
+	private Map<Team, Integer>        mapTeamsToNextPlayerIndices = new HashMap<Team, Integer>();
+	private Map<Team, List<Integer>>  mapTeamsToScores            = new HashMap<Team, List<Integer>>();
+	private Player                    currentPlayer;
+
+	private int                       roundIndex;
 	
 	public Game(String aID, Player aHost) {
 		ID = aID;
@@ -239,6 +239,13 @@ public class Game {
 
 	private void endRound() {
 		roundIndex++;
+		
+		for ( Team team : teamList ) {
+			List<String> achievedNames = mapTeamsToAchievedNames.get(team);
+			int          teamScore     = achievedNames == null ? 0 : achievedNames.size();
+			mapTeamsToScores.computeIfAbsent(team, t -> new ArrayList<>()).add(teamScore);
+		}
+		
 		if ( roundIndex < numRounds ) {
 			shuffleNames();
 			setState(GameState.READY_TO_START_NEXT_ROUND);
@@ -282,5 +289,9 @@ public class Game {
 
 	public synchronized int getRoundIndex() {
 		return roundIndex;
+	}
+
+	public synchronized Map<Team, List<Integer>> getMapTeamsToScores() {
+		return mapTeamsToScores;
 	}
 }

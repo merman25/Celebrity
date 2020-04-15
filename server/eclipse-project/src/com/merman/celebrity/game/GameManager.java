@@ -66,6 +66,25 @@ public class GameManager {
 						}
 					}
 				}
+				
+				builder.append("&scores=");
+				
+				first = true;
+				for ( Team team : aGame.getTeamList() ) {
+					if ( ! first ) {
+						builder.append(",");
+					}
+					first = false;
+					builder.append( team.getTeamName() );
+					
+					List<Integer> scoreList = aGame.getMapTeamsToScores().get(team);
+					if ( scoreList != null ) {
+						for ( Integer score : scoreList ) {
+							builder.append("|");
+							builder.append(score);
+						}
+					}
+				}
 			}
 			if ( aGame.getNumRounds() > 0 ) {
 				builder.append("&rounds=");
