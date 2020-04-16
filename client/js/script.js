@@ -7,6 +7,18 @@ var iAmPlaying = false
 var nameList = []
 var gameStateLogging = false
 
+function htmlEscape(string) {
+    return string.replace( /&/g, "&amp;")
+                 .replace( /</g, "&lt;" )
+                 .replace( />/g, "&gt;" )
+                 .replace( /\"/g, "&quot;" )
+                 .replace( /\'/g, "&#39" );
+}
+
+function myDecode(string) {
+    return htmlEscape( decodeURIComponent( string.replace(/\+/g, " ") ) );
+}
+
 function setCookie(cname, cvalue, exdays) {
   var d = new Date();
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
@@ -129,7 +141,7 @@ function updateGameState(gameID) {
 		    document.getElementById("gameStatusDiv").innerHTML = "It's your turn!"
 		}
 		else {
-		    var currentPlayerName = game_arr["currentPlayer"]
+		    var currentPlayerName = myDecode( game_arr["currentPlayer"] )
 		    
 		    document.getElementById("startTurnButton").style.display = 'none'
 		    document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn"
@@ -166,7 +178,7 @@ function updateGameState(gameID) {
 
 		var htmlList = "<h3>Players</h3>\n<ul>\n"
 		for ( var i=0; i<playerList.length; i++) {
-		    htmlList += "<li>" + playerList[i] + "</li>\n"
+		    htmlList += "<li>" + myDecode( playerList[i] ) + "</li>\n"
 		}
 		htmlList += "</ul>"
 		document.getElementById("playerList").innerHTML = htmlList;
@@ -213,7 +225,7 @@ function updateGameState(gameID) {
 			"<ul>\n";
 
 		    for ( var j=1; j<teamNameArr.length; j++) {
-			htmlTeamList += "<li>" + teamNameArr[j] + "</li>\n"
+			htmlTeamList += "<li>" + myDecode( teamNameArr[j] ) + "</li>\n"
 		    }
 		    htmlTeamList += "</ul>\n";
 		}
@@ -254,7 +266,7 @@ function updateGameState(gameID) {
 		    scoresHTML += "Score: " + score  + "\n";
 		    scoresHTML += "<ol>\n"
 		    for (var j=1; j<namesAchievedForTeam.length; j++) {
-			scoresHTML += "<li>" + namesAchievedForTeam[j] + "</li>\n"
+			scoresHTML += "<li>" + myDecode( namesAchievedForTeam[j] ) + "</li>\n"
 		    }
 		    scoresHTML += "</ol>\n"
 		}
@@ -542,7 +554,7 @@ function startTurn() {
 
 function updateCurrentNameDiv() {
     if ( iAmPlaying ) {
-	currentName = decodeURIComponent( nameList[ current_name_index ] ).replace(/\+/g, " ");
+	currentName = myDecode( nameList[ current_name_index ] );
 	document.getElementById("currentNameDiv").innerHTML = "Name: " + currentName
     }
     else {
