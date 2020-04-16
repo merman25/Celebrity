@@ -2,6 +2,9 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <!-- setting the viewport doesn't seem to make a difference -->
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
     <title>Celebrity</title>
     <script src="js/script.js"></script>
   </head>
@@ -90,13 +93,15 @@
       <div id="gameParamsDiv"></div>
       <div id="playerList">
       </div>
-      <div id="teamList">
+      <div id="teamAndTotalScoresDiv" style="display: flex; flex-direction: row;">
+	<div id="teamList">
+	</div>
+	<div id="totalScoresDiv" style="padding-left: 10rem;">
+	</div>
       </div>
       <div id="nameList">
       </div>
       <div id="scoresDiv">
-      </div>
-      <div id="totalScoresDiv">
       </div>
     </div>
     

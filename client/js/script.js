@@ -214,21 +214,65 @@ function updateGameState(gameID) {
 
 	    var teamListString = game_arr["teams"]
 	    if ( teamListString != null ) {
-		var teamList = teamListString.split(",")
-		var htmlTeamList = ""
+		var teamList = teamListString.split(",");
+		var tableHeaders = [];
+		var tableColumns = [];
+
 		for ( var i=0; i<teamList.length; i++) {
 		    var teamString = teamList[i];
 		    var teamNameArr = teamString.split("\|")
 		    var teamName = teamNameArr[0]
 
-		    htmlTeamList += "<h3>" + teamName + "</h3>\n" +
-			"<ul>\n";
+		    tableHeaders[i] = teamName;
 
+		    tableColumns[i] = [];
+		    
 		    for ( var j=1; j<teamNameArr.length; j++) {
-			htmlTeamList += "<li>" + myDecode( teamNameArr[j] ) + "</li>\n"
+			tableColumns[i][j-1] = myDecode( teamNameArr[j] );
 		    }
-		    htmlTeamList += "</ul>\n";
 		}
+
+		var htmlTeamList = "";
+
+		if ( tableHeaders.length > 0 ) {
+		    htmlTeamList += "<h2>Teams</h2>\n";
+		    htmlTeamList += '<table style="border-width: 2px; border-style: outset;">\n';
+
+		    htmlTeamList += '<tr>\n';
+		    for ( var i=0; i<tableHeaders.length; i++ ) {
+			htmlTeamList += '<th style="border-width: 1px; border-style: inset;">';
+			htmlTeamList += tableHeaders[i];
+			htmlTeamList += "</th>\n";
+		    }
+		    htmlTeamList += '</tr>\n';
+
+		    for ( var row=0; ; row++ ) {
+			var stillHaveRowsInAtLeastOneColumn = false;
+			for ( var col=0; col<tableColumns.length; col++ ) {
+			    if ( row < tableColumns[col].length ) {
+				stillHaveRowsInAtLeastOneColumn = true;
+				break;
+			    }
+			}
+
+			if ( ! stillHaveRowsInAtLeastOneColumn ) {
+			    break;
+			}
+
+			htmlTeamList += '<tr>\n';
+			for ( var col=0; col<tableColumns.length; col++) {
+			    htmlTeamList += '<td style="border-width: 1px; border-style: inset;">';
+			    if ( row < tableColumns[col].length ) {
+				htmlTeamList += tableColumns[col][row];
+			    }
+			    htmlTeamList += "</td>\n";
+			}
+			htmlTeamList += "</tr>\n";
+		    }
+		    htmlTeamList += '</table>\n';
+		    
+		}
+
 		document.getElementById("teamList").innerHTML = htmlTeamList
 	    }
 
@@ -238,9 +282,9 @@ function updateGameState(gameID) {
 
 	    var numRounds = game_arr["rounds"]
 	    if ( numRounds > 0 ) {
-		var htmlParams = "<h3>Settings</h3>\n" +
+		var htmlParams = "<h2>Settings</h2>\n" +
 		    "Rounds: " + numRounds + "<br>\n" +
-		    "Round duration (sec): " + game_arr["duration"] + "<br>\n";
+		    "Round duration (sec): " + game_arr["duration"] + "<br>\n<hr>\n";
 		document.getElementById("gameParamsDiv").innerHTML = htmlParams;
 	    }
 
@@ -250,7 +294,8 @@ function updateGameState(gameID) {
 
 	    var namesAchievedString = game_arr["namesAchieved"]
 	    if ( namesAchievedString != null ) {
-		scoresHTML = "<h2>Scores</h2>\n"
+		scoresHTML = "<h2>Scores</h2>\n";
+		scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
 
 		var namesAchievedPerTeamStringArr = namesAchievedString.split(",")
 		for ( var i=0; i<namesAchievedPerTeamStringArr.length; i++) {
@@ -258,7 +303,8 @@ function updateGameState(gameID) {
 		    var namesAchievedForTeam = namesAchievedForTeamString.split("\|");
 		    var teamName = namesAchievedForTeam[0]
 
-		    scoresHTML += "<h3>" + teamName + "</h3>\n"
+		    scoresHTML += '<div style="padding-right: 4rem;">\n'
+		    scoresHTML += "<h3>" + teamName + "</h3>\n";
 		    var score =  namesAchievedForTeam.length - 1;
 		    if ( score == NaN ) {
 			score = 0;
@@ -268,8 +314,9 @@ function updateGameState(gameID) {
 		    for (var j=1; j<namesAchievedForTeam.length; j++) {
 			scoresHTML += "<li>" + myDecode( namesAchievedForTeam[j] ) + "</li>\n"
 		    }
-		    scoresHTML += "</ol>\n"
+		    scoresHTML += "</ol>\n</div>\n";
 		}
+		scoresHTML += '</div>';
 
 		document.getElementById("scoresDiv").innerHTML = scoresHTML
 	    }
