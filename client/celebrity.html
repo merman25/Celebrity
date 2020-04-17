@@ -6,6 +6,8 @@
     <!-- setting the viewport doesn't seem to make a difference -->
     <meta name="viewport" content="width=device-width, initial-scale=0.8">
     <title>Celebrity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Paaji+2&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="styles.css">
     <script src="js/script.js"></script>
   </head>
   <body>
@@ -25,32 +27,29 @@
 
     <div id="divChooseName">
       <hr>
-      <center><p>Give yourself a name:</p>
-	<form method="post" onsubmit="nameSubmitted()">
-	  <input id="nameField" name="username" type="text">
-	  <input type="hidden" name="form" value="username">
-	  <input type="submit" value="OK">
-	</form>
-      </center>
+      <p>Give yourself a name:</p>
+      <form method="post" onsubmit="nameSubmitted()">
+	<input id="nameField" name="username" type="text">
+	<input type="hidden" name="form" value="username">
+	<input type="submit" value="OK">
+      </form>
     </div>
 
     <div id="divJoinOrHost" style="display:none">
       <hr>
-      <center>
-	<button id="join" onclick="requestGameID()">Join Existing Game</button>
-	<div id="joinGameForm" style="display:none">
-	  <form id="gameIDForm" method="post" onsubmit="waitForGameIDResponse()">
-	    <label for="gameIDField">Game ID</label>
-	    <input id="gameIDField" name="gameID" type="text">
-	    <input type="hidden" name="form" value="gameID">
-	    <input type="submit" value="OK">
-	  </form>
-	</div>
-	<div id="gameIDErrorDiv"></div>
-	<br>
-	<br>
-	<button id="host" onclick="hostNewGame()">Host New Game</button>
-      </center>
+      <button id="join" onclick="requestGameID()">Join Existing Game</button>
+      <div id="joinGameForm" style="display:none">
+	<form id="gameIDForm" method="post" onsubmit="waitForGameIDResponse()">
+	  <label for="gameIDField">Game ID</label>
+	  <input id="gameIDField" name="gameID" type="text">
+	  <input type="hidden" name="form" value="gameID">
+	  <input type="submit" value="OK">
+	</form>
+      </div>
+      <div id="gameIDErrorDiv"></div>
+      <br>
+      <br>
+      <button id="host" onclick="hostNewGame()">Host New Game</button>
     </div>
 
     <div id="gameInfoDiv">
@@ -60,24 +59,44 @@
     <div id="hostGameDiv" style="display:none">
       <form id="gameParamsForm" method="post" onsubmit="gameParamsSubmitted()">
 	<hr>
-	<label for="numRoundsField">Number of Rounds</label>
-	<input id="numRoundsField" name="numRounds" type="text" value="3"><br>
-	<label for="roundDurationField">Length of a Round in Seconds</label>
-	<input id="roundDurationField" name="roundDuration" type="text" value="60"><br>
-	<label for="numNamesField">Number of names from each player</label>
-	<input id="numNamesField" name="numNames" type="text" value="6"><br>
+	<div class="col-label">
+	  <label for="numRoundsField">Number of Rounds</label>
+	</div>
+	<div class="col-textfield">
+	  <input id="numRoundsField" name="numRounds" type="text" value="3" size="10"><br>
+	</div>
+	<div class="col-label">
+	  <label for="roundDurationField">Length of a Round in Seconds</label>
+	</div>
+	<div class="col-textfield">
+	  <input id="roundDurationField" name="roundDuration" type="text" value="60" size="10"><br>
+	</div>
+	<div class="col-label">
+	  <label for="numNamesField">Number of names from each player</label>
+	</div>
+	<div class="col-textfield">
+	  <input id="numNamesField" name="numNames" type="text" value="6" size="10"><br>
+	</div>
 	<input type="hidden" name="form" value="gameParams">
+	<div class="col-label">
 	  <input type="submit" value="Set">
+	</div>
       </form>
+
+      <div class="performHostDutiesClass">
+	<!-- for some reason, without this non-breaking space, the horizontal row below is never displayed.
+	     Problem only started happening after I started using a stylesheet. -->
+	&nbsp;
       
-      <hr class="performHostDutiesClass">
+	<hr>
+      </div>
       <div id="allocateTeamsDiv">
 	<button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
 	<br>
       </div>
 	<button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
 	<button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
-	<button id="startNextRoundButton" onclick="startNextRound()" style="display:non">Start Next Round</button>
+	<button id="startNextRoundButton" onclick="startNextRound()" style="display:none">Start Next Round</button>
     </div>
     
     <div id="playGameDiv" style="display:none">

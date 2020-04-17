@@ -236,11 +236,11 @@ function updateGameState(gameID) {
 
 		if ( tableHeaders.length > 0 ) {
 		    htmlTeamList += "<h2>Teams</h2>\n";
-		    htmlTeamList += '<table style="border-width: 2px; border-style: outset;">\n';
+		    htmlTeamList += '<table>\n';
 
 		    htmlTeamList += '<tr>\n';
 		    for ( var i=0; i<tableHeaders.length; i++ ) {
-			htmlTeamList += '<th style="border-width: 1px; border-style: inset;">';
+			htmlTeamList += '<th>';
 			htmlTeamList += tableHeaders[i];
 			htmlTeamList += "</th>\n";
 		    }
@@ -261,7 +261,7 @@ function updateGameState(gameID) {
 
 			htmlTeamList += '<tr>\n';
 			for ( var col=0; col<tableColumns.length; col++) {
-			    htmlTeamList += '<td style="border-width: 1px; border-style: inset;">';
+			    htmlTeamList += '<td>';
 			    if ( row < tableColumns[col].length ) {
 				htmlTeamList += tableColumns[col][row];
 			    }
@@ -361,18 +361,22 @@ function updateGameState(gameID) {
 
 		if ( tableColumns[0].length > 1 ) {
 		    totalScoresHTML += "<h2>Total Scores</h2>\n";
-		    totalScoresHTML += '<table style="border-width: 2px; border-style: outset;">\n';
+		    totalScoresHTML += '<table>\n';
 
 		    totalScoresHTML += "<tr>\n";
 		    for ( var i=0; i<tableHeaders.length; i++ ) {
-			totalScoresHTML += '<th style="border-width: 1px; border-style: inset;">' + tableHeaders[i] + "</th>";
+			totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
 		    }
 		    totalScoresHTML += "</tr>\n";
 
 		    for ( var row=0; row < tableColumns[0].length; row++ ) {
 			totalScoresHTML += '<tr>\n';
 			for ( var col=0; col<tableColumns.length; col++) {
-			    totalScoresHTML += '<td style="border-width: 1px; border-style: inset;">' + tableColumns[col][row] + "</td>";
+			    var styleString = '>';
+			    if ( row == tableColumns[col].length - 1 ) {
+				styleString = ' class="totalClass">';
+			    }
+			    totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
 			}
 			totalScoresHTML += "</tr>\n";
 		    }
@@ -520,14 +524,24 @@ function setGameState(newState) {
 	hideHostDutiesElements();
     }
 
+    if ( newState == "ENDED"
+	 && game_state != "ENDED" ) {
+	updateGameInfo("<hr>Game Over!");
+    }
+
     game_state = newState
 }
 
 function addNameRequestForm() {
     var html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n'
     for (var i=1; i<=num_names_per_player; i++) {
+	html += '<div class="col-label">\n';
 	html += '<label for="name' + i + '">Name ' + i + '</label>\n'
+	html += '</div>\n';
+
+	html += '<div class="col-textfield">\n';
 	html += '<input id="name' + i + '" name="name' + i + '" type="text"><br>\n'
+	html += '</div>\n';
     }
 
     html += '<input type="hidden" name="form" value="nameList">\n'

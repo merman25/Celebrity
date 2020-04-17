@@ -1,0 +1,78 @@
+body {
+    max-width: 800px;
+    margin: auto;
+    background-color: #C0E0FF;
+    font-family: 'Baloo Paaji 2', cursive;
+}
+
+#divChooseName, #divJoinOrHost {
+    text-align: center;
+}
+
+// margin-top values for ul and li needed with Baloo Paaji font
+ul {
+    margin-top: 5px;
+}
+
+li {
+    margin-top: -10px;
+}
+
+/*
+label {
+    display: inline-block;
+}
+
+input {
+    background-color: #F0F0F0;
+    resize: vertical;
+}
+*/
+
+#nameListForm {
+    margin-top: 2rem;
+}
+
+#nameList {
+    max-width: 180px;
+}
+
+.col-textfield {
+  float: right;
+  width: 20%;
+  margin-top: 3px;
+}
+
+.col-label {
+  float: left;
+  width: 80%;
+  margin-top: 3px;
+}
+
+#teamsButton {
+    float: left;
+}
+
+table {
+    border-width: 2px;
+    border-style: outset;
+    border-color: silver;
+}
+
+th, td {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-width: 1px;
+    border-style: inset;
+    border-color: silver;
+    text-align: center;
+}
+
+.totalClass {
+    font-weight: bold;
+    border-width: 2px;
+}
+
+.performHostDutiesClass {
+    display: block;
+}

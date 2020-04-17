@@ -97,7 +97,17 @@ public class Server {
 				if ( session != null ) {
 					System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] wants to join game " + gameID );
 					Game game = GameManager.getGame(gameID);
-					if ( game != null ) {
+					if ( gameID.toLowerCase().startsWith( "test" ) ) {
+						if ( game == null ) {
+							try {
+								GameManager.createTestGame( gameID, session.getPlayer() );
+							}
+							catch ( RuntimeException e ) {
+								e.printStackTrace();
+							}
+						}
+					}
+					else if ( game != null ) {
 						game.addPlayer( session.getPlayer() );
 					}
 				}

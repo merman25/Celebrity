@@ -228,7 +228,7 @@ public class Game {
 	}
 
 	private void keepScore() {
-		Team currentTeam = mapPlayersToTeams.get(currentPlayer);
+		Team currentTeam = mapPlayersToTeams.get(getCurrentPlayer());
 		List<String>		namesAchieved		= new ArrayList<>(shuffledNameList.subList(previousNameIndex, currentNameIndex));
 		mapTeamsToAchievedNames.computeIfAbsent(currentTeam, t -> new ArrayList<>()).addAll(namesAchieved);
 		
@@ -270,7 +270,6 @@ public class Game {
 
 	public synchronized void setPassOnNameIndex(int aPassNameIndex) {
 		if ( aPassNameIndex < shuffledNameList.size() - 1 ) {
-			System.out.println( "Passing on name index " + aPassNameIndex + ", current list: " + shuffledNameList );
 			List<String>		achievedNames		= new ArrayList<>(shuffledNameList.subList(0, aPassNameIndex));
 			List<String>		remainingNames		= new ArrayList<>(shuffledNameList.subList(aPassNameIndex, shuffledNameList.size()));
 
@@ -282,8 +281,6 @@ public class Game {
 			shuffledNameList.clear();
 			shuffledNameList.addAll(achievedNames);
 			shuffledNameList.addAll(remainingNames);
-
-			System.out.println( "New list: " + shuffledNameList );
 		}
 	}
 
