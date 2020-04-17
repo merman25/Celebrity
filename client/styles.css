@@ -18,17 +18,6 @@ li {
     margin-top: -10px;
 }
 
-/*
-label {
-    display: inline-block;
-}
-
-input {
-    background-color: #F0F0F0;
-    resize: vertical;
-}
-*/
-
 #nameListForm {
     margin-top: 2rem;
 }
@@ -47,6 +36,7 @@ input {
   float: left;
   width: 80%;
   margin-top: 3px;
+  min-height: 35px;
 }
 
 #teamsButton {
@@ -98,3 +88,6 @@ th, td {
     background-image: url("icons/sad-emoji.svg");
 }
 
+.clear {
+    clear: both;
+}

@@ -540,10 +540,11 @@ function addNameRequestForm() {
 	html += '</div>\n';
 
 	html += '<div class="col-textfield">\n';
-	html += '<input id="name' + i + '" name="name' + i + '" type="text"><br>\n'
+	html += '<input id="name' + i + '" name="name' + i + '" type="text">\n'
 	html += '</div>\n';
     }
 
+    html += '<div class="clear"></div>'
     html += '<input type="hidden" name="form" value="nameList">\n'
     html += '<input type="submit" value="Put in Hat">\n'
     html += '</form>\n'
