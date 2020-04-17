@@ -3,6 +3,9 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
+    <!-- Icons made by <a href="https://www.flaticon.com/authors/roundicons" title="Roundicons">Roundicons</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+      -->
+
     <!-- setting the viewport doesn't seem to make a difference -->
     <meta name="viewport" content="width=device-width, initial-scale=0.8">
     <title>Celebrity</title>
@@ -104,10 +107,10 @@
       <button id="startTurnButton" onclick="startTurn()" style="display:none">Start Turn</button>
       <div id="gameStatusDiv"></div>
       <div id="currentNameDiv"></div>
-      <div id="turnControlsDiv" style="display:none">
-	<button id="gotNameButton" onclick="gotName()">Got it!</button>
-	&nbsp; &nbsp; &nbsp; &nbsp; 
-	<button id="passButton" onclick="pass()">Pass</button>
+      <div id="turnControlsDiv" style="display:none; flex-direction: row;">
+	<button id="gotNameButton" class="turnControlButtonClass" onclick="gotName()">Got it!</button>
+	<button id="passButton" class="turnControlButtonClass" onclick="pass()">Pass</button>
+	<button id="endTurnButton" class="turnControlButtonClass" onclick="endTurn()">End turn</button>
       </div>
       <div id="gameParamsDiv"></div>
       <div id="playerList">

@@ -491,7 +491,7 @@ function setGameState(newState) {
 	previous_name_index=game_arr["previousNameIndex"]
 
 	if ( iAmPlaying ) {
-	    document.getElementById("turnControlsDiv").style.display = 'block'
+	    document.getElementById("turnControlsDiv").style.display = 'flex'
 	}
 	updateCurrentNameDiv();
     }
@@ -675,13 +675,13 @@ function startNextRound() {
 }
 
 function pass() {
-    document.getElementById("passButton").style.display = 'none'
+    document.getElementById("passButton").disabled = true;
     setTimeout( function() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    console.log("pass readyState" + this.readyState + ", status " + this.status);
 	    if (this.readyState == 4 && this.status == 200) {
-		document.getElementById("passButton").style.display = 'block'
+		document.getElementById("passButton").disabled = false;
 		var arr = toAssocArr(this.responseText)
 		var nameListString = arr["nameList"];
 		if ( nameListString != null ) {
@@ -694,5 +694,16 @@ function pass() {
 	xhttp.open("POST", "pass", true);
 	xhttp.send("passNameIndex=" + current_name_index);
 	
+    }, 500 );
+}
+
+function endTurn() {
+    document.getElementById("turnControlsDiv").style.display = 'none';
+    setTimeout ( function() {
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {};
+	xhttp.onload = function() {};
+	xhttp.open("POST", "endTurn", true);
+	xhttp.send("");
     }, 500 );
 }

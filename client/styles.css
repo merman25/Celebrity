@@ -9,7 +9,7 @@ body {
     text-align: center;
 }
 
-// margin-top values for ul and li needed with Baloo Paaji font
+/* margin-top values for ul and li needed with Baloo Paaji font */
 ul {
     margin-top: 5px;
 }
@@ -76,3 +76,25 @@ th, td {
 .performHostDutiesClass {
     display: block;
 }
+
+.turnControlButtonClass {
+    margin-right: 2rem;
+    background-repeat: no-repeat;
+    background-position: 0px 0px;
+    height: 24px;
+    padding-left: 28px;
+    vertical-align: middle;
+}
+
+#gotNameButton {
+    background-image: url("icons/happy-emoji.svg");
+}
+
+#passButton {
+    background-image: url("icons/thinking-emoji.svg");
+}
+
+#endTurnButton{
+    background-image: url("icons/sad-emoji.svg");
+}
+

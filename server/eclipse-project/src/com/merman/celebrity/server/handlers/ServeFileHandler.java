@@ -83,6 +83,14 @@ public class ServeFileHandler extends AHttpHandler {
 			response = aOptionalStringTransform.apply(response);
 		}
 		
+		if ( aRelativePath.toLowerCase().endsWith(".css") ) {
+			aExchange.getResponseHeaders().set("content-type", "text/css");
+		}
+		else if ( aRelativePath.toLowerCase().endsWith( ".svg" ) ) {
+			aExchange.getResponseHeaders().set("content-type", "image/svg+xml" );
+		}
+				
+		
 		aExchange.sendResponseHeaders(HTTPResponseConstants.OK, response.getBytes().length);
 		OutputStream os = aExchange.getResponseBody();
 		os.write(response.getBytes());

@@ -476,6 +476,36 @@ public class Server {
 				}
 			}
 		} );
+		
+		server.createContext( "/endTurn", new AHttpHandler() {
+			
+			@Override
+			public String getHandlerName() {
+				return "endTurn";
+			}
+			
+			@Override
+			protected void _handle(HttpExchange aExchange) throws IOException {
+				String sessionID = HttpExchangeUtil.getSessionID(aExchange);
+				Session session = SessionManager.getSession(sessionID);
+				if ( session != null ) {
+					Player player = session.getPlayer();
+					Game game = player.getGame();
+					if ( game != null ) {
+						synchronized ( game ) {
+							if ( game.getCurrentTurn() != null ) {
+								game.getCurrentTurn().stop();
+							}
+							else {
+								game.turnEnded();
+							}
+						}
+					}
+							
+					sendResponse(aExchange, HTTPResponseConstants.OK, "" );
+				}
+			}
+		} );
 
 		String[] requestNames = { "" };
 		for ( String requestName : requestNames ) {
