@@ -1,8 +1,14 @@
-body {
-    max-width: 800px;
-    margin: auto;
-    background-color: #C0E0FF;
+html {
+    min-height: 100%;
+    background-image: linear-gradient(to bottom, #C0E0FF, #E0E0FF); 
+    background-repeat: no-repeat;
+    background-size: cover;
     font-family: 'Baloo Paaji 2', cursive;
+}
+
+body {
+    max-width: 800px; 
+    margin: auto;
 }
 
 #divChooseName, #divJoinOrHost {
