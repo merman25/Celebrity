@@ -1,8 +1,8 @@
-let game_state="WAITING_FOR_PLAYERS"
-let num_names_per_player=0
-let game_arr = []
-let current_name_index=0
-let previous_name_index=0
+let gameState="WAITING_FOR_PLAYERS"
+let numNamesPerPlayer=0
+let gameArr = []
+let currentNameIndex=0
+let previousNameIndex=0
 let iAmPlaying = false
 let nameList = []
 let gameStateLogging = false
@@ -107,12 +107,12 @@ function updateGameState(gameID) {
     let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
 	if (this.readyState == 4 && this.status == 200) {
-	    game_arr = toAssocArr(this.responseText)
+	    gameArr = toAssocArr(this.responseText)
 
-	    num_names_per_player = game_arr["numNames"]
+	    numNamesPerPlayer = gameArr["numNames"]
 
 	    if ( gameStateLogging ) {
-		console.log("names per player: " + num_names_per_player);
+		console.log("names per player: " + numNamesPerPlayer);
 	    }
 	    
 	    iAmPlaying = iAmCurrentPlayer()
@@ -121,8 +121,8 @@ function updateGameState(gameID) {
 		console.log("Current player? " + iAmPlaying);
 	    }
 
-	    let gameStateString = game_arr["state"]
-	    if ( game_state != "READY_TO_START_NEXT_TURN"
+	    let gameStateString = gameArr["state"]
+	    if ( gameState != "READY_TO_START_NEXT_TURN"
 		 && gameStateString == "READY_TO_START_NEXT_TURN" ) {
 
 		if ( iAmPlaying ) {
@@ -130,7 +130,7 @@ function updateGameState(gameID) {
 		    document.getElementById("gameStatusDiv").innerHTML = "It's your turn!"
 		}
 		else {
-		    let currentPlayerName = myDecode( game_arr["currentPlayer"] )
+		    let currentPlayerName = myDecode( gameArr["currentPlayer"] )
 		    
 		    document.getElementById("startTurnButton").style.display = 'none'
 		    document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn"
@@ -141,7 +141,7 @@ function updateGameState(gameID) {
 	    }
 
 
-	    let nameListString = game_arr["nameList"]
+	    let nameListString = gameArr["nameList"]
 	    if ( nameListString != null ) {
 		nameList = nameListString.split(",")
 	    }
@@ -156,11 +156,11 @@ function updateGameState(gameID) {
 		console.log("Set game state to " + gameStateString);
 	    }
 
-	    if ( game_state == "PLAYING_A_TURN" ) {
-		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + game_arr["secondsRemaining"]
+	    if ( gameState == "PLAYING_A_TURN" ) {
+		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameArr["secondsRemaining"]
 	    }
 
-	    let playerListString = game_arr["players"]
+	    let playerListString = gameArr["players"]
 			 
 	    if ( playerListString != null ) {
 		let playerList = playerListString.split(",")
@@ -181,7 +181,7 @@ function updateGameState(gameID) {
 	    }
 
 	    if ( gameStateString == "WAITING_FOR_NAMES" ) {
-		let numPlayersToWaitFor = game_arr["numPlayersToWaitFor"]
+		let numPlayersToWaitFor = gameArr["numPlayersToWaitFor"]
 		if ( numPlayersToWaitFor != null ) {
 		    document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)"
 		}
@@ -201,7 +201,7 @@ function updateGameState(gameID) {
 		}
 	    }
 
-	    let teamListString = game_arr["teams"]
+	    let teamListString = gameArr["teams"]
 	    if ( teamListString != null ) {
 		let teamList = teamListString.split(",");
 		let tableHeaders = [];
@@ -269,11 +269,11 @@ function updateGameState(gameID) {
 		console.log("Finished processing team list");
 	    }
 
-	    let numRounds = game_arr["rounds"]
+	    let numRounds = gameArr["rounds"]
 	    if ( numRounds > 0 ) {
 		let htmlParams = "<h2>Settings</h2>\n" +
 		    "Rounds: " + numRounds + "<br>\n" +
-		    "Round duration (sec): " + game_arr["duration"] + "<br>\n<hr>\n";
+		    "Round duration (sec): " + gameArr["duration"] + "<br>\n<hr>\n";
 		document.getElementById("gameParamsDiv").innerHTML = htmlParams;
 	    }
 
@@ -281,7 +281,7 @@ function updateGameState(gameID) {
 		console.log("Finished processing numRounds");
 	    }
 
-	    let namesAchievedString = game_arr["namesAchieved"]
+	    let namesAchievedString = gameArr["namesAchieved"]
 	    if ( namesAchievedString != null ) {
 		scoresHTML = "<h2>Scores</h2>\n";
 		scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
@@ -317,7 +317,7 @@ function updateGameState(gameID) {
 		console.log("Finished processing namesAchievedString");
 	    }
 
-	    let totalScoresString = game_arr["scores"]
+	    let totalScoresString = gameArr["scores"]
 
 	    if ( totalScoresString != null ) {
 		totalScoresHTML = ""
@@ -384,7 +384,7 @@ function updateGameState(gameID) {
 
 function iAmCurrentPlayer() {
     sessionID = getCookie("session");
-    let currentPlayerSessionID = game_arr["currentPlayerSession"]
+    let currentPlayerSessionID = gameArr["currentPlayerSession"]
     
     if ( sessionID == currentPlayerSessionID ) {
 	return true;
@@ -464,20 +464,20 @@ function requestNames() {
 }
 
 function setGameState(newState) {
-    if ( game_state != newState ) {
-	console.log("Changing state from " + game_state + " to " + newState);
+    if ( gameState != newState ) {
+	console.log("Changing state from " + gameState + " to " + newState);
     }
 	 
-    if ( game_state != "WAITING_FOR_NAMES"
+    if ( gameState != "WAITING_FOR_NAMES"
 	 && newState == "WAITING_FOR_NAMES" ) {
 	updateGameInfo("<hr>Put your names into the hat!");
 	addNameRequestForm();
     }
 
-    if ( game_state != "PLAYING_A_TURN"
+    if ( gameState != "PLAYING_A_TURN"
 	 && newState == "PLAYING_A_TURN" ) {
-	current_name_index=game_arr["currentNameIndex"]
-	previous_name_index=game_arr["previousNameIndex"]
+	currentNameIndex=gameArr["currentNameIndex"]
+	previousNameIndex=gameArr["previousNameIndex"]
 
 	if ( iAmPlaying ) {
 	    document.getElementById("turnControlsDiv").style.display = 'flex'
@@ -485,18 +485,18 @@ function setGameState(newState) {
 	updateCurrentNameDiv();
     }
 
-    if ( game_state != "READY_TO_START_NEXT_TURN"
+    if ( gameState != "READY_TO_START_NEXT_TURN"
 	 && newState == "READY_TO_START_NEXT_TURN" ) {
 	document.getElementById("turnControlsDiv").style.display = 'none'
 	document.getElementById("currentNameDiv").innerHTML = ""
-	let roundIndex = game_arr["roundIndex"]
+	let roundIndex = gameArr["roundIndex"]
 	if ( roundIndex != null ) {
 	    roundIndex = parseInt(roundIndex) + 1;
 	}
 	else {
 	    roundIndex = "??"
 	}
-	updateGameInfo("<hr>Playing round " + roundIndex + " of " + game_arr["rounds"])
+	updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameArr["rounds"])
     }
 
     if ( newState == "READY_TO_START_NEXT_ROUND" ) {
@@ -509,21 +509,21 @@ function setGameState(newState) {
     }
 
     if ( newState != "READY_TO_START_NEXT_ROUND"
-	 && game_state == "READY_TO_START_NEXT_ROUND" ) {
+	 && gameState == "READY_TO_START_NEXT_ROUND" ) {
 	hideHostDutiesElements();
     }
 
     if ( newState == "ENDED"
-	 && game_state != "ENDED" ) {
+	 && gameState != "ENDED" ) {
 	updateGameInfo("<hr>Game Over!");
     }
 
-    game_state = newState
+    gameState = newState
 }
 
 function addNameRequestForm() {
     let html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n'
-    for (let i=1; i<=num_names_per_player; i++) {
+    for (let i=1; i<=numNamesPerPlayer; i++) {
 	html += '<div class="col-label">\n';
 	html += '<label for="name' + i + '">Name ' + i + '</label>\n'
 	html += '</div>\n';
@@ -605,7 +605,7 @@ function startTurn() {
 
 function updateCurrentNameDiv() {
     if ( iAmPlaying ) {
-	currentName = myDecode( nameList[ current_name_index ] );
+	currentName = myDecode( nameList[ currentNameIndex ] );
 	document.getElementById("currentNameDiv").innerHTML = "Name: " + currentName
     }
     else {
@@ -615,7 +615,7 @@ function updateCurrentNameDiv() {
 
 function gotName() {
 //    gameStateLogging = true;
-    current_name_index++;
+    currentNameIndex++;
     setTimeout( function() {
 	document.getElementById("startTurnButton").style.display = 'none'
 	let xhttp = new XMLHttpRequest();
@@ -626,11 +626,11 @@ function gotName() {
 	}
 	xhttp.onload = function() {}
 	xhttp.open("POST", "setCurrentNameIndex", true);
-	xhttp.send("newNameIndex=" + current_name_index);
+	xhttp.send("newNameIndex=" + currentNameIndex);
 	
     }, 500 );
 
-    if ( current_name_index < nameList.length ) {
+    if ( currentNameIndex < nameList.length ) {
 	updateCurrentNameDiv();
     }
     else {
@@ -680,7 +680,7 @@ function pass() {
 	}
 	xhttp.onload = function() {}
 	xhttp.open("POST", "pass", true);
-	xhttp.send("passNameIndex=" + current_name_index);
+	xhttp.send("passNameIndex=" + currentNameIndex);
 	
     }, 500 );
 }
