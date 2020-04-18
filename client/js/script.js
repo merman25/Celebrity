@@ -1,11 +1,11 @@
-let gameState = "WAITING_FOR_PLAYERS"
-let numNamesPerPlayer = 0
+let gameState = "WAITING_FOR_PLAYERS";
+let numNamesPerPlayer = 0;
 let gameStateObject = {};
-let currentNameIndex = 0
-let previousNameIndex = 0
-let iAmPlaying = false
-let nameList = []
-let gameStateLogging = false
+let currentNameIndex = 0;
+let previousNameIndex = 0;
+let iAmPlaying = false;
+let nameList = [];
+let gameStateLogging = false;
 
 function htmlEscape(string) {
 	return string.replace(/&/g, "&amp;")
@@ -47,28 +47,28 @@ function clearCookie(cname) {
 }
 
 function nameSubmitted() {
-	document.getElementById("divChooseName").style.display = 'none'
-	document.getElementById("divJoinOrHost").style.display = 'block'
+	document.getElementById("divChooseName").style.display = 'none';
+	document.getElementById("divJoinOrHost").style.display = 'block';
 }
 
 function requestGameID() {
-	document.getElementById("join").style.display = 'none'
-	document.getElementById("host").style.display = 'none'
+	document.getElementById("join").style.display = 'none';
+	document.getElementById("host").style.display = 'none';
 
-	document.getElementById("joinGameForm").style.display = 'block'
+	document.getElementById("joinGameForm").style.display = 'block';
 }
 
 
 function hostNewGame() {
-	document.getElementById("divJoinOrHost").style.display = 'none'
+	document.getElementById("divJoinOrHost").style.display = 'none';
 
-	document.getElementById("hostGameDiv").style.display = 'block'
-	document.getElementById("playGameDiv").style.display = 'block'
+	document.getElementById("hostGameDiv").style.display = 'block';
+	document.getElementById("playGameDiv").style.display = 'block';
 	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
-			let arr = toAssocArr(this.responseText)
-			let gameID = arr["gameID"]
+			let arr = toAssocArr(this.responseText);
+			let gameID = arr["gameID"];
 			updateGameInfo("<hr>\n"
 				+ "<h2>Game ID: " + gameID + "</h2>\n"
 				+ "<p>Waiting for others to join...</p>");
@@ -86,13 +86,13 @@ function updateGameInfo(html) {
 }
 
 function toAssocArr(inputText) {
-	let keyValArr = inputText.split("&")
+	let keyValArr = inputText.split("&");
 	let arr = {};
 	for (let i = 0; i < keyValArr.length; i++) {
-		let element = keyValArr[i]
-		let elementSplit = element.split("=")
+		let element = keyValArr[i];
+		let elementSplit = element.split("=");
 		if (elementSplit.length == 2) {
-			arr[elementSplit[0]] = elementSplit[1]
+			arr[elementSplit[0]] = elementSplit[1];
 		}
 	}
 
@@ -140,11 +140,11 @@ function updateGameState(gameID) {
 			let playerList = gameStateObject.players;
 
 			if (playerList.length > 0) {
-				let htmlList = "<h3>Players</h3>\n<ul>\n"
+				let htmlList = "<h3>Players</h3>\n<ul>\n";
 				for (let i = 0; i < playerList.length; i++) {
-					htmlList += "<li>" + myDecode(playerList[i]) + "</li>\n"
+					htmlList += "<li>" + myDecode(playerList[i]) + "</li>\n";
 				}
-				htmlList += "</ul>"
+				htmlList += "</ul>";
 				document.getElementById("playerList").innerHTML = htmlList;
 			}
 			else {
@@ -154,15 +154,15 @@ function updateGameState(gameID) {
 			if (gameStateString == "WAITING_FOR_NAMES") {
 				let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
 				if (numPlayersToWaitFor != null) {
-					document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)"
+					document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)";
 				}
 				else {
-					document.getElementById("gameStatusDiv").innerHTML = ""
+					document.getElementById("gameStatusDiv").innerHTML = "";
 				}
 
 				if (numPlayersToWaitFor == null
 					|| numPlayersToWaitFor == "0") {
-					document.getElementById("startGameButton").style.display = 'block'
+					document.getElementById("startGameButton").style.display = 'block';
 					showHostDutiesElements();
 				}
 			}
@@ -227,7 +227,7 @@ function updateGameState(gameID) {
 
 				}
 
-				document.getElementById("teamList").innerHTML = htmlTeamList
+				document.getElementById("teamList").innerHTML = htmlTeamList;
 			}
 
 			let numRounds = gameStateObject.rounds;
@@ -247,16 +247,16 @@ function updateGameState(gameID) {
 				let teamName = namesAchievedObject.name;
 				let namesAchievedList = namesAchievedObject.namesAchieved;
 
-				scoresHTML += '<div style="padding-right: 4rem;">\n'
+				scoresHTML += '<div style="padding-right: 4rem;">\n';
 				scoresHTML += "<h3>" + teamName + "</h3>\n";
 				let score = namesAchievedList.length;
 				if (score > 0) {
 					atLeastOneNonZeroScore = true;
 				}
 				scoresHTML += "Score: " + score + "\n";
-				scoresHTML += "<ol>\n"
+				scoresHTML += "<ol>\n";
 				for (let j = 0; j < namesAchievedList.length; j++) {
-					scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n"
+					scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n";
 				}
 				scoresHTML += "</ol>\n</div>\n";
 			}
@@ -345,11 +345,11 @@ function iAmCurrentPlayer() {
 }
 
 function gameParamsSubmitted() {
-	document.getElementById("gameParamsForm").style.display = 'none'
+	document.getElementById("gameParamsForm").style.display = 'none';
 }
 
 function allocateTeams() {
-	document.getElementById("requestNamesButton").style.display = 'block'
+	document.getElementById("requestNamesButton").style.display = 'block';
 
 	let xhttp = new XMLHttpRequest();
 	xhttp.onload = function () { }
@@ -359,20 +359,20 @@ function allocateTeams() {
 }
 
 function waitForGameIDResponse() {
-	document.getElementById("divJoinOrHost").style.display = 'none'
+	document.getElementById("divJoinOrHost").style.display = 'none';
 	// For some reason it doesn't send the xhttp unless I set a timeout.
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 
-				let gameResponse = arr["GameResponse"]
+				let gameResponse = arr["GameResponse"];
 				if (gameResponse == "OK") {
-					document.getElementById("joinGameForm").style.display = 'none'
-					document.getElementById("playGameDiv").style.display = 'block'
+					document.getElementById("joinGameForm").style.display = 'none';
+					document.getElementById("playGameDiv").style.display = 'block';
 
-					let gameID = arr["GameID"]
+					let gameID = arr["GameID"];
 
 					updateGameInfo("<hr>\n"
 						+ "<h2>Game ID: " + gameID + "</h2>\n"
@@ -382,7 +382,7 @@ function waitForGameIDResponse() {
 					updateGameStateForever(gameID);
 				}
 				else {
-					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID"
+					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
 				}
 			}
 		};
@@ -393,15 +393,15 @@ function waitForGameIDResponse() {
 }
 
 function requestNames() {
-	document.getElementById("requestNamesButton").style.display = 'none'
-	document.getElementById("allocateTeamsDiv").style.display = 'none'
+	document.getElementById("requestNamesButton").style.display = 'none';
+	document.getElementById("allocateTeamsDiv").style.display = 'none';
 	hideHostDutiesElements();
 
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 
 
 			};
@@ -430,21 +430,21 @@ function setGameState(newState) {
 		previousNameIndex = gameStateObject.previousNameIndex;
 
 		if (iAmPlaying) {
-			document.getElementById("turnControlsDiv").style.display = 'flex'
+			document.getElementById("turnControlsDiv").style.display = 'flex';
 		}
 		updateCurrentNameDiv();
 	}
 
 	if (gameState != "READY_TO_START_NEXT_TURN"
 		&& newState == "READY_TO_START_NEXT_TURN") {
-		document.getElementById("turnControlsDiv").style.display = 'none'
-		document.getElementById("currentNameDiv").innerHTML = ""
+		document.getElementById("turnControlsDiv").style.display = 'none';
+		document.getElementById("currentNameDiv").innerHTML = "";
 		let roundIndex = gameStateObject.roundIndex;
 		if (roundIndex != null) {
 			roundIndex = parseInt(roundIndex) + 1;
 		}
 		else {
-			roundIndex = "??"
+			roundIndex = "??";
 		}
 		updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameStateObject.rounds);
 	}
@@ -452,10 +452,10 @@ function setGameState(newState) {
 	if (newState == "READY_TO_START_NEXT_ROUND") {
 		document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
 		showHostDutiesElements();
-		document.getElementById("startNextRoundButton").style.display = 'block'
+		document.getElementById("startNextRoundButton").style.display = 'block';
 	}
 	else {
-		document.getElementById("startNextRoundButton").style.display = 'none'
+		document.getElementById("startNextRoundButton").style.display = 'none';
 	}
 
 	if (newState != "READY_TO_START_NEXT_ROUND"
@@ -468,34 +468,34 @@ function setGameState(newState) {
 		updateGameInfo("<hr>Game Over!");
 	}
 
-	gameState = newState
+	gameState = newState;
 }
 
 function addNameRequestForm() {
-	let html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n'
+	let html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n';
 	for (let i = 1; i <= numNamesPerPlayer; i++) {
 		html += '<div class="col-label">\n';
-		html += '<label for="name' + i + '">Name ' + i + '</label>\n'
+		html += '<label for="name' + i + '">Name ' + i + '</label>\n';
 		html += '</div>\n';
 
 		html += '<div class="col-textfield">\n';
-		html += '<input id="name' + i + '" name="name' + i + '" type="text">\n'
+		html += '<input id="name' + i + '" name="name' + i + '" type="text">\n';
 		html += '</div>\n';
 	}
 
-	html += '<div class="clear"></div>'
-	html += '<input type="hidden" name="form" value="nameList">\n'
-	html += '<input type="submit" value="Put in Hat">\n'
-	html += '</form>\n'
+	html += '<div class="clear"></div>';
+	html += '<input type="hidden" name="form" value="nameList">\n';
+	html += '<input type="submit" value="Put in Hat">\n';
+	html += '</form>\n';
 
-	document.getElementById("nameList").innerHTML = html
+	document.getElementById("nameList").innerHTML = html;
 
 }
 
 function nameListSubmitted() {
 	setTimeout(function () {
 		let element = document.getElementById("nameList");
-		element.style.display = 'none'
+		element.style.display = 'none';
 	}, 200);
 }
 
@@ -515,15 +515,15 @@ function showHostDutiesElements() {
 
 function startGame() {
 	setTimeout(function () {
-		document.getElementById("startGameButton").style.display = 'none'
-		document.getElementById("gameStatusDiv").innerHTML = ""
+		document.getElementById("startGameButton").style.display = 'none';
+		document.getElementById("gameStatusDiv").innerHTML = "";
 
 		hideHostDutiesElements();
 
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 
 
 			};
@@ -537,11 +537,11 @@ function startGame() {
 
 function startTurn() {
 	setTimeout(function () {
-		document.getElementById("startTurnButton").style.display = 'none'
+		document.getElementById("startTurnButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 
 
 			};
@@ -556,10 +556,10 @@ function startTurn() {
 function updateCurrentNameDiv() {
 	if (iAmPlaying) {
 		currentName = myDecode(nameList[currentNameIndex]);
-		document.getElementById("currentNameDiv").innerHTML = "Name: " + currentName
+		document.getElementById("currentNameDiv").innerHTML = "Name: " + currentName;
 	}
 	else {
-		document.getElementById("currentNameDiv").innerHTML = ""
+		document.getElementById("currentNameDiv").innerHTML = "";
 	}
 }
 
@@ -567,11 +567,11 @@ function gotName() {
 	//    gameStateLogging = true;
 	currentNameIndex++;
 	setTimeout(function () {
-		document.getElementById("startTurnButton").style.display = 'none'
+		document.getElementById("startTurnButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 			};
 		}
 		xhttp.onload = function () { }
@@ -584,23 +584,23 @@ function gotName() {
 		updateCurrentNameDiv();
 	}
 	else {
-		document.getElementById("turnControlsDiv").style.display = 'none'
+		document.getElementById("turnControlsDiv").style.display = 'none';
 		finishRound();
 	}
 }
 
 function finishRound() {
-	document.getElementById("gameStatusDiv").innerHTML = "Finished Round!"
-	document.getElementById("currentNameDiv").innerHTML = ""
+	document.getElementById("gameStatusDiv").innerHTML = "Finished Round!";
+	document.getElementById("currentNameDiv").innerHTML = "";
 }
 
 function startNextRound() {
 	setTimeout(function () {
-		document.getElementById("startNextRoundButton").style.display = 'none'
+		document.getElementById("startNextRoundButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
 			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 
 
 			};
@@ -620,7 +620,7 @@ function pass() {
 			console.log("pass readyState" + this.readyState + ", status " + this.status);
 			if (this.readyState == 4 && this.status == 200) {
 				document.getElementById("passButton").disabled = false;
-				let arr = toAssocArr(this.responseText)
+				let arr = toAssocArr(this.responseText);
 				let nameListString = arr["nameList"];
 				if (nameListString != null) {
 					nameList = nameListString.split(",");
