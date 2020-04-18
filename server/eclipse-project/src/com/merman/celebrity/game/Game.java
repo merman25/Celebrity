@@ -122,6 +122,9 @@ public class Game {
 		teamList.add(team1);
 		teamList.add(team2);
 		playersWithoutTeams.clear();
+		
+		nextTeamIndex = -1;
+		incrementPlayer();
 	}
 
 	public synchronized void setNameList(Player aPlayer, List<String> aCelebNameList) {
@@ -135,9 +138,6 @@ public class Game {
 	}
 	
 	public synchronized Player getCurrentPlayer() {
-		if ( currentPlayer == null ) {
-			incrementPlayer();
-		}
 		return currentPlayer;
 	}
 	
