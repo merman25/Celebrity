@@ -399,13 +399,7 @@ function requestNames() {
 
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-
-
-			};
-		}
+		xhttp.onreadystatechange = function () {}
 		xhttp.onload = function () { }
 		xhttp.open("POST", "sendNameRequest", true);
 		xhttp.send("a=b");
@@ -521,13 +515,7 @@ function startGame() {
 		hideHostDutiesElements();
 
 		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-
-
-			};
-		}
+		xhttp.onreadystatechange = function () {}
 		xhttp.onload = function () { }
 		xhttp.open("POST", "startGame", true);
 		xhttp.send("");
@@ -539,13 +527,7 @@ function startTurn() {
 	setTimeout(function () {
 		document.getElementById("startTurnButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-
-
-			};
-		}
+		xhttp.onreadystatechange = function () {}
 		xhttp.onload = function () { }
 		xhttp.open("POST", "startTurn", true);
 		xhttp.send("");
@@ -569,11 +551,7 @@ function gotName() {
 	setTimeout(function () {
 		document.getElementById("startTurnButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-			};
-		}
+		xhttp.onreadystatechange = function () {}
 		xhttp.onload = function () { }
 		xhttp.open("POST", "setCurrentNameIndex", true);
 		xhttp.send("newNameIndex=" + currentNameIndex);
@@ -598,13 +576,7 @@ function startNextRound() {
 	setTimeout(function () {
 		document.getElementById("startNextRoundButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-
-
-			};
-		}
+		xhttp.onreadystatechange = function () {}
 		xhttp.onload = function () { }
 		xhttp.open("POST", "startNextRound", true);
 		xhttp.send("");
