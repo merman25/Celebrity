@@ -1,11 +1,11 @@
-var game_state="WAITING_FOR_PLAYERS"
-var num_names_per_player=0
-var game_arr = []
-var current_name_index=0
-var previous_name_index=0
-var iAmPlaying = false
-var nameList = []
-var gameStateLogging = false
+let game_state="WAITING_FOR_PLAYERS"
+let num_names_per_player=0
+let game_arr = []
+let current_name_index=0
+let previous_name_index=0
+let iAmPlaying = false
+let nameList = []
+let gameStateLogging = false
 
 function htmlEscape(string) {
     return string.replace( /&/g, "&amp;")
@@ -20,18 +20,18 @@ function myDecode(string) {
 }
 
 function setCookie(cname, cvalue, exdays) {
-  var d = new Date();
+  let d = new Date();
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
-    var expires = "expires="+d.toUTCString();
-    var cookieString = cname + "=" + cvalue + ";" + expires + ";path=/";
+    let expires = "expires="+d.toUTCString();
+    let cookieString = cname + "=" + cvalue + ";" + expires + ";path=/";
   document.cookie = cookieString;
 }
 
 function getCookie(cname) {
-  var name = cname + "=";
-  var ca = document.cookie.split(';');
-  for(var i = 0; i < ca.length; i++) {
-    var c = ca[i];
+  let name = cname + "=";
+  let ca = document.cookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
     while (c.charAt(0) == ' ') {
       c = c.substring(1);
     }
@@ -58,28 +58,17 @@ function requestGameID() {
     document.getElementById("joinGameForm").style.display = 'block'
 }
 
-/*
-function provideGameID(oFormElement) {
-  var xhr = new XMLHttpRequest();
-  xhr.onload = function(){ alert (xhr.responseText); } // success case
-  xhr.onerror = function(){ alert (xhr.responseText); } // failure case
-  xhr.open (oFormElement.method, oFormElement.action, true);
-  xhr.send (new FormData (oFormElement));
-  return false;
-}
-*/
 
 function hostNewGame() {
     document.getElementById("divJoinOrHost").style.display = 'none'
-//    document.getElementById("host").style.display = 'none'
 
     document.getElementById("hostGameDiv").style.display = 'block'
     document.getElementById("playGameDiv").style.display = 'block'
-    var xhttp = new XMLHttpRequest();
+    let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
 	if (this.readyState == 4 && this.status == 200) {
-	    var arr = toAssocArr(this.responseText)
-	    var gameID = arr["gameID"]
+	    let arr = toAssocArr(this.responseText)
+	    let gameID = arr["gameID"]
 	    updateGameInfo("<hr>\n"
 			   + "<h2>Game ID: " + gameID + "</h2>\n"
 			   + "<p>Waiting for others to join...</p>" );
@@ -97,11 +86,11 @@ function updateGameInfo(html) {
 }
 
 function toAssocArr(inputText) {
-    var keyValArr = inputText.split("&")
-    var arr = {};
-    for ( var i=0; i<keyValArr.length; i++ ) {
-	var element = keyValArr[i]
-	var elementSplit = element.split("=")
+    let keyValArr = inputText.split("&")
+    let arr = {};
+    for ( let i=0; i<keyValArr.length; i++ ) {
+	let element = keyValArr[i]
+	let elementSplit = element.split("=")
 	if ( elementSplit.length == 2 ) {
 	    arr[ elementSplit[0] ] = elementSplit[1]
 	}
@@ -115,7 +104,7 @@ function updateGameStateForever(gameID) {
 }
 
 function updateGameState(gameID) {
-    var xhttp = new XMLHttpRequest();
+    let xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
 	if (this.readyState == 4 && this.status == 200) {
 	    game_arr = toAssocArr(this.responseText)
@@ -132,7 +121,7 @@ function updateGameState(gameID) {
 		console.log("Current player? " + iAmPlaying);
 	    }
 
-	    var gameStateString = game_arr["state"]
+	    let gameStateString = game_arr["state"]
 	    if ( game_state != "READY_TO_START_NEXT_TURN"
 		 && gameStateString == "READY_TO_START_NEXT_TURN" ) {
 
@@ -141,7 +130,7 @@ function updateGameState(gameID) {
 		    document.getElementById("gameStatusDiv").innerHTML = "It's your turn!"
 		}
 		else {
-		    var currentPlayerName = myDecode( game_arr["currentPlayer"] )
+		    let currentPlayerName = myDecode( game_arr["currentPlayer"] )
 		    
 		    document.getElementById("startTurnButton").style.display = 'none'
 		    document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn"
@@ -152,7 +141,7 @@ function updateGameState(gameID) {
 	    }
 
 
-	    var nameListString = game_arr["nameList"]
+	    let nameListString = game_arr["nameList"]
 	    if ( nameListString != null ) {
 		nameList = nameListString.split(",")
 	    }
@@ -171,13 +160,13 @@ function updateGameState(gameID) {
 		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + game_arr["secondsRemaining"]
 	    }
 
-	    var playerListString = game_arr["players"]
+	    let playerListString = game_arr["players"]
 			 
 	    if ( playerListString != null ) {
-		var playerList = playerListString.split(",")
+		let playerList = playerListString.split(",")
 
-		var htmlList = "<h3>Players</h3>\n<ul>\n"
-		for ( var i=0; i<playerList.length; i++) {
+		let htmlList = "<h3>Players</h3>\n<ul>\n"
+		for ( let i=0; i<playerList.length; i++) {
 		    htmlList += "<li>" + myDecode( playerList[i] ) + "</li>\n"
 		}
 		htmlList += "</ul>"
@@ -192,7 +181,7 @@ function updateGameState(gameID) {
 	    }
 
 	    if ( gameStateString == "WAITING_FOR_NAMES" ) {
-		var numPlayersToWaitFor = game_arr["numPlayersToWaitFor"]
+		let numPlayersToWaitFor = game_arr["numPlayersToWaitFor"]
 		if ( numPlayersToWaitFor != null ) {
 		    document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)"
 		}
@@ -212,43 +201,43 @@ function updateGameState(gameID) {
 		}
 	    }
 
-	    var teamListString = game_arr["teams"]
+	    let teamListString = game_arr["teams"]
 	    if ( teamListString != null ) {
-		var teamList = teamListString.split(",");
-		var tableHeaders = [];
-		var tableColumns = [];
+		let teamList = teamListString.split(",");
+		let tableHeaders = [];
+		let tableColumns = [];
 
-		for ( var i=0; i<teamList.length; i++) {
-		    var teamString = teamList[i];
-		    var teamNameArr = teamString.split("\|")
-		    var teamName = teamNameArr[0]
+		for ( let i=0; i<teamList.length; i++) {
+		    let teamString = teamList[i];
+		    let teamNameArr = teamString.split("\|")
+		    let teamName = teamNameArr[0]
 
 		    tableHeaders[i] = teamName;
 
 		    tableColumns[i] = [];
 		    
-		    for ( var j=1; j<teamNameArr.length; j++) {
+		    for ( let j=1; j<teamNameArr.length; j++) {
 			tableColumns[i][j-1] = myDecode( teamNameArr[j] );
 		    }
 		}
 
-		var htmlTeamList = "";
+		let htmlTeamList = "";
 
 		if ( tableHeaders.length > 0 ) {
 		    htmlTeamList += "<h2>Teams</h2>\n";
 		    htmlTeamList += '<table>\n';
 
 		    htmlTeamList += '<tr>\n';
-		    for ( var i=0; i<tableHeaders.length; i++ ) {
+		    for ( let i=0; i<tableHeaders.length; i++ ) {
 			htmlTeamList += '<th>';
 			htmlTeamList += tableHeaders[i];
 			htmlTeamList += "</th>\n";
 		    }
 		    htmlTeamList += '</tr>\n';
 
-		    for ( var row=0; ; row++ ) {
-			var stillHaveRowsInAtLeastOneColumn = false;
-			for ( var col=0; col<tableColumns.length; col++ ) {
+		    for ( let row=0; ; row++ ) {
+			let stillHaveRowsInAtLeastOneColumn = false;
+			for ( let col=0; col<tableColumns.length; col++ ) {
 			    if ( row < tableColumns[col].length ) {
 				stillHaveRowsInAtLeastOneColumn = true;
 				break;
@@ -260,7 +249,7 @@ function updateGameState(gameID) {
 			}
 
 			htmlTeamList += '<tr>\n';
-			for ( var col=0; col<tableColumns.length; col++) {
+			for ( let col=0; col<tableColumns.length; col++) {
 			    htmlTeamList += '<td>';
 			    if ( row < tableColumns[col].length ) {
 				htmlTeamList += tableColumns[col][row];
@@ -280,9 +269,9 @@ function updateGameState(gameID) {
 		console.log("Finished processing team list");
 	    }
 
-	    var numRounds = game_arr["rounds"]
+	    let numRounds = game_arr["rounds"]
 	    if ( numRounds > 0 ) {
-		var htmlParams = "<h2>Settings</h2>\n" +
+		let htmlParams = "<h2>Settings</h2>\n" +
 		    "Rounds: " + numRounds + "<br>\n" +
 		    "Round duration (sec): " + game_arr["duration"] + "<br>\n<hr>\n";
 		document.getElementById("gameParamsDiv").innerHTML = htmlParams;
@@ -292,26 +281,26 @@ function updateGameState(gameID) {
 		console.log("Finished processing numRounds");
 	    }
 
-	    var namesAchievedString = game_arr["namesAchieved"]
+	    let namesAchievedString = game_arr["namesAchieved"]
 	    if ( namesAchievedString != null ) {
 		scoresHTML = "<h2>Scores</h2>\n";
 		scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
 
-		var namesAchievedPerTeamStringArr = namesAchievedString.split(",")
-		for ( var i=0; i<namesAchievedPerTeamStringArr.length; i++) {
-		    var namesAchievedForTeamString = namesAchievedPerTeamStringArr[i]
-		    var namesAchievedForTeam = namesAchievedForTeamString.split("\|");
-		    var teamName = namesAchievedForTeam[0]
+		let namesAchievedPerTeamStringArr = namesAchievedString.split(",")
+		for ( let i=0; i<namesAchievedPerTeamStringArr.length; i++) {
+		    let namesAchievedForTeamString = namesAchievedPerTeamStringArr[i]
+		    let namesAchievedForTeam = namesAchievedForTeamString.split("\|");
+		    let teamName = namesAchievedForTeam[0]
 
 		    scoresHTML += '<div style="padding-right: 4rem;">\n'
 		    scoresHTML += "<h3>" + teamName + "</h3>\n";
-		    var score =  namesAchievedForTeam.length - 1;
+		    let score =  namesAchievedForTeam.length - 1;
 		    if ( score == NaN ) {
 			score = 0;
 		    }
 		    scoresHTML += "Score: " + score  + "\n";
 		    scoresHTML += "<ol>\n"
-		    for (var j=1; j<namesAchievedForTeam.length; j++) {
+		    for (let j=1; j<namesAchievedForTeam.length; j++) {
 			scoresHTML += "<li>" + myDecode( namesAchievedForTeam[j] ) + "</li>\n"
 		    }
 		    scoresHTML += "</ol>\n</div>\n";
@@ -328,27 +317,27 @@ function updateGameState(gameID) {
 		console.log("Finished processing namesAchievedString");
 	    }
 
-	    var totalScoresString = game_arr["scores"]
+	    let totalScoresString = game_arr["scores"]
 
 	    if ( totalScoresString != null ) {
 		totalScoresHTML = ""
 
-		var tableHeaders = [ "Round" ];
-		var tableColumns = [[]];
+		let tableHeaders = [ "Round" ];
+		let tableColumns = [[]];
 
-		var totalScoresPerTeamArr = totalScoresString.split(",");
-		for ( var i=0; i<totalScoresPerTeamArr.length; i++ ) {
-		    var totalScoresForTeamString = totalScoresPerTeamArr[i];
-		    var totalScoresForTeam = totalScoresForTeamString.split("\|");
-		    var teamName = totalScoresForTeam[0];
+		let totalScoresPerTeamArr = totalScoresString.split(",");
+		for ( let i=0; i<totalScoresPerTeamArr.length; i++ ) {
+		    let totalScoresForTeamString = totalScoresPerTeamArr[i];
+		    let totalScoresForTeam = totalScoresForTeamString.split("\|");
+		    let teamName = totalScoresForTeam[0];
 
 		    tableHeaders[i + 1] = teamName;
 
-		    var total = 0;
+		    let total = 0;
 		    if ( totalScoresForTeam.length > 0 ) {
 			tableColumns[i+1] = [];
 		    }
-		    for ( var j=1; j<totalScoresForTeam.length; j++ ) {
+		    for ( let j=1; j<totalScoresForTeam.length; j++ ) {
 			tableColumns[0][j-1] = j;
 			tableColumns[i+1][j-1] = totalScoresForTeam[j];
 			total += parseInt(totalScoresForTeam[j]);
@@ -364,15 +353,15 @@ function updateGameState(gameID) {
 		    totalScoresHTML += '<table>\n';
 
 		    totalScoresHTML += "<tr>\n";
-		    for ( var i=0; i<tableHeaders.length; i++ ) {
+		    for ( let i=0; i<tableHeaders.length; i++ ) {
 			totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
 		    }
 		    totalScoresHTML += "</tr>\n";
 
-		    for ( var row=0; row < tableColumns[0].length; row++ ) {
+		    for ( let row=0; row < tableColumns[0].length; row++ ) {
 			totalScoresHTML += '<tr>\n';
-			for ( var col=0; col<tableColumns.length; col++) {
-			    var styleString = '>';
+			for ( let col=0; col<tableColumns.length; col++) {
+			    let styleString = '>';
 			    if ( row == tableColumns[col].length - 1 ) {
 				styleString = ' class="totalClass">';
 			    }
@@ -395,7 +384,7 @@ function updateGameState(gameID) {
 
 function iAmCurrentPlayer() {
     sessionID = getCookie("session");
-    var currentPlayerSessionID = game_arr["currentPlayerSession"]
+    let currentPlayerSessionID = game_arr["currentPlayerSession"]
     
     if ( sessionID == currentPlayerSessionID ) {
 	return true;
@@ -412,7 +401,7 @@ function gameParamsSubmitted() {
 function allocateTeams() {
     document.getElementById("requestNamesButton").style.display = 'block'
     
-    var xhttp = new XMLHttpRequest();
+    let xhttp = new XMLHttpRequest();
     xhttp.onload = function() {}
     xhttp.open("GET", "allocateTeams", true);
     xhttp.send();
@@ -423,17 +412,17 @@ function waitForGameIDResponse() {
     document.getElementById("divJoinOrHost").style.display = 'none'
     // For some reason it doesn't send the xhttp unless I set a timeout.
     setTimeout( function() {
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 		
-		var gameResponse = arr["GameResponse"]
+		let gameResponse = arr["GameResponse"]
 		if ( gameResponse == "OK" ) {
 		    document.getElementById("joinGameForm").style.display = 'none'
 		    document.getElementById("playGameDiv").style.display = 'block'
 		    
-		    var gameID = arr["GameID"]
+		    let gameID = arr["GameID"]
 
 		    updateGameInfo("<hr>\n"
 				   + "<h2>Game ID: " + gameID + "</h2>\n"
@@ -459,10 +448,10 @@ function requestNames() {
     hideHostDutiesElements();
     
     setTimeout( function() {
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 		
 		
 	    };
@@ -500,7 +489,7 @@ function setGameState(newState) {
 	 && newState == "READY_TO_START_NEXT_TURN" ) {
 	document.getElementById("turnControlsDiv").style.display = 'none'
 	document.getElementById("currentNameDiv").innerHTML = ""
-	var roundIndex = game_arr["roundIndex"]
+	let roundIndex = game_arr["roundIndex"]
 	if ( roundIndex != null ) {
 	    roundIndex = parseInt(roundIndex) + 1;
 	}
@@ -533,8 +522,8 @@ function setGameState(newState) {
 }
 
 function addNameRequestForm() {
-    var html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n'
-    for (var i=1; i<=num_names_per_player; i++) {
+    let html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n'
+    for (let i=1; i<=num_names_per_player; i++) {
 	html += '<div class="col-label">\n';
 	html += '<label for="name' + i + '">Name ' + i + '</label>\n'
 	html += '</div>\n';
@@ -555,21 +544,21 @@ function addNameRequestForm() {
 
 function nameListSubmitted() {
     setTimeout( function() {
-	var element = document.getElementById("nameList");
+	let element = document.getElementById("nameList");
 	element.style.display = 'none'
     }, 200 );
 }
 
 function hideHostDutiesElements() {
     performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
-    for ( var i=0; i<performHostDutiesElements.length; i++) {
+    for ( let i=0; i<performHostDutiesElements.length; i++) {
 	performHostDutiesElements[i].style.display = 'none';
     }
 }
 
 function showHostDutiesElements() {
     performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
-    for ( var i=0; i<performHostDutiesElements.length; i++) {
+    for ( let i=0; i<performHostDutiesElements.length; i++) {
 	performHostDutiesElements[i].style.display = 'block';
     }
 }
@@ -581,10 +570,10 @@ function startGame() {
 
 	hideHostDutiesElements();
 
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 		
 		
 	    };
@@ -599,10 +588,10 @@ function startGame() {
 function startTurn() {
     setTimeout( function() {
 	document.getElementById("startTurnButton").style.display = 'none'
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 		
 		
 	    };
@@ -621,8 +610,6 @@ function updateCurrentNameDiv() {
     }
     else {
 	document.getElementById("currentNameDiv").innerHTML = ""
-//	var numOfNameBeingGuessed = current_name_index - previous_name_index + 1;
-//	document.getElementById("currentNameDiv").innerHTML = game_arr["currentPlayer"] + " is on name " + numOfNameBeingGuessed
     }
 }
 
@@ -631,10 +618,10 @@ function gotName() {
     current_name_index++;
     setTimeout( function() {
 	document.getElementById("startTurnButton").style.display = 'none'
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 	    };
 	}
 	xhttp.onload = function() {}
@@ -660,10 +647,10 @@ function finishRound() {
 function startNextRound() {
        setTimeout( function() {
 	document.getElementById("startNextRoundButton").style.display = 'none'
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    if (this.readyState == 4 && this.status == 200) {
-		var arr = toAssocArr(this.responseText)
+		let arr = toAssocArr(this.responseText)
 		
 		
 	    };
@@ -678,13 +665,13 @@ function startNextRound() {
 function pass() {
     document.getElementById("passButton").disabled = true;
     setTimeout( function() {
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
 	    console.log("pass readyState" + this.readyState + ", status " + this.status);
 	    if (this.readyState == 4 && this.status == 200) {
 		document.getElementById("passButton").disabled = false;
-		var arr = toAssocArr(this.responseText)
-		var nameListString = arr["nameList"];
+		let arr = toAssocArr(this.responseText)
+		let nameListString = arr["nameList"];
 		if ( nameListString != null ) {
 		    nameList = nameListString.split(",");
 		    updateCurrentNameDiv();
@@ -701,7 +688,7 @@ function pass() {
 function endTurn() {
     document.getElementById("turnControlsDiv").style.display = 'none';
     setTimeout ( function() {
-	var xhttp = new XMLHttpRequest();
+	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {};
 	xhttp.onload = function() {};
 	xhttp.open("POST", "endTurn", true);
