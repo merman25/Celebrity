@@ -1,6 +1,6 @@
 let gameState = "WAITING_FOR_PLAYERS"
 let numNamesPerPlayer = 0
-let gameArr = []
+let gameStateObject = {};
 let currentNameIndex = 0
 let previousNameIndex = 0
 let iAmPlaying = false
@@ -104,67 +104,42 @@ function updateGameStateForever(gameID) {
 }
 
 function updateGameState(gameID) {
+
 	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
-			gameArr = toAssocArr(this.responseText)
+			gameStateObject = JSON.parse(this.responseText);
 
-			numNamesPerPlayer = gameArr["numNames"]
+			numNamesPerPlayer = gameStateObject.numNames;
+			iAmPlaying = iAmCurrentPlayer();
 
-			if (gameStateLogging) {
-				console.log("names per player: " + numNamesPerPlayer);
-			}
-
-			iAmPlaying = iAmCurrentPlayer()
-
-			if (gameStateLogging) {
-				console.log("Current player? " + iAmPlaying);
-			}
-
-			let gameStateString = gameArr["state"]
+			let gameStateString = gameStateObject.state;
 			if (gameState != "READY_TO_START_NEXT_TURN"
 				&& gameStateString == "READY_TO_START_NEXT_TURN") {
 
 				if (iAmPlaying) {
-					document.getElementById("startTurnButton").style.display = 'block'
-					document.getElementById("gameStatusDiv").innerHTML = "It's your turn!"
+					document.getElementById("startTurnButton").style.display = 'block';
+					document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 				}
 				else {
-					let currentPlayerName = myDecode(gameArr["currentPlayer"])
+					let currentPlayerName = myDecode(gameStateObject.currentPlayer);
 
-					document.getElementById("startTurnButton").style.display = 'none'
-					document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn"
-				}
-				if (gameStateLogging) {
-					console.log("finished changes for READY_TO_START_NEXT_TURN");
+					document.getElementById("startTurnButton").style.display = 'none';
+					document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
 				}
 			}
 
 
-			let nameListString = gameArr["nameList"]
-			if (nameListString != null) {
-				nameList = nameListString.split(",")
-			}
-
-			if (gameStateLogging) {
-				console.log("Processed name list");
-			}
-
+			nameList = gameStateObject.nameList;
 			setGameState(gameStateString);
 
-			if (gameStateLogging) {
-				console.log("Set game state to " + gameStateString);
-			}
-
 			if (gameState == "PLAYING_A_TURN") {
-				document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameArr["secondsRemaining"]
+				document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameStateObject.secondsRemaining;
 			}
 
-			let playerListString = gameArr["players"]
+			let playerList = gameStateObject.players;
 
-			if (playerListString != null) {
-				let playerList = playerListString.split(",")
-
+			if (playerList.length > 0) {
 				let htmlList = "<h3>Players</h3>\n<ul>\n"
 				for (let i = 0; i < playerList.length; i++) {
 					htmlList += "<li>" + myDecode(playerList[i]) + "</li>\n"
@@ -176,12 +151,8 @@ function updateGameState(gameID) {
 				document.getElementById("playerList").innerHTML = "";
 			}
 
-			if (gameStateLogging) {
-				console.log("Finished processing player list");
-			}
-
 			if (gameStateString == "WAITING_FOR_NAMES") {
-				let numPlayersToWaitFor = gameArr["numPlayersToWaitFor"]
+				let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
 				if (numPlayersToWaitFor != null) {
 					document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)"
 				}
@@ -194,30 +165,24 @@ function updateGameState(gameID) {
 					document.getElementById("startGameButton").style.display = 'block'
 					showHostDutiesElements();
 				}
-
-
-				if (gameStateLogging) {
-					console.log("Finished processing WAITING_FOR_NAMES");
-				}
 			}
 
-			let teamListString = gameArr["teams"]
-			if (teamListString != null) {
-				let teamList = teamListString.split(",");
+			let teamObjectList = gameStateObject.teams;
+			if (teamObjectList.length > 0) {
 				let tableHeaders = [];
 				let tableColumns = [];
 
-				for (let i = 0; i < teamList.length; i++) {
-					let teamString = teamList[i];
-					let teamNameArr = teamString.split("\|")
-					let teamName = teamNameArr[0]
+				for (let i = 0; i < teamObjectList.length; i++) {
+					let teamObject = teamObjectList[i];
+					let teamName = teamObject.name;
 
 					tableHeaders[i] = teamName;
 
 					tableColumns[i] = [];
 
-					for (let j = 1; j < teamNameArr.length; j++) {
-						tableColumns[i][j - 1] = myDecode(teamNameArr[j]);
+					let teamNameList = teamObject.playerList;
+					for (let j = 0; j < teamNameList.length; j++) {
+						tableColumns[i][j] = myDecode(teamNameList[j]);
 					}
 				}
 
@@ -265,126 +230,111 @@ function updateGameState(gameID) {
 				document.getElementById("teamList").innerHTML = htmlTeamList
 			}
 
-			if (gameStateLogging) {
-				console.log("Finished processing team list");
-			}
-
-			let numRounds = gameArr["rounds"]
+			let numRounds = gameStateObject.rounds;
 			if (numRounds > 0) {
 				let htmlParams = "<h2>Settings</h2>\n" +
 					"Rounds: " + numRounds + "<br>\n" +
-					"Round duration (sec): " + gameArr["duration"] + "<br>\n<hr>\n";
+					"Round duration (sec): " + gameStateObject.duration + "<br>\n<hr>\n";
 				document.getElementById("gameParamsDiv").innerHTML = htmlParams;
 			}
 
-			if (gameStateLogging) {
-				console.log("Finished processing numRounds");
-			}
+			let namesAchievedObjectList = gameStateObject.namesAchieved;
+			let atLeastOneNonZeroScore = false;
+			let scoresHTML = "<h2>Scores</h2>\n";
+			scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
+			for (let t = 0; t < namesAchievedObjectList.length; t++) {
+				let namesAchievedObject = namesAchievedObjectList[t];
+				let teamName = namesAchievedObject.name;
+				let namesAchievedList = namesAchievedObject.namesAchieved;
 
-			let namesAchievedString = gameArr["namesAchieved"]
-			if (namesAchievedString != null) {
-				scoresHTML = "<h2>Scores</h2>\n";
-				scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
-
-				let namesAchievedPerTeamStringArr = namesAchievedString.split(",")
-				for (let i = 0; i < namesAchievedPerTeamStringArr.length; i++) {
-					let namesAchievedForTeamString = namesAchievedPerTeamStringArr[i]
-					let namesAchievedForTeam = namesAchievedForTeamString.split("\|");
-					let teamName = namesAchievedForTeam[0]
-
-					scoresHTML += '<div style="padding-right: 4rem;">\n'
-					scoresHTML += "<h3>" + teamName + "</h3>\n";
-					let score = namesAchievedForTeam.length - 1;
-					if (score == NaN) {
-						score = 0;
-					}
-					scoresHTML += "Score: " + score + "\n";
-					scoresHTML += "<ol>\n"
-					for (let j = 1; j < namesAchievedForTeam.length; j++) {
-						scoresHTML += "<li>" + myDecode(namesAchievedForTeam[j]) + "</li>\n"
-					}
-					scoresHTML += "</ol>\n</div>\n";
+				scoresHTML += '<div style="padding-right: 4rem;">\n'
+				scoresHTML += "<h3>" + teamName + "</h3>\n";
+				let score = namesAchievedList.length;
+				if (score > 0) {
+					atLeastOneNonZeroScore = true;
 				}
-				scoresHTML += '</div>';
-
-				document.getElementById("scoresDiv").innerHTML = scoresHTML
-			}
-			else {
-				document.getElementById("scoresDiv").innerHTML = ""
-			}
-
-			if (gameStateLogging) {
-				console.log("Finished processing namesAchievedString");
-			}
-
-			let totalScoresString = gameArr["scores"]
-
-			if (totalScoresString != null) {
-				totalScoresHTML = ""
-
-				let tableHeaders = ["Round"];
-				let tableColumns = [[]];
-
-				let totalScoresPerTeamArr = totalScoresString.split(",");
-				for (let i = 0; i < totalScoresPerTeamArr.length; i++) {
-					let totalScoresForTeamString = totalScoresPerTeamArr[i];
-					let totalScoresForTeam = totalScoresForTeamString.split("\|");
-					let teamName = totalScoresForTeam[0];
-
-					tableHeaders[i + 1] = teamName;
-
-					let total = 0;
-					if (totalScoresForTeam.length > 0) {
-						tableColumns[i + 1] = [];
-					}
-					for (let j = 1; j < totalScoresForTeam.length; j++) {
-						tableColumns[0][j - 1] = j;
-						tableColumns[i + 1][j - 1] = totalScoresForTeam[j];
-						total += parseInt(totalScoresForTeam[j]);
-					}
-					if (totalScoresForTeam.length > 0) {
-						tableColumns[0][totalScoresForTeam.length - 1] = "Total";
-						tableColumns[i + 1][totalScoresForTeam.length - 1] = total;
-					}
+				scoresHTML += "Score: " + score + "\n";
+				scoresHTML += "<ol>\n"
+				for (let j = 0; j < namesAchievedList.length; j++) {
+					scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n"
 				}
+				scoresHTML += "</ol>\n</div>\n";
+			}
+			scoresHTML += '</div>';
 
-				if (tableColumns[0].length > 1) {
-					totalScoresHTML += "<h2>Total Scores</h2>\n";
-					totalScoresHTML += '<table>\n';
 
-					totalScoresHTML += "<tr>\n";
-					for (let i = 0; i < tableHeaders.length; i++) {
-						totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
+			if (!atLeastOneNonZeroScore) {
+				scoresHTML = "";
+			}
+
+			document.getElementById("scoresDiv").innerHTML = scoresHTML;
+
+			let totalScoresObjectList = gameStateObject.scores;
+			let atLeastOneRoundHasBeenRecorded = false;
+			let totalScoresHTML = "";
+
+			let tableHeaders = ["Round"];
+			let tableColumns = [[]];
+
+			for (let t = 0; t < totalScoresObjectList.length; t++) {
+				let totalScoresObject = totalScoresObjectList[t];
+				let teamName = totalScoresObject.name;
+				let scoreList = totalScoresObject.scores;
+
+				tableHeaders[t + 1] = teamName;
+
+				let total = 0;
+				if (scoreList.length > 0) {
+					tableColumns[t + 1] = [];
+				}
+				for (let j = 0; j < scoreList.length; j++) {
+					tableColumns[0][j] = j + 1;
+					tableColumns[t + 1][j] = scoreList[j];
+					total += parseInt(scoreList[j]);
+				}
+				if (scoreList.length > 0) {
+					tableColumns[0][scoreList.length] = "Total";
+					tableColumns[t + 1][scoreList.length] = total;
+				}
+			}
+
+			if (tableColumns[0].length > 1) {
+				totalScoresHTML += "<h2>Total Scores</h2>\n";
+				totalScoresHTML += '<table>\n';
+
+				totalScoresHTML += "<tr>\n";
+				for (let i = 0; i < tableHeaders.length; i++) {
+					totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
+				}
+				totalScoresHTML += "</tr>\n";
+
+				for (let row = 0; row < tableColumns[0].length; row++) {
+					totalScoresHTML += '<tr>\n';
+					for (let col = 0; col < tableColumns.length; col++) {
+						let styleString = '>';
+						if (row == tableColumns[col].length - 1) {
+							styleString = ' class="totalClass">';
+						}
+						totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
 					}
 					totalScoresHTML += "</tr>\n";
-
-					for (let row = 0; row < tableColumns[0].length; row++) {
-						totalScoresHTML += '<tr>\n';
-						for (let col = 0; col < tableColumns.length; col++) {
-							let styleString = '>';
-							if (row == tableColumns[col].length - 1) {
-								styleString = ' class="totalClass">';
-							}
-							totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
-						}
-						totalScoresHTML += "</tr>\n";
-					}
-
-					totalScoresHTML += "</table>";
 				}
 
-				document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
+				totalScoresHTML += "</table>";
 			}
+
+			document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
+
 		}
 	}
 
-	xhttp.open("POST", "requestGameState", true);
+	xhttp.open("POST", "requestGameStateJSON", true);
 	xhttp.send("gameID=" + gameID);
 }
 
 function iAmCurrentPlayer() {
 	sessionID = getCookie("session");
-	let currentPlayerSessionID = gameArr["currentPlayerSession"]
+	let currentPlayerSessionID = gameStateObject.currentPlayerSession;
 
 	if (sessionID == currentPlayerSessionID) {
 		return true;
@@ -476,8 +426,8 @@ function setGameState(newState) {
 
 	if (gameState != "PLAYING_A_TURN"
 		&& newState == "PLAYING_A_TURN") {
-		currentNameIndex = gameArr["currentNameIndex"]
-		previousNameIndex = gameArr["previousNameIndex"]
+		currentNameIndex = gameStateObject.currentNameIndex;
+		previousNameIndex = gameStateObject.previousNameIndex;
 
 		if (iAmPlaying) {
 			document.getElementById("turnControlsDiv").style.display = 'flex'
@@ -489,14 +439,14 @@ function setGameState(newState) {
 		&& newState == "READY_TO_START_NEXT_TURN") {
 		document.getElementById("turnControlsDiv").style.display = 'none'
 		document.getElementById("currentNameDiv").innerHTML = ""
-		let roundIndex = gameArr["roundIndex"]
+		let roundIndex = gameStateObject.roundIndex;
 		if (roundIndex != null) {
 			roundIndex = parseInt(roundIndex) + 1;
 		}
 		else {
 			roundIndex = "??"
 		}
-		updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameArr["rounds"])
+		updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameStateObject.rounds);
 	}
 
 	if (newState == "READY_TO_START_NEXT_ROUND") {

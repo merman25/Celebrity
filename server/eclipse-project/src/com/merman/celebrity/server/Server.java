@@ -161,6 +161,27 @@ public class Server {
 			}
 		});
 
+		server.createContext( "/requestGameStateJSON", new AHttpHandler() {
+
+			@Override
+			public String getHandlerName() {
+				return "requestGameStateJSON";
+			}
+
+			@Override
+			protected void _handle(HttpExchange aExchange) throws IOException {
+				LinkedHashMap<String, String> requestBody = HttpExchangeUtil.getRequestBodyAsMap(aExchange);
+				String gameID = requestBody.get("gameID");
+				if ( gameID != null ) {
+					Game game = GameManager.getGame(gameID);
+					if ( game != null ) {
+						String serialisedGame = GameManager.serialiseJSON(game);
+						sendResponse(aExchange, HTTPResponseConstants.OK, serialisedGame);
+					}
+				}
+			}
+		});
+
 		FormHandlerRegistry.addHandler( new FormHandler( "gameParams", exchange -> {
 			String sessionID = HttpExchangeUtil.getSessionID(exchange);
 			Session session = SessionManager.getSession(sessionID);

@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
+
+import org.json.JSONObject;
 
 public class GameManager {
 	private static Map<String, Game>		gamesMap		= new HashMap<String, Game>();
@@ -44,6 +47,56 @@ public class GameManager {
 	
 	public static synchronized Game getGameHostedByPlayer(Player aHost) {
 		return mapHostsToGames.get(aHost);
+	}
+	
+	public static synchronized String serialiseJSON( Game aGame ) {
+		JSONObject jsonObject = new JSONObject()
+                .put( "host", aGame.getHost().getName() )
+                .put( "state", aGame.getState() )
+                .put( "players", aGame.getPlayersWithoutTeams().stream()
+                				 .map( player -> player.getName() )
+                				 .collect( Collectors.toList() ) )
+                .put( "teams", aGame.getTeamList().stream()
+                			   .map( team -> new JSONObject()
+                				   .put( "name", team.getTeamName() )
+                				   .put( "playerList", team.getPlayerList().stream()
+                						   			   .map( player -> player.getName() )
+                						   			   .collect( Collectors.toList() ) ) )
+                			   .collect( Collectors.toList() ) )
+                .put( "scores", aGame.getTeamList().stream()
+                		        .map( team -> new JSONObject()
+                		            .put( "name", team.getTeamName() )
+                		            .put( "scores" , aGame.getMapTeamsToScores().get(team) ) )
+                		        .collect( Collectors.toList() ) )
+                .put( "rounds", aGame.getNumRounds() )
+                .put( "roundIndex", aGame.getRoundIndex() )
+                .put( "duration", aGame.getRoundDurationInSec() )
+                .put( "numNames", aGame.getNumNamesPerPlayer() )
+                .put( "currentPlayerSession", aGame.getCurrentPlayer() == null ? null : aGame.getCurrentPlayer().getSessionID() )
+                .put( "currentPlayer", aGame.getCurrentPlayer() == null ? null : aGame.getCurrentPlayer().getName() )
+                .put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
+                .put( "namesAchieved", aGame.getTeamList().stream()
+                		               .map( team -> new JSONObject()
+                		            		   .put( "name", team.getTeamName() )
+                		            		   .put( "namesAchieved", aGame.getMapTeamsToAchievedNames().get( team ) ) )
+                		               .collect( Collectors.toList() ) )
+                ;
+		
+		if ( aGame.getState() == GameState.PLAYING_A_TURN
+				&& aGame.getCurrentTurn() != null ) {
+			Turn currentTurn = aGame.getCurrentTurn();
+			if ( currentTurn.isStarted()
+					&& ! currentTurn.isStopped() ) {
+				jsonObject.put( "secondsRemaining", currentTurn.getSecondsRemaining() )
+				          .put( "previousNameIndex", aGame.getPreviousNameIndex() )
+				          .put( "currentNameIndex", aGame.getCurrentNameIndex() )
+				          .put( "nameList", aGame.getShuffledNameList() )
+				          ;
+			}
+		}
+		
+		
+		return jsonObject.toString();
 	}
 	
 	public static synchronized String serialise( Game aGame ) {

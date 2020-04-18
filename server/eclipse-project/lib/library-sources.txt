@@ -1,0 +1,3 @@
+Library sources
+
+json-20190722.jar: https://github.com/stleary/JSON-java
