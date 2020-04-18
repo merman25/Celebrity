@@ -49,7 +49,7 @@ public class GameManager {
 		return mapHostsToGames.get(aHost);
 	}
 	
-	public static synchronized String serialiseJSON( Game aGame ) {
+	public static synchronized String serialise( Game aGame ) {
 		JSONObject jsonObject = new JSONObject()
                 .put( "host", aGame.getHost().getName() )
                 .put( "state", aGame.getState() )
@@ -99,129 +99,6 @@ public class GameManager {
 		return jsonObject.toString();
 	}
 	
-	public static synchronized String serialise( Game aGame ) {
-		StringBuilder builder = new StringBuilder();
-		synchronized (aGame) {
-			builder.append("host=");
-			builder.append(aGame.getHost().getName());
-			builder.append("&");
-			builder.append("state=");
-			builder.append(aGame.getState().toString());
-			if ( ! aGame.getPlayersWithoutTeams().isEmpty() ) {
-				builder.append("&");
-				builder.append("players=");
-				
-				boolean first = true;
-				for ( Player player : aGame.getPlayersWithoutTeams() ) {
-					if ( ! first ) {
-						builder.append(",");
-					}
-					first = false;
-					builder.append(player.getName());
-				}
-			}
-			if ( ! aGame.getTeamList().isEmpty() ) {
-				builder.append("&teams=");
-				
-				boolean first = true;
-				for ( Team team : aGame.getTeamList() ) {
-					if ( ! first ) {
-						builder.append(",");
-					}
-					first = false;
-					builder.append( team.getTeamName() );
-					if ( ! team.getPlayerList().isEmpty() ) {
-						for ( Player player : team.getPlayerList() ) {
-							builder.append("|");
-							builder.append(player.getName());
-						}
-					}
-				}
-				
-				builder.append("&scores=");
-				
-				first = true;
-				for ( Team team : aGame.getTeamList() ) {
-					if ( ! first ) {
-						builder.append(",");
-					}
-					first = false;
-					builder.append( team.getTeamName() );
-					
-					List<Integer> scoreList = aGame.getMapTeamsToScores().get(team);
-					if ( scoreList != null ) {
-						for ( Integer score : scoreList ) {
-							builder.append("|");
-							builder.append(score);
-						}
-					}
-				}
-			}
-			if ( aGame.getNumRounds() > 0 ) {
-				builder.append("&rounds=");
-				builder.append( aGame.getNumRounds() );
-				builder.append("&roundIndex=");
-				builder.append( aGame.getRoundIndex() );
-			}
-			if ( aGame.getRoundDurationInSec() > 0 ) {
-				builder.append("&duration=");
-				builder.append( aGame.getRoundDurationInSec() );
-			}
-			if ( aGame.getNumNamesPerPlayer() > 0 ) {
-				builder.append("&numNames=");
-				builder.append( aGame.getNumNamesPerPlayer() );
-			}
-			if ( aGame.getState() == GameState.READY_TO_START_NEXT_TURN
-					|| aGame.getState() == GameState.PLAYING_A_TURN ) {
-				Player currentPlayer = aGame.getCurrentPlayer();
-				builder.append("&currentPlayerSession=");
-				builder.append(currentPlayer.getSessionID());
-				builder.append("&currentPlayer=");
-				builder.append(currentPlayer.getName());
-			}
-			if ( aGame.getState() == GameState.WAITING_FOR_NAMES ) {
-				int numPlayersToWaitFor = aGame.getNumPlayersToWaitFor();
-				builder.append("&numPlayersToWaitFor=");
-				builder.append(numPlayersToWaitFor);
-			}
-			if ( aGame.getState() == GameState.PLAYING_A_TURN
-					&& aGame.getCurrentTurn() != null ) {
-				Turn currentTurn = aGame.getCurrentTurn();
-				if ( currentTurn.isStarted()
-						&& ! currentTurn.isStopped() ) {
-					builder.append("&secondsRemaining=");
-					builder.append(currentTurn.getSecondsRemaining());
-					builder.append("&previousNameIndex=");
-					builder.append(aGame.getPreviousNameIndex());
-					builder.append("&currentNameIndex=");
-					builder.append(aGame.getCurrentNameIndex());
-					builder.append("&nameList=");
-					builder.append(String.join(",", aGame.getShuffledNameList()));
-				}
-			}
-			
-			if ( ! aGame.getMapTeamsToAchievedNames().isEmpty() ) {
-				builder.append("&namesAchieved=");
-				
-				boolean first = true;
-				for ( Team team : aGame.getTeamList() ) {
-					if ( ! first ) {
-						builder.append(",");
-					}
-					first = false;
-					List<String> achievedNames = aGame.getMapTeamsToAchievedNames().get(team);
-					builder.append(team.getTeamName());
-					if ( achievedNames != null ) {
-						builder.append("|");
-						builder.append(String.join("|", achievedNames));
-					}
-				}
-			}
-		}
-		
-		return builder.toString();
-	}
-
 	public static synchronized void createTestGame(String aGameID, Player aPlayer) {
 		Game game = null;
 		

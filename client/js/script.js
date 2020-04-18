@@ -328,7 +328,7 @@ function updateGameState(gameID) {
 		}
 	}
 
-	xhttp.open("POST", "requestGameStateJSON", true);
+	xhttp.open("POST", "requestGameState", true);
 	xhttp.send("gameID=" + gameID);
 }
 
