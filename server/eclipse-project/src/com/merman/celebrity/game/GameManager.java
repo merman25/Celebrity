@@ -161,9 +161,9 @@ public class GameManager {
 				t -> t.getPlayerList().forEach(
 			    p -> g.setNameList(p, createRandomNameList(numNamesPerPlayer) ) ) );
 		
+		game.freezeNameList();
 		for ( int roundIndex = 0; roundIndex < numRounds; roundIndex++ ) {
 			System.out.println( "playing round " + roundIndex );
-			game.freezeNameList();
 			game.shuffleNames();
 			game.startRound();
 			
