@@ -1,129 +1,134 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
-    <!-- Icons made by <a href="https://www.flaticon.com/authors/roundicons" title="Roundicons">Roundicons</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+  <!-- Icons made by <a href="https://www.flaticon.com/authors/roundicons" title="Roundicons">Roundicons</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
       -->
 
-    <!-- setting the viewport doesn't seem to make a difference -->
-<!--    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.8"> -->
-    <title>Celebrity</title>
-    <link href="https://fonts.googleapis.com/css2?family=Baloo+Paaji+2&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="styles.css">
-    <script src="js/script.js"></script>
-  </head>
-  <body>
-    <center><h1>Let's Play Celebrity!</h1></center>
+  <!-- setting the viewport doesn't seem to make a difference -->
+  <!--    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.8"> -->
+  <title>Celebrity</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Paaji+2&display=swap" rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <script src="js/script.js"></script>
+</head>
 
-    <div id="dummy"></div>
+<body>
+  <center>
+    <h1>Let's Play Celebrity!</h1>
+  </center>
 
+  <div id="dummy"></div>
+
+  <hr>
+  <div id="instructions">
+    Warning:
+    <ul>
+      <li>Don't refresh unless you're ready to start a new game</li>
+      <li>Don't use the back button</li>
+    </ul>
+  </div>
+
+  <div id="divChooseName">
     <hr>
-    <div id="instructions">
-      Warning:
-      <ul>
-	<li>Don't refresh unless you're ready to start a new game</li>
-	<li>Don't use the back button</li>
-      </ul>
-    </div>
+    <p>Give yourself a name:</p>
+    <form method="post" onsubmit="nameSubmitted()">
+      <input id="nameField" name="username" type="text">
+      <input type="hidden" name="form" value="username">
+      <input type="submit" value="OK">
+    </form>
+  </div>
 
-    <div id="divChooseName">
-      <hr>
-      <p>Give yourself a name:</p>
-      <form method="post" onsubmit="nameSubmitted()">
-	<input id="nameField" name="username" type="text">
-	<input type="hidden" name="form" value="username">
-	<input type="submit" value="OK">
+  <div id="divJoinOrHost" style="display:none">
+    <hr>
+    <button id="join" onclick="requestGameID()">Join Existing Game</button>
+    <div id="joinGameForm" style="display:none">
+      <form id="gameIDForm" method="post" onsubmit="waitForGameIDResponse()">
+        <label for="gameIDField">Game ID</label>
+        <input id="gameIDField" name="gameID" type="text">
+        <input type="hidden" name="form" value="gameID">
+        <input type="submit" value="OK">
       </form>
     </div>
+    <div id="gameIDErrorDiv"></div>
+    <br>
+    <br>
+    <button id="host" onclick="hostNewGame()">Host New Game</button>
+  </div>
 
-    <div id="divJoinOrHost" style="display:none">
+  <div id="gameInfoDiv">
+  </div>
+
+
+  <div id="hostGameDiv" style="display:none">
+    <form id="gameParamsForm" method="post" onsubmit="gameParamsSubmitted()">
       <hr>
-      <button id="join" onclick="requestGameID()">Join Existing Game</button>
-      <div id="joinGameForm" style="display:none">
-	<form id="gameIDForm" method="post" onsubmit="waitForGameIDResponse()">
-	  <label for="gameIDField">Game ID</label>
-	  <input id="gameIDField" name="gameID" type="text">
-	  <input type="hidden" name="form" value="gameID">
-	  <input type="submit" value="OK">
-	</form>
+      <div class="col-label">
+        <label for="numRoundsField">Number of Rounds</label>
       </div>
-      <div id="gameIDErrorDiv"></div>
-      <br>
-      <br>
-      <button id="host" onclick="hostNewGame()">Host New Game</button>
-    </div>
+      <div class="col-textfield">
+        <input id="numRoundsField" name="numRounds" type="text" value="3" size="10"><br>
+      </div>
+      <div class="col-label">
+        <label for="roundDurationField">Length of a Round in Seconds</label>
+      </div>
+      <div class="col-textfield">
+        <input id="roundDurationField" name="roundDuration" type="text" value="60" size="10"><br>
+      </div>
+      <div class="col-label">
+        <label for="numNamesField">Number of names from each player</label>
+      </div>
+      <div class="col-textfield">
+        <input id="numNamesField" name="numNames" type="text" value="6" size="10"><br>
+      </div>
+      <div class="clear"></div>
+      <input type="hidden" name="form" value="gameParams">
+      <div class="col-label">
+        <input type="submit" value="Set">
+      </div>
+    </form>
 
-    <div id="gameInfoDiv">
-    </div>
-    
-    
-    <div id="hostGameDiv" style="display:none">
-      <form id="gameParamsForm" method="post" onsubmit="gameParamsSubmitted()">
-	<hr>
-	<div class="col-label">
-	  <label for="numRoundsField">Number of Rounds</label>
-	</div>
-	<div class="col-textfield">
-	  <input id="numRoundsField" name="numRounds" type="text" value="3" size="10"><br>
-	</div>
-	<div class="col-label">
-	  <label for="roundDurationField">Length of a Round in Seconds</label>
-	</div>
-	<div class="col-textfield">
-	  <input id="roundDurationField" name="roundDuration" type="text" value="60" size="10"><br>
-	</div>
-	<div class="col-label">
-	  <label for="numNamesField">Number of names from each player</label>
-	</div>
-	<div class="col-textfield">
-	  <input id="numNamesField" name="numNames" type="text" value="6" size="10"><br>
-	</div>
-	<div class="clear"></div>
-	<input type="hidden" name="form" value="gameParams">
-	<div class="col-label">
-	  <input type="submit" value="Set">
-	</div>
-      </form>
+    <div class="performHostDutiesClass">
+      <div class="clear"></div>
 
-      <div class="performHostDutiesClass">
-	<div class="clear"></div>
-	
-	<hr>
-      </div>
-      <div id="allocateTeamsDiv">
-	<button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
-	<br>
-      </div>
-	<button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
-	<button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
-	<button id="startNextRoundButton" onclick="startNextRound()" style="display:none">Start Next Round</button>
-    </div>
-    
-    <div id="playGameDiv" style="display:none">
       <hr>
-      <button id="startTurnButton" onclick="startTurn()" style="display:none">Start Turn</button>
-      <div id="gameStatusDiv"></div>
-      <div id="currentNameDiv"></div>
-      <div id="turnControlsDiv" style="display:none; flex-direction: row;">
-	<button id="gotNameButton" class="turnControlButtonClass" onclick="gotName()">Got it!</button>
-	<button id="passButton" class="turnControlButtonClass" onclick="pass()">Pass</button>
-	<button id="endTurnButton" class="turnControlButtonClass" onclick="endTurn()">End turn</button>
+    </div>
+    <div id="allocateTeamsDiv">
+      <button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
+      <br>
+    </div>
+    <button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
+    <button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
+    <button id="startNextRoundButton" onclick="startNextRound()" style="display:none">Start Next Round</button>
+  </div>
+
+  <div id="playGameDiv" style="display:none">
+    <hr>
+    <button id="startTurnButton" onclick="startTurn()" style="display:none">Start Turn</button>
+    <div id="gameStatusDiv"></div>
+    <div id="currentNameDiv"></div>
+    <div id="turnControlsDiv" style="display:none; flex-direction: row;">
+      <button id="gotNameButton" class="turnControlButtonClass" onclick="gotName()">Got it!</button>
+      <button id="passButton" class="turnControlButtonClass" onclick="pass()">Pass</button>
+      <button id="endTurnButton" class="turnControlButtonClass" onclick="endTurn()">End turn</button>
+    </div>
+    <div id="gameParamsDiv"></div>
+    <div id="playerList">
+    </div>
+    <div id="teamAndTotalScoresDiv" style="display: flex; flex-direction: row;">
+      <div id="teamList">
       </div>
-      <div id="gameParamsDiv"></div>
-      <div id="playerList">
-      </div>
-      <div id="teamAndTotalScoresDiv" style="display: flex; flex-direction: row;">
-	<div id="teamList">
-	</div>
-	<div id="totalScoresDiv" style="padding-left: 10rem;">
-	</div>
-      </div>
-      <div id="nameList">
-      </div>
-      <div id="scoresDiv">
+      <div id="totalScoresDiv" style="padding-left: 10rem;">
       </div>
     </div>
-    
-  </body>
+    <div id="nameList">
+    </div>
+    <div id="scoresDiv">
+    </div>
+  </div>
+
+</body>
+
 </html>
