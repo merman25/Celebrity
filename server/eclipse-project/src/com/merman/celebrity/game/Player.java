@@ -4,6 +4,10 @@ public class Player {
 	private String name;
 	private Game game;
 	private String sessionID;
+	private int publicUniqueID;
+	
+	Player() {
+	}
 
 	public String getName() {
 		return name;
@@ -32,5 +36,13 @@ public class Player {
 
 	public String getSessionID() {
 		return sessionID;
+	}
+
+	public synchronized int getPublicUniqueID() {
+		return publicUniqueID;
+	}
+
+	synchronized void setPublicUniqueID(int aPublicUniqueID) {
+		publicUniqueID = aPublicUniqueID;
 	}
 }

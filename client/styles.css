@@ -97,3 +97,30 @@ th, td {
 .clear {
     clear: both;
 }
+
+.contextMenuClass {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: solid 1px;
+    list-style: none;
+    box-shadow: 0 0 20px 0 #ccc;
+    padding: 5px 0px 5px 0px;
+}
+
+.contextMenuClass li:not(.separator){
+    padding: 10px 5px 10px 5px;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+}
+
+.contextMenuClass li:hover{
+    background: #eee;
+    border-left: 4px solid #666;
+}
+
+.separator{
+    height: 1px;
+    background: #dedede;
+    margin: 2px 0px 2px 0px;
+}

@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
+import com.merman.celebrity.server.Session;
+import com.merman.celebrity.server.SessionManager;
+
 public class GameManager {
 	private static Map<String, Game>		gamesMap		= new HashMap<String, Game>();
 	private static Map<Player, Game>		mapHostsToGames	= new HashMap<Player, Game>();
@@ -49,18 +52,27 @@ public class GameManager {
 		return mapHostsToGames.get(aHost);
 	}
 	
-	public static synchronized String serialise( Game aGame ) {
+	public static synchronized String serialise( Game aGame, String aSessionIDOfRequester ) {
+		Integer publicIDOfRequester = null;
+		if ( aSessionIDOfRequester != null ) {
+			Session session = SessionManager.getSession(aSessionIDOfRequester);
+			if ( session != null ) {
+				publicIDOfRequester = session.getPlayer().getPublicUniqueID();
+			}
+		}
+		
 		JSONObject jsonObject = new JSONObject()
-                .put( "host", aGame.getHost().getName() )
+				.put( "publicIDOfRecipient", publicIDOfRequester )
+                .put( "host", toJSON( aGame.getHost() ) )
                 .put( "state", aGame.getState() )
                 .put( "players", aGame.getPlayersWithoutTeams().stream()
-                				 .map( player -> player.getName() )
+                				 .map( player -> toJSON( player ) )
                 				 .collect( Collectors.toList() ) )
                 .put( "teams", aGame.getTeamList().stream()
                 			   .map( team -> new JSONObject()
                 				   .put( "name", team.getTeamName() )
                 				   .put( "playerList", team.getPlayerList().stream()
-                						   			   .map( player -> player.getName() )
+                						   			   .map( player -> toJSON( player ) )
                 						   			   .collect( Collectors.toList() ) ) )
                 			   .collect( Collectors.toList() ) )
                 .put( "scores", aGame.getTeamList().stream()
@@ -72,8 +84,7 @@ public class GameManager {
                 .put( "roundIndex", aGame.getRoundIndex() )
                 .put( "duration", aGame.getRoundDurationInSec() )
                 .put( "numNames", aGame.getNumNamesPerPlayer() )
-                .put( "currentPlayerSession", aGame.getCurrentPlayer() == null ? null : aGame.getCurrentPlayer().getSessionID() )
-                .put( "currentPlayer", aGame.getCurrentPlayer() == null ? null : aGame.getCurrentPlayer().getName() )
+                .put( "currentPlayer", toJSON( aGame.getCurrentPlayer() ) )
                 .put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
                 .put( "namesAchieved", aGame.getTeamList().stream()
                 		               .map( team -> new JSONObject()
@@ -99,6 +110,17 @@ public class GameManager {
 		return jsonObject.toString();
 	}
 	
+	private static JSONObject toJSON( Player aPlayer ) {
+		if ( aPlayer == null ) {
+			return null;
+		}
+		
+		return new JSONObject()
+				.put("name", aPlayer.getName())
+				.put("publicID", aPlayer.getPublicUniqueID())
+				;
+	}
+	
 	public static synchronized void createTestGame(String aGameID, Player aPlayer) {
 		Game game = null;
 		
@@ -106,7 +128,7 @@ public class GameManager {
 		
 		
 		for (int playerIndex = 0; playerIndex < numOtherPlayers; playerIndex++) {
-			Player player = new Player();
+			Player player = PlayerManager.createPlayer();
 			String randomName = createRandomName();
 			try {
 				randomName = URLEncoder.encode( randomName, "UTF-8" );
@@ -141,6 +163,7 @@ public class GameManager {
 		
 		for ( int roundIndex = 0; roundIndex < numRounds; roundIndex++ ) {
 			System.out.println( "playing round " + roundIndex );
+			game.freezeNameList();
 			game.shuffleNames();
 			game.startRound();
 			

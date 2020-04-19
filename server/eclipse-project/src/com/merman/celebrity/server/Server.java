@@ -149,13 +149,19 @@ public class Server {
 
 			@Override
 			protected void _handle(HttpExchange aExchange) throws IOException {
+				String sessionID = HttpExchangeUtil.getSessionID(aExchange);
 				LinkedHashMap<String, String> requestBody = HttpExchangeUtil.getRequestBodyAsMap(aExchange);
 				String gameID = requestBody.get("gameID");
 				if ( gameID != null ) {
 					Game game = GameManager.getGame(gameID);
 					if ( game != null ) {
-						String serialisedGame = GameManager.serialise(game);
-						sendResponse(aExchange, HTTPResponseConstants.OK, serialisedGame);
+						try {
+							String serialisedGame = GameManager.serialise(game, sessionID);
+							sendResponse(aExchange, HTTPResponseConstants.OK, serialisedGame);
+						}
+						catch ( RuntimeException e ) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}
@@ -359,6 +365,7 @@ public class Server {
 					Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
 					if ( gameHostedByPlayer != null
 							&& gameHostedByPlayer.getState() == GameState.WAITING_FOR_NAMES ) {
+						gameHostedByPlayer.freezeNameList();
 						gameHostedByPlayer.shuffleNames();
 						gameHostedByPlayer.allowNextPlayerToStartNextTurn();
 						
@@ -498,6 +505,79 @@ public class Server {
 							}
 							else {
 								game.turnEnded();
+							}
+						}
+					}
+							
+					sendResponse(aExchange, HTTPResponseConstants.OK, "" );
+				}
+			}
+		} );
+		
+		server.createContext( "/putInTeam", new AHttpHandler() {
+			
+			@Override
+			public String getHandlerName() {
+				return "putInTeam";
+			}
+			
+			@Override
+			protected void _handle(HttpExchange aExchange) throws IOException {
+				String sessionID = HttpExchangeUtil.getSessionID(aExchange);
+				Session session = SessionManager.getSession(sessionID);
+				if ( session != null ) {
+					Player player = session.getPlayer();
+					Game game = player.getGame();
+					if ( game != null ) {
+						LinkedHashMap<String, String> requestBody = HttpExchangeUtil.getRequestBodyAsMap(aExchange);
+						String playerIDString = requestBody.get("playerID");
+						String teamIndexString = requestBody.get("teamIndex");
+						if ( playerIDString != null
+								&& teamIndexString != null ) {
+							try {
+								int playerPublicID = Integer.parseInt(playerIDString);
+								int teamIndex = Integer.parseInt(teamIndexString);
+								
+								game.putPlayerInTeam( playerPublicID, teamIndex );
+							}
+							catch ( NumberFormatException e ) {
+								e.printStackTrace();
+							}
+						}
+					}
+							
+					sendResponse(aExchange, HTTPResponseConstants.OK, "" );
+				}
+			}
+		} );
+
+		server.createContext( "/removeFromGame", new AHttpHandler() {
+			
+			@Override
+			public String getHandlerName() {
+				return "removeFromGame";
+			}
+			
+			@Override
+			protected void _handle(HttpExchange aExchange) throws IOException {
+				String sessionID = HttpExchangeUtil.getSessionID(aExchange);
+				Session session = SessionManager.getSession(sessionID);
+				if ( session != null ) {
+					Player player = session.getPlayer();
+					Game game = player.getGame();
+					if ( game != null ) {
+						List<String> requestBody = HttpExchangeUtil.getRequestBody(aExchange);
+						if ( requestBody.size() == 1 ) {
+							String playerIDString = requestBody.get( 0 );
+							if ( playerIDString != null) {
+								try {
+									int playerPublicID = Integer.parseInt(playerIDString);
+
+									game.removePlayer( playerPublicID );
+								}
+								catch ( NumberFormatException e ) {
+									e.printStackTrace();
+								}
 							}
 						}
 					}

@@ -15,6 +15,10 @@ public class Team {
 		playerList.remove(player);
 	}
 	
+	public synchronized int indexOf( Player player ) {
+		return playerList.indexOf(player);
+	}
+	
 	public synchronized List<Player> getPlayerList() {
 		return new ArrayList<>(playerList);
 	}

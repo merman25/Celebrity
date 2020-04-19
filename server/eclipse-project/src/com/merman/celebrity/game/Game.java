@@ -16,6 +16,7 @@ public class Game {
 	private Map<Player, Team>         mapPlayersToTeams           = new HashMap<Player, Team>();
 	private GameState                 state                       = GameState.WAITING_FOR_PLAYERS;
 	private Map<Player, List<String>> mapPlayersToNameLists       = new HashMap<Player, List<String>>();
+	private List<String>              masterNameList			  = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
 	private Turn                      currentTurn;
 	private int                       previousNameIndex;
@@ -178,9 +179,7 @@ public class Game {
 		previousNameIndex = 0;
 		currentNameIndex = 0;
 		shuffledNameList.clear();
-		for ( Entry<Player, List<String>> mapEntry : mapPlayersToNameLists.entrySet() ) {
-			shuffledNameList.addAll(mapEntry.getValue());
-		}
+		shuffledNameList.addAll(masterNameList);
 		Collections.shuffle(shuffledNameList);
 	}
 	
@@ -296,5 +295,62 @@ public class Game {
 
 	public synchronized Map<Team, List<Integer>> getMapTeamsToScores() {
 		return mapTeamsToScores;
+	}
+
+	public void putPlayerInTeam(int aPlayerPublicID, int aTeamIndex) {
+		Player player = PlayerManager.getPlayer(aPlayerPublicID);
+		if ( player != null ) {
+			for ( Team team : teamList ) {
+				removePlayerFromTeam(player, team);
+			}
+			
+			if ( aTeamIndex >=0
+					&& aTeamIndex < teamList.size() ) {
+				teamList.get(aTeamIndex).addPlayer(player);
+				playersWithoutTeams.remove(player);
+			}
+		}
+	}
+
+	private void removePlayerFromTeam(Player player, Team team) {
+		int indexOfPlayer = team.indexOf(player);
+		if ( indexOfPlayer >= 0 ) {
+			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.get(team);
+			if ( nextPlayerIndex != null
+					&& nextPlayerIndex > indexOfPlayer ) {
+				nextPlayerIndex--;
+				mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+			}
+			team.removePlayer(player);
+			
+			if ( currentPlayer == player ) {
+				incrementPlayer();
+			}
+		}
+	}
+
+	public void removePlayer(int aPlayerPublicID) {
+		Player player = PlayerManager.getPlayer(aPlayerPublicID);
+		if ( player != null
+				&& player != host ) {
+			player.setGame(null);
+
+
+			for ( Team team : teamList ) {
+				removePlayerFromTeam(player, team);
+			}
+
+			playersWithoutTeams.remove(player);
+			mapPlayersToTeams.remove(player);
+			mapPlayersToNameLists.remove(player);
+		}
+	}
+
+	public synchronized void freezeNameList() {
+		masterNameList.clear();
+		for ( Entry<Player, List<String>> mapEntry : mapPlayersToNameLists.entrySet() ) {
+			masterNameList.addAll(mapEntry.getValue());
+		}
+		mapPlayersToNameLists.clear();
 	}
 }

@@ -1,6 +1,7 @@
 package com.merman.celebrity.server;
 
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.game.PlayerManager;
 
 public class Session {
 	private final String sessionID;
@@ -8,7 +9,7 @@ public class Session {
 	
 	Session(String aSessionID) {
 		sessionID = aSessionID;
-		player = new Player();
+		player = PlayerManager.createPlayer();
 		player.setSessionID( aSessionID );
 	}
 
