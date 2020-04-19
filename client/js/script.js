@@ -160,7 +160,6 @@ function updateGameState(gameID) {
 
 							teamlessPlayerLi.addEventListener("contextmenu", event => {
 								event.preventDefault();
-								console.log(event);
 								let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
 								contextMenu.style.display = 'block';
 								contextMenu.style.left = (event.pageX - 10) + "px";
@@ -266,27 +265,20 @@ function updateGameState(gameID) {
 
 				if (iAmHosting) {
 					let selectedPlayerIDHolder = { playerID: null, teamIndex: null };
-					let setSelectedPlayer = (id, index) => {
-						console.log("setting selected player id to " + id);
-						selectedPlayerIDHolder.playerID = id;
-						selectedPlayerIDHolder.teamIndex = index;
-					}
 					let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
 					for (let i = 0; i < playerInTeamTDElements.length; i++) {
 						let playerInTeamTD = playerInTeamTDElements[i];
 						playerInTeamTD.addEventListener("mouseover", event => {
 							let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
 							let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
-							setSelectedPlayer( playerIDOfPlayerInTeam, teamIndex );
-
-							console.log("mouseover player ID " + playerIDOfPlayerInTeam);
+							selectedPlayerIDHolder.playerID = playerIDOfPlayerInTeam;
+							selectedPlayerIDHolder.teamIndex = teamIndex;
 						});
 
 						playerInTeamTD.addEventListener("contextmenu", event => {
 							event.preventDefault();
 							let playerIDOfPlayerInTeam = selectedPlayerIDHolder.playerID;
 							let teamIndex = selectedPlayerIDHolder.teamIndex;
-							console.log("context--menu player ID " + playerIDOfPlayerInTeam);
 
 
 							let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
@@ -315,7 +307,6 @@ function updateGameState(gameID) {
 							}
 
 							document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
-								console.log("passing arg " + playerIDOfPlayerInTeam);
 								removeFromGame(playerIDOfPlayerInTeam);
 							});
 
@@ -766,7 +757,6 @@ function putInTeam(playerID, teamIndex) {
 }
 
 function removeFromGame(playerID) {
-	console.log("removing player ID " + playerID);
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () { };
