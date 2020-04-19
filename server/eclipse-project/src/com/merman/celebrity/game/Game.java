@@ -105,7 +105,13 @@ public class Game {
 		int n = playerList.size();
 		int limit = n / 2;
 		
-		for (int i = 0; i < limit; i++) {
+		/* Start from top, and work down. This ensures that if there's an odd
+		 * number of players, Team 1 always has more than Team 2. Most importantly,
+		 * this means that if there's only 1 player (for testing only), he goes in
+		 * Team 1. If the only player is in Team 2, the client gets confused and
+		 * doesn't give him a turn.
+		 */
+		for (int i = n-1; i >= limit; i--) {
 			Player player = playerList.get(i);
 			team1.addPlayer(player);
 			mapPlayersToTeams.put(player, team1);
@@ -113,7 +119,7 @@ public class Game {
 		
 		Team team2 = new Team();
 		team2.setTeamName("Team 2");
-		for (int i = limit; i < n; i++) {
+		for (int i = limit-1; i >= 0; i--) {
 			Player player = playerList.get(i);
 			team2.addPlayer(player);
 			mapPlayersToTeams.put(player, team2);
