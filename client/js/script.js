@@ -128,11 +128,18 @@ function updateGameState(gameID) {
 
 				if (iAmHosting
 					&& teamList.length > 0) {
+					let selectedPlayerIDHolder = { playerID: null };
 					let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
 					for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
 						let teamlessPlayerLi = teamlessPlayerLiElements[i];
 						teamlessPlayerLi.addEventListener("mouseover", event => {
 							let playerID = event.target.getAttribute("playerID");
+							selectedPlayerIDHolder.playerID = playerID;
+						});
+
+						teamlessPlayerLi.addEventListener("contextmenu", event => {
+							event.preventDefault();
+							let playerID = selectedPlayerIDHolder.playerID;
 
 							let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
 							menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
@@ -158,14 +165,11 @@ function updateGameState(gameID) {
 								removeFromGame(playerID);
 							});
 
-							teamlessPlayerLi.addEventListener("contextmenu", event => {
-								event.preventDefault();
-								let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
-								contextMenu.style.display = 'block';
-								contextMenu.style.left = (event.pageX - 10) + "px";
-								contextMenu.style.top = (event.pageY - 10) + "px";
+							let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
+							contextMenu.style.display = 'block';
+							contextMenu.style.left = (event.pageX - 10) + "px";
+							contextMenu.style.top = (event.pageY - 10) + "px";
 
-							});
 
 						});
 					}
