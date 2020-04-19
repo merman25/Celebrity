@@ -134,7 +134,7 @@ function updateGameState(gameID) {
 						teamlessPlayerLi.addEventListener("mouseover", event => {
 							let playerID = event.target.getAttribute("playerID");
 
-							let menuHTML = '<ul class="contextMenuClass">';
+							let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
 							menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
 							menuHTML += '<li class="separator"></li>';
 
@@ -161,7 +161,7 @@ function updateGameState(gameID) {
 							teamlessPlayerLi.addEventListener("contextmenu", event => {
 								event.preventDefault();
 								console.log(event);
-								let contextMenu = document.querySelector(".contextMenuClass");
+								let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
 								contextMenu.style.display = 'block';
 								contextMenu.style.left = (event.pageX - 10) + "px";
 								contextMenu.style.top = (event.pageY - 10) + "px";
@@ -265,22 +265,37 @@ function updateGameState(gameID) {
 				document.getElementById("teamList").innerHTML = htmlTeamList;
 
 				if (iAmHosting) {
+					let selectedPlayerIDHolder = { playerID: null, teamIndex: null };
+					let setSelectedPlayer = (id, index) => {
+						console.log("setting selected player id to " + id);
+						selectedPlayerIDHolder.playerID = id;
+						selectedPlayerIDHolder.teamIndex = index;
+					}
 					let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
 					for (let i = 0; i < playerInTeamTDElements.length; i++) {
 						let playerInTeamTD = playerInTeamTDElements[i];
 						playerInTeamTD.addEventListener("mouseover", event => {
 							let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
 							let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
+							setSelectedPlayer( playerIDOfPlayerInTeam, teamIndex );
 
 							console.log("mouseover player ID " + playerIDOfPlayerInTeam);
+						});
 
-							let menuHTML = '<ul class="contextMenuClass">';
-							menuHTML += '<li class="menuItem" id="removePlayerInTeamFromGame" playerID="' + playerIDOfPlayerInTeam + '">Remove From Game</li>';
+						playerInTeamTD.addEventListener("contextmenu", event => {
+							event.preventDefault();
+							let playerIDOfPlayerInTeam = selectedPlayerIDHolder.playerID;
+							let teamIndex = selectedPlayerIDHolder.teamIndex;
+							console.log("context--menu player ID " + playerIDOfPlayerInTeam);
+
+
+							let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
+							menuHTML += '<li class="menuItem" id="removePlayerInTeamFromGame">Remove From Game</li>';
 							menuHTML += '<li class="separator"></li>';
 
 							for (let j = 0; j < teamList.length; j++) {
 								if (j !== teamIndex) {
-									menuHTML += '<li id="changePlayerInTeamToTeam' + j + '" class="menuItem" playerID="' + playerIDOfPlayerInTeam + '">';
+									menuHTML += '<li id="changePlayerInTeamToTeam' + j + '" class="menuItem">';
 									menuHTML += 'Put in ' + teamList[j];
 									menuHTML += '</li>';
 								}
@@ -294,27 +309,24 @@ function updateGameState(gameID) {
 								let changePlayerToTeamLiElement = document.getElementById("changePlayerInTeamToTeam" + j);
 								if (changePlayerToTeamLiElement != null) {
 									changePlayerToTeamLiElement.addEventListener("click", event => {
-										putInTeam(event.target.getAttribute("playerIDOfPlayerInTeam"), j);
+										putInTeam(playerIDOfPlayerInTeam, j);
 									});
 								}
 							}
 
 							document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
-								removeFromGame(event.target.getAttribute("playerIDOfPlayerInTeam"));
+								console.log("passing arg " + playerIDOfPlayerInTeam);
+								removeFromGame(playerIDOfPlayerInTeam);
 							});
 
-							playerInTeamTD.addEventListener("contextmenu", event => {
-								event.preventDefault();
-								let contextMenu = document.querySelector(".contextMenuClass");
-								console.log(contextMenu);
-								contextMenu.style.display = 'block';
-								contextMenu.style.left = (event.pageX - 10) + "px";
-								contextMenu.style.top = (event.pageY - 10) + "px";
+							let contextMenu = document.getElementById("playerInTeamContextMenu");
+							contextMenu.style.display = 'block';
+							contextMenu.style.left = (event.pageX - 10) + "px";
+							contextMenu.style.top = (event.pageY - 10) + "px";
 
-								contextMenu.addEventListener("mouseleave", event => {
-									hideAllContextMenus();
-								})
-							});
+							contextMenu.addEventListener("mouseleave", event => {
+								hideAllContextMenus();
+							})
 
 						});
 					}
