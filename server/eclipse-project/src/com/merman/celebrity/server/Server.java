@@ -2,9 +2,7 @@ package com.merman.celebrity.server;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -20,32 +18,8 @@ import com.sun.net.httpserver.HttpServer;
 public class Server {
 	public static final Path CLIENT_FILE_DIRECTORY = new File( "../../client" ).toPath();
 	
-	private String IPAddress = "192.168.1.17";
 	private int portNumber = 8080;
 	
-	private class ListenForNewConnectionsRunnable
-	implements Runnable {
-
-		@Override
-		public void run() {
-			while ( true ) {
-				try {
-					ServerSocket		socket		= new ServerSocket();
-					socket.setSoTimeout(1000);
-					socket.bind( new InetSocketAddress( InetAddress.getByName( IPAddress ), portNumber ));
-				}
-				catch ( Exception e ) {
-					e.printStackTrace();
-					try {
-						Thread.sleep(2000);
-					} catch (InterruptedException e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
-		}
-	}
-
 	public void start() throws IOException {
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
 
