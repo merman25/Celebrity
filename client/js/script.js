@@ -766,6 +766,6 @@ function removeFromGame(playerID) {
 		xhttp.onreadystatechange = function () { };
 		xhttp.onload = function () { };
 		xhttp.open("POST", "removeFromGame", true);
-		xhttp.send(playerID);
+		xhttp.send("playerID=" + playerID);
 	}, 500);
 }
