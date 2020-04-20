@@ -155,7 +155,7 @@ public class GameManager {
 		game.setNumRounds(numRounds);
 		game.setNumNamesPerPlayer(numNamesPerPlayer);
 		game.setRoundDurationInSec(roundDurationInSec);
-		game.allocateTeams();
+		game.allocateTeams(true);
 		game.setState(GameState.WAITING_FOR_NAMES);
 		
 		final Game g = game;

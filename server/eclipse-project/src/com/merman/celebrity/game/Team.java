@@ -20,7 +20,7 @@ public class Team {
 	}
 	
 	public synchronized List<Player> getPlayerList() {
-		return new ArrayList<>(playerList);
+		return playerList;
 	}
 	
 	public String getTeamName() {
@@ -28,5 +28,19 @@ public class Team {
 	}
 	public void setTeamName(String aTeamName) {
 		teamName = aTeamName;
+	}
+
+	public synchronized void movePlayerAtIndex(int aIndexOfPlayer, boolean aMovePlayerLater) {
+		if ( aIndexOfPlayer < 0
+				|| aIndexOfPlayer >= playerList.size() ) {
+			throw new IndexOutOfBoundsException("" + aIndexOfPlayer);
+		}
+		int newIndex = aIndexOfPlayer + ( aMovePlayerLater ? 1 : -1 );
+		newIndex %= playerList.size();
+		
+		Player movedPlayer 	= playerList.get(aIndexOfPlayer);
+		Player temp 		= playerList.get(newIndex);
+		playerList.set(newIndex, movedPlayer);
+		playerList.set(aIndexOfPlayer, temp);
 	}
 }

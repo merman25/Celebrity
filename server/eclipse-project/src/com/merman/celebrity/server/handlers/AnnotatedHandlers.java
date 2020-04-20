@@ -97,7 +97,7 @@ public class AnnotatedHandlers {
 
 		if ( game != null ) {
 			System.out.println( "allocating teams" );
-			game.allocateTeams();
+			game.allocateTeams(true);
 		}
 		else {
 			System.err.println( player + " is not hosting any game" );
@@ -201,5 +201,15 @@ public class AnnotatedHandlers {
 	@HTTPRequest(requestName = "removeFromGame", argNames = {"playerID"})
 	public static void removePlayerFromGame(Session session, Integer playerID) {
 		session.getPlayer().getGame().removePlayer(playerID);
+	}
+	
+	@HTTPRequest(requestName = "moveEarlier", argNames = {"playerID"})
+	public static void movePlayerEarlier(Session session, Integer playerID) {
+		session.getPlayer().getGame().movePlayerInTeamOrder(playerID, false );
+	}
+
+	@HTTPRequest(requestName = "moveLater", argNames = {"playerID"})
+	public static void movePlayerLater(Session session, Integer playerID) {
+		session.getPlayer().getGame().movePlayerInTeamOrder(playerID, true );
 	}
 }

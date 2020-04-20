@@ -3,6 +3,7 @@ package com.merman.celebrity.game;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -92,38 +93,49 @@ public class Game {
 		numNamesPerPlayer = aNumNamesPerPlayer;
 	}
 
-	public synchronized void allocateTeams() {
+	public synchronized void allocateTeams(boolean aAllocateTeamsAtRandom) {
 		List<Player>		playerList = new ArrayList<>( playersWithoutTeams );
 		for ( Team team : teamList ) {
 			playerList.addAll(team.getPlayerList());
 		}
 		teamList.clear();
 		mapPlayersToTeams.clear();
-		Collections.shuffle(playerList);
+		if ( aAllocateTeamsAtRandom ) {
+			Collections.shuffle(playerList);
+		}
 		
 		Team team1 = new Team();
 		team1.setTeamName("Team 1");
-		int n = playerList.size();
-		int limit = n / 2;
-		
-		/* Start from top, and work down. This ensures that if there's an odd
-		 * number of players, Team 1 always has more than Team 2. Most importantly,
-		 * this means that if there's only 1 player (for testing only), he goes in
-		 * Team 1. If the only player is in Team 2, the client gets confused and
-		 * doesn't give him a turn.
-		 */
-		for (int i = n-1; i >= limit; i--) {
-			Player player = playerList.get(i);
-			team1.addPlayer(player);
-			mapPlayersToTeams.put(player, team1);
-		}
-		
 		Team team2 = new Team();
 		team2.setTeamName("Team 2");
-		for (int i = limit-1; i >= 0; i--) {
-			Player player = playerList.get(i);
-			team2.addPlayer(player);
-			mapPlayersToTeams.put(player, team2);
+
+		int n = playerList.size();
+		int limit = ( n + 1 ) / 2; // if there's an odd number of players, we'll have more players in team 1 (looks neater)
+		
+		if ( n == 1 ) {
+			// special case: if only 1 player (used for testing only), put him in 1st team
+			team1.addPlayer(playerList.get(0));
+			mapPlayersToTeams.put(playerList.get(0), team1);
+		}
+		else {
+
+			/* Start from top, and work down. This ensures that if there's an odd
+			 * number of players, Team 1 always has more than Team 2. Most importantly,
+			 * this means that if there's only 1 player (for testing only), he goes in
+			 * Team 1. If the only player is in Team 2, the client gets confused and
+			 * doesn't give him a turn.
+			 */
+			for (int i = 0; i < limit; i++) {
+				Player player = playerList.get(i);
+				team1.addPlayer(player);
+				mapPlayersToTeams.put(player, team1);
+			}
+
+			for (int i = limit; i < n; i++) {
+				Player player = playerList.get(i);
+				team2.addPlayer(player);
+				mapPlayersToTeams.put(player, team2);
+			}
 		}
 		
 		teamList.add(team1);
@@ -150,26 +162,36 @@ public class Game {
 	}
 	
 	private void incrementPlayer() {
-		if ( nextTeamIndex == -1 ) {
-			nextTeamIndex = 0;
-		}
+		nextTeamIndex++;
+		nextTeamIndex %= teamList.size();
 		
-		if ( nextTeamIndex < teamList.size() ) {
+		Team team = teamList.get(nextTeamIndex);
+
+		Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.computeIfAbsent(team, t -> -1);
+
+		if ( ! team.getPlayerList().isEmpty() ) {
+			nextPlayerIndex++;
+			nextPlayerIndex %= team.getPlayerList().size();
+			mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+
+			Player player = team.getPlayerList().get(nextPlayerIndex);
+			currentPlayer = player;
+		}
+	}
+	
+	private Player updateCurrentPlayerFromIndicesAfterChangeToTeamStructure() {
+		Player	player = null;
+		if ( nextTeamIndex >= 0 ) {
 			Team team = teamList.get(nextTeamIndex);
-			nextTeamIndex++;
-			nextTeamIndex %= teamList.size();
-			
-			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.computeIfAbsent(team, t -> 0);
-			
-			if ( ! team.getPlayerList().isEmpty() ) {
-				Player player = team.getPlayerList().get(nextPlayerIndex);
-				nextPlayerIndex++;
-				nextPlayerIndex %= team.getPlayerList().size();
-				mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
-				
-				currentPlayer = player;
+			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.get(team);
+			if ( nextPlayerIndex != null
+					&& nextPlayerIndex >= 0 ) {
+				player = team.getPlayerList().get(nextPlayerIndex);
 			}
 		}
+		
+		currentPlayer = player;
+		return player;
 	}
 
 	public synchronized int getNumPlayersToWaitFor() {
@@ -307,7 +329,9 @@ public class Game {
 			
 			if ( aTeamIndex >=0
 					&& aTeamIndex < teamList.size() ) {
-				teamList.get(aTeamIndex).addPlayer(player);
+				Team team = teamList.get(aTeamIndex);
+				team.addPlayer(player);
+				mapPlayersToTeams.put(player, team);
 				playersWithoutTeams.remove(player);
 			}
 		}
@@ -325,7 +349,29 @@ public class Game {
 			team.removePlayer(player);
 			
 			if ( currentPlayer == player ) {
-				incrementPlayer();
+				Integer playerIndex = mapTeamsToNextPlayerIndices.get(team);
+				if ( playerIndex == team.getPlayerList().size() ) {
+					if ( playerIndex == 0 ) {
+						// team has run out of players. Set index to -1, so that when it has players again, it'll start at the beginning
+						playerIndex = -1;
+					}
+					else {
+						playerIndex = 0;
+					}
+					mapTeamsToNextPlayerIndices.put(team, playerIndex);
+				}
+				
+				if ( ! team.getPlayerList().isEmpty() ) {
+					currentPlayer = team.getPlayerList().get(playerIndex);
+				}
+				else if ( nextTeamIndex >= 0 ) {
+					/* if nextTeamIndex is -1, we haven't started the 1st round yet.
+					 * If we're already removing players at this point, either we're in one of the unit tests,
+					 * or there's trouble. Either way, wait until play properly starts before we start the
+					 * teams taking turns.
+					 */
+					incrementPlayer();
+				}
 			}
 		}
 	}
@@ -353,5 +399,35 @@ public class Game {
 			masterNameList.addAll(mapEntry.getValue());
 		}
 		mapPlayersToNameLists.clear();
+	}
+	
+	/**
+	 * For debugging, return list of all players that are referenced in any field
+	 * @return
+	 */
+	public synchronized List<Player> getAllReferencedPlayers() {
+		LinkedHashSet<Player>	allPlayerSet		= new LinkedHashSet<>();
+		allPlayerSet.add(host);
+		allPlayerSet.add(currentPlayer);
+		allPlayerSet.addAll(playersWithoutTeams);
+		teamList.stream().forEach(t -> allPlayerSet.addAll(t.getPlayerList()));
+		allPlayerSet.addAll(mapPlayersToTeams.keySet());
+		allPlayerSet.addAll(mapPlayersToNameLists.keySet());
+		
+		return new ArrayList<>(allPlayerSet);
+	}
+
+	public void movePlayerInTeamOrder(int aPlayerID, boolean aMovePlayerLater) {
+		Player player = PlayerManager.getPlayer(aPlayerID);
+		if ( player != null ) {
+			Team team = mapPlayersToTeams.get(player);
+			if ( team != null ) {
+				int indexOfPlayer = team.indexOf(player);
+				if ( indexOfPlayer >= 0 ) {
+					team.movePlayerAtIndex( indexOfPlayer, aMovePlayerLater );
+					updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
+				}
+			}
+		}
 	}
 }
