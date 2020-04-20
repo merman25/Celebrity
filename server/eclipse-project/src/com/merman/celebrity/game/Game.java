@@ -48,11 +48,11 @@ public class Game {
 	}
 
 	public synchronized List<Team> getTeamList() {
-		return new ArrayList( teamList );
+		return teamList;
 	}
 
 	public synchronized List<Player> getPlayersWithoutTeams() {
-		return new ArrayList( playersWithoutTeams );
+		return playersWithoutTeams;
 	}
 
 	public synchronized String getID() {
@@ -141,6 +141,7 @@ public class Game {
 	}
 	
 	public synchronized void allowNextPlayerToStartNextTurn() {
+//		System.out.format("Starting round %,d of %,d\n", roundIndex+1, numRounds);
 		setState(GameState.READY_TO_START_NEXT_TURN);
 	}
 	
@@ -237,7 +238,7 @@ public class Game {
 		List<String>		namesAchieved		= new ArrayList<>(shuffledNameList.subList(previousNameIndex, currentNameIndex));
 		mapTeamsToAchievedNames.computeIfAbsent(currentTeam, t -> new ArrayList<>()).addAll(namesAchieved);
 		
-		System.out.format("Team %s got %d names\n", currentTeam.getTeamName(), namesAchieved.size());
+//		System.out.format("%s got %d names for %s\n", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName());
 		
 		previousNameIndex = currentNameIndex;
 	}

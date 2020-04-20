@@ -61,6 +61,8 @@ public class GameManager {
 			}
 		}
 		
+		// TODO should synchronize on aGame?
+		
 		JSONObject jsonObject = new JSONObject()
 				.put( "publicIDOfRecipient", publicIDOfRequester )
                 .put( "host", toJSON( aGame.getHost() ) )
