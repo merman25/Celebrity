@@ -458,7 +458,18 @@ public class Game {
 			if ( team != null ) {
 				int indexOfPlayer = team.indexOf(player);
 				if ( indexOfPlayer >= 0 ) {
-					mapTeamsToNextPlayerIndices.put(team, indexOfPlayer);
+					int nextPlayerIndex = indexOfPlayer;
+					if ( getTeamList().indexOf(team) != nextTeamIndex ) {
+						/* Team is currently playing, so when play moves to this team,
+						 * the team's player index will be incremented at the start of
+						 * the turn. So, now we need to subtract 1 from it.
+						 */
+						nextPlayerIndex -= 1;
+						if ( nextPlayerIndex < 0 ) {
+							nextPlayerIndex += team.getPlayerList().size();
+						}
+					}
+					mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
 					updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 				}
 			}

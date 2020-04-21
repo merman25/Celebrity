@@ -181,7 +181,11 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 		return handlerList;
 	}
 
-	public synchronized RequestType getRequestType() {
+	public RequestType getRequestType() {
 		return requestType;
+	}
+
+	public String getName() {
+		return name;
 	}
 }

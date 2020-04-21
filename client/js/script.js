@@ -93,8 +93,7 @@ function updateGameState(gameID) {
 			let iAmHosting = iAmHost();
 
 			let gameStateString = gameStateObject.state;
-			if (gameState != "READY_TO_START_NEXT_TURN"
-				&& gameStateString == "READY_TO_START_NEXT_TURN") {
+			if (gameStateString == "READY_TO_START_NEXT_TURN") {
 
 				if (iAmPlaying) {
 					document.getElementById("startTurnButton").style.display = 'block';
@@ -106,6 +105,9 @@ function updateGameState(gameID) {
 					document.getElementById("startTurnButton").style.display = 'none';
 					document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
 				}
+			}
+			else {
+				document.getElementById("startTurnButton").style.display = 'none';
 			}
 
 
@@ -128,18 +130,13 @@ function updateGameState(gameID) {
 
 				if (iAmHosting
 					&& teamList.length > 0) {
-					let selectedPlayerIDHolder = { playerID: null };
 					let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
 					for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
 						let teamlessPlayerLi = teamlessPlayerLiElements[i];
-						teamlessPlayerLi.addEventListener("mouseover", event => {
-							let playerID = event.target.getAttribute("playerID");
-							selectedPlayerIDHolder.playerID = playerID;
-						});
 
 						teamlessPlayerLi.addEventListener("contextmenu", event => {
+							let playerID = event.target.getAttribute("playerID");
 							event.preventDefault();
-							let playerID = selectedPlayerIDHolder.playerID;
 
 							let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
 							menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
@@ -268,21 +265,14 @@ function updateGameState(gameID) {
 				document.getElementById("teamList").innerHTML = htmlTeamList;
 
 				if (iAmHosting) {
-					let selectedPlayerIDHolder = { playerID: null, teamIndex: null };
 					let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
 					for (let i = 0; i < playerInTeamTDElements.length; i++) {
 						let playerInTeamTD = playerInTeamTDElements[i];
-						playerInTeamTD.addEventListener("mouseover", event => {
-							let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
-							let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
-							selectedPlayerIDHolder.playerID = playerIDOfPlayerInTeam;
-							selectedPlayerIDHolder.teamIndex = teamIndex;
-						});
 
 						playerInTeamTD.addEventListener("contextmenu", event => {
 							event.preventDefault();
-							let playerIDOfPlayerInTeam = selectedPlayerIDHolder.playerID;
-							let teamIndex = selectedPlayerIDHolder.teamIndex;
+							let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
+							let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
 
 
 							let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
@@ -296,6 +286,9 @@ function updateGameState(gameID) {
 									menuHTML += '</li>';
 								}
 							}
+							menuHTML += '<li id="moveUp" class="menuItem">Move up</li>';
+							menuHTML += '<li id="moveDown" class="menuItem">Move down</li>';
+							menuHTML += '<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ' + teamList[teamIndex] + '</li>';
 							menuHTML += '</ul>';
 
 							document.getElementById("playerInTeamContextMenuDiv").innerHTML = menuHTML;
@@ -313,6 +306,19 @@ function updateGameState(gameID) {
 							document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
 								removeFromGame(playerIDOfPlayerInTeam);
 							});
+
+							document.getElementById("moveUp").addEventListener("click", event => {
+								moveInTeam(playerIDOfPlayerInTeam, false);
+							});
+
+							document.getElementById("moveDown").addEventListener("click", event => {
+								moveInTeam(playerIDOfPlayerInTeam, true);
+							});
+
+							document.getElementById("makePlayerNextInTeam").addEventListener("click", event => {
+								makePlayerNextInTeam(playerIDOfPlayerInTeam);
+							});
+
 
 							let contextMenu = document.getElementById("playerInTeamContextMenu");
 							contextMenu.style.display = 'block';
@@ -767,5 +773,30 @@ function removeFromGame(playerID) {
 		xhttp.onload = function () { };
 		xhttp.open("POST", "removeFromGame", true);
 		xhttp.send("playerID=" + playerID);
+	}, 500);
+}
+
+function moveInTeam(playerID, moveDownOrLater) {
+	setTimeout(function () {
+		console.log("moveDownOrLater: " + moveDownOrLater);
+		let apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
+		console.log("apiCall: " + apiCall);
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function () { };
+		xhttp.onload = function () { };
+		xhttp.open("POST", apiCall, true);
+		xhttp.send("playerID=" + playerID);
+		console.log("sent xhttp " + apiCall);
+	}, 500);
+}
+
+function makePlayerNextInTeam(playerID) {
+	setTimeout(function () {
+		let xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function () { };
+		xhttp.onload = function () { };
+		xhttp.open("POST", "makeNextInTeam", true);
+		xhttp.send("playerID=" + playerID);
+		console.log("sent xhttp makePlayerNextInTeam");
 	}, 500);
 }

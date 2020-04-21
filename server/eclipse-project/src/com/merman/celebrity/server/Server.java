@@ -37,9 +37,11 @@ public class Server {
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
 			if ( handler.getRequestType() == RequestType.GET_OR_POST ) {
+				System.out.println("adding context " + handler.getContextName());
 				server.createContext("/" + handler.getContextName(), handler);
 			}
 			else if ( handler.getRequestType() == RequestType.FORM ) {
+				System.out.println("adding form handler " + handler.getContextName());
 				FormHandlerRegistry.addHandler(new FormHandler(handler.getContextName(), handler) {
 
 					@Override
@@ -53,6 +55,8 @@ public class Server {
 				System.err.println("Unknown request type: " + handler.getRequestType());
 			}
 		}
+		
+//		server.createContext( "/", new TestHandler("") );
 
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();

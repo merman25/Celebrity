@@ -36,7 +36,15 @@ public class Team {
 			throw new IndexOutOfBoundsException("" + aIndexOfPlayer);
 		}
 		int newIndex = aIndexOfPlayer + ( aMovePlayerLater ? 1 : -1 );
+		
 		newIndex %= playerList.size();
+
+		/* Use mathematical modulus rather than just straight % operator:
+		 * -1 becomes (playerList.size() - 1).
+		 */
+		if ( newIndex < 0 ) {
+			newIndex += playerList.size();
+		}
 		
 		Player movedPlayer 	= playerList.get(aIndexOfPlayer);
 		Player temp 		= playerList.get(newIndex);

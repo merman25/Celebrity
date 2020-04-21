@@ -33,7 +33,7 @@ public class ServeFileHandler extends AHttpHandler {
 			return;
 		}
 		
-		dumpRequest(aExchange);
+//		dumpRequest(aExchange);
 		
 		Function<String, String>		addCookieSetter		= response -> {
 			int indexOfMarker = response.indexOf("<div id=\"dummy\"></div>");
