@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.json.JSONObject;
+
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.RequestType;
 import com.merman.celebrity.server.Session;
@@ -148,6 +150,13 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 	}
 	
 	public String serialiseMap( Map<?, ?> aMap ) {
+		JSONObject		jsonObject		= new JSONObject();
+		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
+		
+		return jsonObject.toString();
+	}
+	
+	public String serialiseMapOld( Map<?, ?> aMap ) {
 		StringBuilder builder = new StringBuilder();
 		for ( Entry<?, ?> mapEntry : aMap.entrySet() ) {
 			Object key = mapEntry.getKey();

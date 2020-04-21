@@ -42,6 +42,7 @@ function hostNewGame() {
 
 	document.getElementById("hostGameDiv").style.display = 'block';
 	document.getElementById("playGameDiv").style.display = 'block';
+	/*
 	let xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
@@ -57,6 +58,19 @@ function hostNewGame() {
 	xhttp.onload = function () { }
 	xhttp.open("GET", "hostNewGame", true);
 	xhttp.send();
+	*/
+	fetch('hostNewGame')
+		.then(result => result.json())
+		.then(result => {
+			const gameID = result.gameID;
+
+			updateGameInfo("<hr>\n"
+				+ "<h2>Game ID: " + gameID + "</h2>\n"
+				+ "<p>Waiting for others to join...</p>");
+
+			updateGameStateForever(gameID);
+		})
+		.catch(err => console.error(err));
 }
 
 function updateGameInfo(html) {
@@ -82,11 +96,13 @@ function updateGameStateForever(gameID) {
 }
 
 function updateGameState(gameID) {
+	// xhttp.open("POST", "requestGameState", true);
+	// xhttp.send("gameID=" + gameID);
 
-	let xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function () {
-		if (this.readyState == 4 && this.status == 200) {
-			gameStateObject = JSON.parse(this.responseText);
+	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
+		.then(result => result.json())
+		.then(result => {
+			gameStateObject = result;
 
 			numNamesPerPlayer = gameStateObject.numNames;
 			iAmPlaying = iAmCurrentPlayer();
@@ -444,11 +460,9 @@ function updateGameState(gameID) {
 
 			document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
 
-		}
-	}
+		})
+		.catch(err => console.error(err));
 
-	xhttp.open("POST", "requestGameState", true);
-	xhttp.send("gameID=" + gameID);
 }
 
 function iAmCurrentPlayer() {
@@ -481,16 +495,19 @@ function gameParamsSubmitted() {
 
 function allocateTeams() {
 	document.getElementById("requestNamesButton").style.display = 'block';
-
-	let xhttp = new XMLHttpRequest();
-	xhttp.onload = function () { }
-	xhttp.open("GET", "allocateTeams", true);
-	xhttp.send();
-
+	/*
+		let xhttp = new XMLHttpRequest();
+		xhttp.onload = function () { }
+		xhttp.open("GET", "allocateTeams", true);
+		xhttp.send();
+	*/
+	fetch('allocateTeams')
+		.catch(err => console.error(err));
 }
 
 function waitForGameIDResponse() {
 	document.getElementById("divJoinOrHost").style.display = 'none';
+	/*
 	// For some reason it doesn't send the xhttp unless I set a timeout.
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
@@ -521,21 +538,55 @@ function waitForGameIDResponse() {
 		xhttp.open("POST", "askGameIDResponse", true);
 		xhttp.send("");
 	}, 500);
+*/
+
+	/* FIXME looks like the reason the timeout is needed is that, without it,
+	 * it tries to simultaneously send this POST request along with the form
+	 * submission, and this fails. So I guess we need to combine the form
+	 * submission with the request below?
+	*/
+	setTimeout(() =>
+		fetch('askGameIDResponse', { method: 'POST' })
+			.then(result => result.json())
+			.then(result => {
+				const gameResponse = result.GameResponse;
+				if (gameResponse == "OK") {
+					document.getElementById("joinGameForm").style.display = 'none';
+					document.getElementById("playGameDiv").style.display = 'block';
+
+					const gameID = result.GameID;
+
+					updateGameInfo("<hr>\n"
+						+ "<h2>Game ID: " + gameID + "</h2>\n"
+						+ "<p>Waiting for others to join...</p>");
+
+
+					updateGameStateForever(gameID);
+				}
+				else {
+					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
+				}
+
+			})
+			.catch(err => console.error(err)), 500);
 }
 
 function requestNames() {
 	document.getElementById("requestNamesButton").style.display = 'none';
 	document.getElementById("allocateTeamsDiv").style.display = 'none';
 	hideHostDutiesElements();
-
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { }
-		xhttp.onload = function () { }
-		xhttp.open("POST", "sendNameRequest", true);
-		xhttp.send("a=b");
-
-	}, 500);
+	/*
+		setTimeout(function () {
+			let xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function () { }
+			xhttp.onload = function () { }
+			xhttp.open("POST", "sendNameRequest", true);
+			xhttp.send("a=b");
+	
+		}, 500);
+	*/
+	fetch('sendNameRequest')
+		.catch(err => console.error(err));
 }
 
 function setGameState(newState) {
@@ -639,31 +690,40 @@ function showHostDutiesElements() {
 }
 
 function startGame() {
-	setTimeout(function () {
-		document.getElementById("startGameButton").style.display = 'none';
-		document.getElementById("gameStatusDiv").innerHTML = "";
-
-		hideHostDutiesElements();
-
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { }
-		xhttp.onload = function () { }
-		xhttp.open("POST", "startGame", true);
-		xhttp.send("");
-
-	}, 500);
+	document.getElementById("startGameButton").style.display = 'none';
+	document.getElementById("gameStatusDiv").innerHTML = "";
+	/*
+		setTimeout(function () {
+	
+			hideHostDutiesElements();
+	
+			let xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function () { }
+			xhttp.onload = function () { }
+			xhttp.open("POST", "startGame", true);
+			xhttp.send("");
+	
+		}, 500);
+		*/
+	fetch('startGame')
+		.catch(err => console.error(err));
 }
 
 function startTurn() {
-	setTimeout(function () {
-		document.getElementById("startTurnButton").style.display = 'none';
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { }
-		xhttp.onload = function () { }
-		xhttp.open("POST", "startTurn", true);
-		xhttp.send("");
+	document.getElementById("startTurnButton").style.display = 'none';
 
-	}, 500);
+	/*
+		setTimeout(function () {
+			let xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function () { }
+			xhttp.onload = function () { }
+			xhttp.open("POST", "startTurn", true);
+			xhttp.send("");
+	
+		}, 500);
+	*/
+	fetch('startTurn')
+		.catch(err => console.error(err));
 }
 
 function updateCurrentNameDiv() {
@@ -679,6 +739,7 @@ function updateCurrentNameDiv() {
 function gotName() {
 	//    gameStateLogging = true;
 	currentNameIndex++;
+	/*
 	setTimeout(function () {
 		document.getElementById("startTurnButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
@@ -688,6 +749,10 @@ function gotName() {
 		xhttp.send("newNameIndex=" + currentNameIndex);
 
 	}, 500);
+*/
+	fetch('setCurrentNameIndex', { method: 'POST', body: 'newNameIndex=' + currentNameIndex })
+		.catch(err => console.error(err));
+
 
 	if (currentNameIndex < nameList.length) {
 		updateCurrentNameDiv();
@@ -704,6 +769,7 @@ function finishRound() {
 }
 
 function startNextRound() {
+	/*
 	setTimeout(function () {
 		document.getElementById("startNextRoundButton").style.display = 'none';
 		let xhttp = new XMLHttpRequest();
@@ -713,10 +779,15 @@ function startNextRound() {
 		xhttp.send("");
 
 	}, 500);
+*/
+	fetch('startNextRound')
+		.catch(err => console.error(err));
+
 }
 
 function pass() {
 	document.getElementById("passButton").disabled = true;
+	/*
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () {
@@ -736,9 +807,26 @@ function pass() {
 		xhttp.send("passNameIndex=" + currentNameIndex);
 
 	}, 500);
+	*/
+
+
+	fetch('pass', { method: 'POST', body: 'passNameIndex=' + currentNameIndex })
+		.then(result => result.json())
+		.then(result => {
+			document.getElementById("passButton").disabled = false;
+			const nameListString = result.nameList;
+			if (nameListString != null) {
+				nameList = nameListString.split(",");
+				updateCurrentNameDiv();
+			}
+
+		})
+		.catch(err => console.error(err));
+
 }
 
 function endTurn() {
+	/*
 	document.getElementById("turnControlsDiv").style.display = 'none';
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
@@ -747,8 +835,12 @@ function endTurn() {
 		xhttp.open("POST", "endTurn", true);
 		xhttp.send("");
 	}, 500);
-}
+	*/
 
+	fetch('endTurn')
+		.catch(err => console.error(err));
+
+}
 function hideAllContextMenus() {
 	let contextMenus = document.querySelectorAll(".contextMenuClass");
 	for (let i = 0; i < contextMenus.length; i++) {
@@ -757,6 +849,7 @@ function hideAllContextMenus() {
 }
 
 function putInTeam(playerID, teamIndex) {
+	/*
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () { };
@@ -764,9 +857,13 @@ function putInTeam(playerID, teamIndex) {
 		xhttp.open("POST", "putInTeam", true);
 		xhttp.send("playerID=" + playerID + "&teamIndex=" + teamIndex);
 	}, 500);
+*/
+	fetch('putInTeam', { method: 'POST', body: 'playerID=' + playerID + '&teamIndex=' + teamIndex })
+		.catch(err => console.error(err));
 }
 
 function removeFromGame(playerID) {
+	/*
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () { };
@@ -774,9 +871,14 @@ function removeFromGame(playerID) {
 		xhttp.open("POST", "removeFromGame", true);
 		xhttp.send("playerID=" + playerID);
 	}, 500);
+	*/
+	fetch('removeFromGame', { method: 'POST', body: 'playerID=' + playerID })
+		.catch(err => console.error(err));
+
 }
 
 function moveInTeam(playerID, moveDownOrLater) {
+	/*
 	setTimeout(function () {
 		console.log("moveDownOrLater: " + moveDownOrLater);
 		let apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
@@ -788,9 +890,16 @@ function moveInTeam(playerID, moveDownOrLater) {
 		xhttp.send("playerID=" + playerID);
 		console.log("sent xhttp " + apiCall);
 	}, 500);
+	*/
+
+	const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
+	fetch(apiCall, { method: 'POST', body: 'playerID=' + playerID })
+		.catch(err => console.error(err));
+
 }
 
 function makePlayerNextInTeam(playerID) {
+	/*
 	setTimeout(function () {
 		let xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function () { };
@@ -799,4 +908,8 @@ function makePlayerNextInTeam(playerID) {
 		xhttp.send("playerID=" + playerID);
 		console.log("sent xhttp makePlayerNextInTeam");
 	}, 500);
+	*/
+
+	fetch('makeNextInTeam', { method: 'POST', body: 'playerID=' + playerID })
+		.catch(err => console.error(err));
 }
