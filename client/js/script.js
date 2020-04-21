@@ -42,23 +42,7 @@ function hostNewGame() {
 
 	document.getElementById("hostGameDiv").style.display = 'block';
 	document.getElementById("playGameDiv").style.display = 'block';
-	/*
-	let xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function () {
-		if (this.readyState == 4 && this.status == 200) {
-			let arr = toAssocArr(this.responseText);
-			let gameID = arr["gameID"];
-			updateGameInfo("<hr>\n"
-				+ "<h2>Game ID: " + gameID + "</h2>\n"
-				+ "<p>Waiting for others to join...</p>");
 
-			updateGameStateForever(gameID);
-		}
-	};
-	xhttp.onload = function () { }
-	xhttp.open("GET", "hostNewGame", true);
-	xhttp.send();
-	*/
 	fetch('hostNewGame')
 		.then(result => result.json())
 		.then(result => {
@@ -96,9 +80,6 @@ function updateGameStateForever(gameID) {
 }
 
 function updateGameState(gameID) {
-	// xhttp.open("POST", "requestGameState", true);
-	// xhttp.send("gameID=" + gameID);
-
 	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
 		.then(result => result.json())
 		.then(result => {
@@ -495,50 +476,12 @@ function gameParamsSubmitted() {
 
 function allocateTeams() {
 	document.getElementById("requestNamesButton").style.display = 'block';
-	/*
-		let xhttp = new XMLHttpRequest();
-		xhttp.onload = function () { }
-		xhttp.open("GET", "allocateTeams", true);
-		xhttp.send();
-	*/
 	fetch('allocateTeams')
 		.catch(err => console.error(err));
 }
 
 function waitForGameIDResponse() {
 	document.getElementById("divJoinOrHost").style.display = 'none';
-	/*
-	// For some reason it doesn't send the xhttp unless I set a timeout.
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			if (this.readyState == 4 && this.status == 200) {
-				let arr = toAssocArr(this.responseText);
-
-				let gameResponse = arr["GameResponse"];
-				if (gameResponse == "OK") {
-					document.getElementById("joinGameForm").style.display = 'none';
-					document.getElementById("playGameDiv").style.display = 'block';
-
-					let gameID = arr["GameID"];
-
-					updateGameInfo("<hr>\n"
-						+ "<h2>Game ID: " + gameID + "</h2>\n"
-						+ "<p>Waiting for others to join...</p>");
-
-
-					updateGameStateForever(gameID);
-				}
-				else {
-					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
-				}
-			}
-		};
-		xhttp.onload = function () { }
-		xhttp.open("POST", "askGameIDResponse", true);
-		xhttp.send("");
-	}, 500);
-*/
 
 	/* FIXME looks like the reason the timeout is needed is that, without it,
 	 * it tries to simultaneously send this POST request along with the form
@@ -575,16 +518,6 @@ function requestNames() {
 	document.getElementById("requestNamesButton").style.display = 'none';
 	document.getElementById("allocateTeamsDiv").style.display = 'none';
 	hideHostDutiesElements();
-	/*
-		setTimeout(function () {
-			let xhttp = new XMLHttpRequest();
-			xhttp.onreadystatechange = function () { }
-			xhttp.onload = function () { }
-			xhttp.open("POST", "sendNameRequest", true);
-			xhttp.send("a=b");
-	
-		}, 500);
-	*/
 	fetch('sendNameRequest')
 		.catch(err => console.error(err));
 }
@@ -692,36 +625,12 @@ function showHostDutiesElements() {
 function startGame() {
 	document.getElementById("startGameButton").style.display = 'none';
 	document.getElementById("gameStatusDiv").innerHTML = "";
-	/*
-		setTimeout(function () {
-	
-			hideHostDutiesElements();
-	
-			let xhttp = new XMLHttpRequest();
-			xhttp.onreadystatechange = function () { }
-			xhttp.onload = function () { }
-			xhttp.open("POST", "startGame", true);
-			xhttp.send("");
-	
-		}, 500);
-		*/
 	fetch('startGame')
 		.catch(err => console.error(err));
 }
 
 function startTurn() {
 	document.getElementById("startTurnButton").style.display = 'none';
-
-	/*
-		setTimeout(function () {
-			let xhttp = new XMLHttpRequest();
-			xhttp.onreadystatechange = function () { }
-			xhttp.onload = function () { }
-			xhttp.open("POST", "startTurn", true);
-			xhttp.send("");
-	
-		}, 500);
-	*/
 	fetch('startTurn')
 		.catch(err => console.error(err));
 }
@@ -739,17 +648,6 @@ function updateCurrentNameDiv() {
 function gotName() {
 	//    gameStateLogging = true;
 	currentNameIndex++;
-	/*
-	setTimeout(function () {
-		document.getElementById("startTurnButton").style.display = 'none';
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { }
-		xhttp.onload = function () { }
-		xhttp.open("POST", "setCurrentNameIndex", true);
-		xhttp.send("newNameIndex=" + currentNameIndex);
-
-	}, 500);
-*/
 	fetch('setCurrentNameIndex', { method: 'POST', body: 'newNameIndex=' + currentNameIndex })
 		.catch(err => console.error(err));
 
@@ -769,17 +667,6 @@ function finishRound() {
 }
 
 function startNextRound() {
-	/*
-	setTimeout(function () {
-		document.getElementById("startNextRoundButton").style.display = 'none';
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { }
-		xhttp.onload = function () { }
-		xhttp.open("POST", "startNextRound", true);
-		xhttp.send("");
-
-	}, 500);
-*/
 	fetch('startNextRound')
 		.catch(err => console.error(err));
 
@@ -787,29 +674,6 @@ function startNextRound() {
 
 function pass() {
 	document.getElementById("passButton").disabled = true;
-	/*
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () {
-			console.log("pass readyState" + this.readyState + ", status " + this.status);
-			if (this.readyState == 4 && this.status == 200) {
-				document.getElementById("passButton").disabled = false;
-				let arr = toAssocArr(this.responseText);
-				let nameListString = arr["nameList"];
-				if (nameListString != null) {
-					nameList = nameListString.split(",");
-					updateCurrentNameDiv();
-				}
-			};
-		}
-		xhttp.onload = function () { }
-		xhttp.open("POST", "pass", true);
-		xhttp.send("passNameIndex=" + currentNameIndex);
-
-	}, 500);
-	*/
-
-
 	fetch('pass', { method: 'POST', body: 'passNameIndex=' + currentNameIndex })
 		.then(result => result.json())
 		.then(result => {
@@ -826,17 +690,6 @@ function pass() {
 }
 
 function endTurn() {
-	/*
-	document.getElementById("turnControlsDiv").style.display = 'none';
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { };
-		xhttp.onload = function () { };
-		xhttp.open("POST", "endTurn", true);
-		xhttp.send("");
-	}, 500);
-	*/
-
 	fetch('endTurn')
 		.catch(err => console.error(err));
 
@@ -849,49 +702,17 @@ function hideAllContextMenus() {
 }
 
 function putInTeam(playerID, teamIndex) {
-	/*
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { };
-		xhttp.onload = function () { };
-		xhttp.open("POST", "putInTeam", true);
-		xhttp.send("playerID=" + playerID + "&teamIndex=" + teamIndex);
-	}, 500);
-*/
 	fetch('putInTeam', { method: 'POST', body: 'playerID=' + playerID + '&teamIndex=' + teamIndex })
 		.catch(err => console.error(err));
 }
 
 function removeFromGame(playerID) {
-	/*
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { };
-		xhttp.onload = function () { };
-		xhttp.open("POST", "removeFromGame", true);
-		xhttp.send("playerID=" + playerID);
-	}, 500);
-	*/
 	fetch('removeFromGame', { method: 'POST', body: 'playerID=' + playerID })
 		.catch(err => console.error(err));
 
 }
 
 function moveInTeam(playerID, moveDownOrLater) {
-	/*
-	setTimeout(function () {
-		console.log("moveDownOrLater: " + moveDownOrLater);
-		let apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
-		console.log("apiCall: " + apiCall);
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { };
-		xhttp.onload = function () { };
-		xhttp.open("POST", apiCall, true);
-		xhttp.send("playerID=" + playerID);
-		console.log("sent xhttp " + apiCall);
-	}, 500);
-	*/
-
 	const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
 	fetch(apiCall, { method: 'POST', body: 'playerID=' + playerID })
 		.catch(err => console.error(err));
@@ -899,17 +720,6 @@ function moveInTeam(playerID, moveDownOrLater) {
 }
 
 function makePlayerNextInTeam(playerID) {
-	/*
-	setTimeout(function () {
-		let xhttp = new XMLHttpRequest();
-		xhttp.onreadystatechange = function () { };
-		xhttp.onload = function () { };
-		xhttp.open("POST", "makeNextInTeam", true);
-		xhttp.send("playerID=" + playerID);
-		console.log("sent xhttp makePlayerNextInTeam");
-	}, 500);
-	*/
-
 	fetch('makeNextInTeam', { method: 'POST', body: 'playerID=' + playerID })
 		.catch(err => console.error(err));
 }
