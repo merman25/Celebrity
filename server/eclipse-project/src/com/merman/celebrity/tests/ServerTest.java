@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.Assert;
@@ -35,7 +36,7 @@ public class ServerTest {
 			int numRounds = 1 + random.nextInt(5);
 			int roundDurationInSec = 60;
 			int totalNumberOfNames = numNamesPerPlayer * numPlayers;
-			int numTeams = 2;
+			int numTeams = numPlayers > 1 ? 2 : 1;
 
 			System.out.format("Testing game %,d of %,d: %,d players, %,d names per player, %,d rounds, %,d teams\n", gameIndex+1, limit, numPlayers, numNamesPerPlayer, numRounds, numTeams);
 			Game game = initGame(numPlayers, numNamesPerPlayer, numRounds, roundDurationInSec, numTeams, true);
@@ -46,16 +47,7 @@ public class ServerTest {
 			for ( Team team : game.getTeamList() ) {
 				List<Player>	playerList		= new ArrayList<>();
 				playerList.addAll(team.getPlayerList());
-				
-				/* If a game only has one player (only used for testing), then we effectively only have one team, and shouldn't
-				 * use the hard-coded value of 2 teams.
-				 */
-				if ( ! playerList.isEmpty() ) {
-					playerListPerTeam.add(playerList);
-				}
-				else {
-					numTeams--;
-				}
+				playerListPerTeam.add(playerList);
 			}
 
 
@@ -354,6 +346,11 @@ public class ServerTest {
 		Assert.assertEquals(GameState.READY_TO_START_NEXT_ROUND, game.getState());
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName());
 		
+		// Check scores for the round are consistent
+		Assert.assertEquals(36, game.getMapTeamsToAchievedNames().get(game.getTeamList().get(0)).size()
+								+ game.getMapTeamsToAchievedNames().get(game.getTeamList().get(1)).size() );
+		
+		
 		// players 1 and 5 both lose connection
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(5).getPlayer().getPublicUniqueID());
@@ -441,5 +438,126 @@ public class ServerTest {
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 17	);
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		
+		// Let's have player 3 lose connection while player 0's in the middle of a turn
+		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 21	);
+		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+
+		// Then player 4 would go next
+		Assert.assertEquals("[player4, player5]", game.getTeamList().get(1).getPlayerList().toString() );
+		Assert.assertEquals("player4", game.getCurrentPlayer().getName() );
+
+		// player 3 re-joins
+		allSessions.set(3, SessionManager.createSession());
+		AnnotatedHandlers.setUsername(allSessions.get(3), "player3");
+		AnnotatedHandlers.setGameID(allSessions.get(3), game.getID());
+		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID(), 1);
+		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
+
+		// All good again, play some more turns
+		Assert.assertEquals("[player3, player4, player5]", game.getTeamList().get(1).getPlayerList().toString() );
+
+		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 25	);
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+
+		// Now let's have all of Team1 lose connection while Team0 are playing
+		Assert.assertEquals("player1", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(4).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 28	);
+		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(5).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		
+		// It now wants Team1 to go, but there's no player
+		Assert.assertEquals(3, game.getAllReferencedPlayers().size());
+		Assert.assertNull( game.getCurrentPlayer() );
+		
+		// Put Team1 back
+		for (int i = 3; i <= 5; i++) {
+			allSessions.set(i, SessionManager.createSession());
+			AnnotatedHandlers.setUsername(allSessions.get(i), "player" + i);
+			AnnotatedHandlers.setGameID(allSessions.get(i), game.getID());
+			AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(i).getPlayer().getPublicUniqueID(), 1);
+		}
+		Assert.assertEquals("[player3, player4, player5]", game.getTeamList().get(1).getPlayerList().toString() );
+		Assert.assertEquals(36, game.getShuffledNameList().size());
+		
+		// We're at the beginning of Team1's list, put it back to player4 as it should be and play some more turns
+		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(4).getPlayer().getPublicUniqueID());
+	
+		Assert.assertEquals("player4", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 30	);
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+
+		Assert.assertEquals("player2", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 32	);
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		
+		// Player 1 drops out and stays out for a while (not his turn anyway).
+		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
+		Assert.assertEquals("player5", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 34	);
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		
+		// player0 ends the round, player1 still missing
+		Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 36	);
+		
+		Assert.assertEquals(GameState.READY_TO_START_NEXT_ROUND, game.getState());
+		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
+		Assert.assertEquals(5, game.getAllReferencedPlayers().size());
+		Assert.assertEquals(36, game.getShuffledNameList().size());
+		
+		// Check scores for the round are consistent
+		Assert.assertEquals(36, game.getMapTeamsToAchievedNames().get(game.getTeamList().get(0)).size()
+								+ game.getMapTeamsToAchievedNames().get(game.getTeamList().get(1)).size() );
+
+		// player3 plays a turn of the next round
+		AnnotatedHandlers.startNextRound(hostSession);
+		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 3	);
+		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		
+		// put back player1 where he should be
+		allSessions.set(1, SessionManager.createSession());
+		AnnotatedHandlers.setUsername(allSessions.get(1), "player1");
+		AnnotatedHandlers.setGameID(allSessions.get(1), game.getID());
+		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID(), 0);
+		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
+		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
+		Assert.assertEquals("[player0, player1, player2]", game.getTeamList().get(0).getPlayerList().toString() );
+
+		Assert.assertEquals("player1", game.getCurrentPlayer().getName() );
+		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
+		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 36	);
+		
+		// Check scores for the round are consistent
+		Assert.assertEquals(36, game.getMapTeamsToAchievedNames().get(game.getTeamList().get(0)).size()
+								+ game.getMapTeamsToAchievedNames().get(game.getTeamList().get(1)).size() );
+
+		// check total scores are consistent
+		Map<Team, List<Integer>> mapTeamsToScores = game.getMapTeamsToScores();
+		Assert.assertEquals(GameState.ENDED, game.getState());
+		IntStream.of( 0, 1, 2 )
+			.forEach( i -> {
+				int totalScore = mapTeamsToScores.get(game.getTeamList().get(0)).get(i)
+									+ mapTeamsToScores.get(game.getTeamList().get(1)).get(i);
+				Assert.assertEquals(36, totalScore);
+			});
 	}
 }

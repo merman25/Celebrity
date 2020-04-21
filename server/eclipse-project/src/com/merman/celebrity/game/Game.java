@@ -109,10 +109,10 @@ public class Game {
 		Team team2 = new Team();
 		team2.setTeamName("Team 2");
 
-		int n = playerList.size();
-		int limit = ( n + 1 ) / 2; // if there's an odd number of players, we'll have more players in team 1 (looks neater)
+		int numPlayers = playerList.size();
+		int limit = ( numPlayers + 1 ) / 2; // if there's an odd number of players, we'll have more players in team 1 (looks neater)
 		
-		if ( n == 1 ) {
+		if ( numPlayers == 1 ) {
 			// special case: if only 1 player (used for testing only), put him in 1st team
 			team1.addPlayer(playerList.get(0));
 			mapPlayersToTeams.put(playerList.get(0), team1);
@@ -131,7 +131,7 @@ public class Game {
 				mapPlayersToTeams.put(player, team1);
 			}
 
-			for (int i = limit; i < n; i++) {
+			for (int i = limit; i < numPlayers; i++) {
 				Player player = playerList.get(i);
 				team2.addPlayer(player);
 				mapPlayersToTeams.put(player, team2);
@@ -139,7 +139,9 @@ public class Game {
 		}
 		
 		teamList.add(team1);
-		teamList.add(team2);
+		if ( numPlayers > 1 ) {
+			teamList.add(team2);
+		}
 		playersWithoutTeams.clear();
 		
 		nextTeamIndex = -1;
@@ -174,9 +176,10 @@ public class Game {
 			nextPlayerIndex %= team.getPlayerList().size();
 			mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
 
-			Player player = team.getPlayerList().get(nextPlayerIndex);
-			currentPlayer = player;
 		}
+		updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
+//			Player player = team.getPlayerList().get(nextPlayerIndex);
+//			currentPlayer = player;
 	}
 	
 	private Player updateCurrentPlayerFromIndicesAfterChangeToTeamStructure() {
