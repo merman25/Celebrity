@@ -212,4 +212,9 @@ public class AnnotatedHandlers {
 	public static void movePlayerLater(Session session, Integer playerID) {
 		session.getPlayer().getGame().movePlayerInTeamOrder(playerID, true );
 	}
+	
+	@HTTPRequest(requestName = "makeNextInTeam", argNames = {"playerID"})
+	public static void makePlayerNextInTeam(Session session, Integer playerID) {
+		session.getPlayer().getGame().makePlayerNextInTeam(playerID);
+	}
 }

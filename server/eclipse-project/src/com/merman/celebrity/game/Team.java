@@ -43,4 +43,9 @@ public class Team {
 		playerList.set(newIndex, movedPlayer);
 		playerList.set(aIndexOfPlayer, temp);
 	}
+	
+	@Override
+	public String toString() {
+		return getTeamName();
+	}
 }

@@ -182,12 +182,23 @@ public class Game {
 	private Player updateCurrentPlayerFromIndicesAfterChangeToTeamStructure() {
 		Player	player = null;
 		if ( nextTeamIndex >= 0 ) {
+			nextTeamIndex %= teamList.size(); // make sure it's still within bounds, even if a team is removed
 			Team team = teamList.get(nextTeamIndex);
-			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.get(team);
-			if ( nextPlayerIndex != null
-					&& nextPlayerIndex >= 0 ) {
+			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.computeIfAbsent(team, t->-1);
+			if ( team.getPlayerList().isEmpty() ) {
+				nextPlayerIndex = -1;
+				mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+			}
+			else {
+				if ( nextPlayerIndex < 0
+						|| nextPlayerIndex >= team.getPlayerList().size() ) {
+					// make sure it's still within bounds, even if a player is removed
+					nextPlayerIndex = 0;
+					mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+				}
 				player = team.getPlayerList().get(nextPlayerIndex);
 			}
+
 		}
 		
 		currentPlayer = player;
@@ -333,6 +344,7 @@ public class Game {
 				team.addPlayer(player);
 				mapPlayersToTeams.put(player, team);
 				playersWithoutTeams.remove(player);
+				updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 			}
 		}
 	}
@@ -347,32 +359,33 @@ public class Game {
 				mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
 			}
 			team.removePlayer(player);
+			updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 			
-			if ( currentPlayer == player ) {
-				Integer playerIndex = mapTeamsToNextPlayerIndices.get(team);
-				if ( playerIndex == team.getPlayerList().size() ) {
-					if ( playerIndex == 0 ) {
-						// team has run out of players. Set index to -1, so that when it has players again, it'll start at the beginning
-						playerIndex = -1;
-					}
-					else {
-						playerIndex = 0;
-					}
-					mapTeamsToNextPlayerIndices.put(team, playerIndex);
-				}
-				
-				if ( ! team.getPlayerList().isEmpty() ) {
-					currentPlayer = team.getPlayerList().get(playerIndex);
-				}
-				else if ( nextTeamIndex >= 0 ) {
-					/* if nextTeamIndex is -1, we haven't started the 1st round yet.
-					 * If we're already removing players at this point, either we're in one of the unit tests,
-					 * or there's trouble. Either way, wait until play properly starts before we start the
-					 * teams taking turns.
-					 */
-					incrementPlayer();
-				}
-			}
+//			if ( currentPlayer == player ) {
+//				Integer playerIndex = mapTeamsToNextPlayerIndices.get(team);
+//				if ( playerIndex == team.getPlayerList().size() ) {
+//					if ( playerIndex == 0 ) {
+//						// team has run out of players. Set index to -1, so that when it has players again, it'll start at the beginning
+//						playerIndex = -1;
+//					}
+//					else {
+//						playerIndex = 0;
+//					}
+//					mapTeamsToNextPlayerIndices.put(team, playerIndex);
+//				}
+//
+//				if ( ! team.getPlayerList().isEmpty() ) {
+//					currentPlayer = team.getPlayerList().get(playerIndex);
+//				}
+//				else if ( nextTeamIndex >= 0 ) {
+//					/* if nextTeamIndex is -1, we haven't started the 1st round yet.
+//					 * If we're already removing players at this point, either we're in one of the unit tests,
+//					 * or there's trouble. Either way, wait until play properly starts before we start the
+//					 * teams taking turns.
+//					 */
+//					incrementPlayer();
+//				}
+//			}
 		}
 	}
 
@@ -407,8 +420,12 @@ public class Game {
 	 */
 	public synchronized List<Player> getAllReferencedPlayers() {
 		LinkedHashSet<Player>	allPlayerSet		= new LinkedHashSet<>();
-		allPlayerSet.add(host);
-		allPlayerSet.add(currentPlayer);
+		if ( host != null ) {
+			allPlayerSet.add(host);
+		}
+		if ( currentPlayer != null ) {
+			allPlayerSet.add(currentPlayer);
+		}
 		allPlayerSet.addAll(playersWithoutTeams);
 		teamList.stream().forEach(t -> allPlayerSet.addAll(t.getPlayerList()));
 		allPlayerSet.addAll(mapPlayersToTeams.keySet());
@@ -425,6 +442,20 @@ public class Game {
 				int indexOfPlayer = team.indexOf(player);
 				if ( indexOfPlayer >= 0 ) {
 					team.movePlayerAtIndex( indexOfPlayer, aMovePlayerLater );
+					updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
+				}
+			}
+		}
+	}
+
+	public void makePlayerNextInTeam(Integer aPlayerID) {
+		Player player = PlayerManager.getPlayer(aPlayerID);
+		if ( player != null ) {
+			Team team = mapPlayersToTeams.get(player);
+			if ( team != null ) {
+				int indexOfPlayer = team.indexOf(player);
+				if ( indexOfPlayer >= 0 ) {
+					mapTeamsToNextPlayerIndices.put(team, indexOfPlayer);
 					updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 				}
 			}
