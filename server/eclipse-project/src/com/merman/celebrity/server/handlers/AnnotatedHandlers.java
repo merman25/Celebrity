@@ -131,7 +131,6 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "nameList", requestType = RequestType.FORM, argNames = {"nameList"})
 	public static void provideNames(Session session, List<String> nameList ) {
-		// FIXME can't parse lists at the moment
 		Player player = session.getPlayer();
 		Game game = player.getGame();
 		if ( game != null
