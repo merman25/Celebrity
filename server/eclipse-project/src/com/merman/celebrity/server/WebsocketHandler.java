@@ -88,29 +88,6 @@ public class WebsocketHandler {
 		@Override
 		public void run() {
 			if ( handshakeCompleted ) {
-//				try {
-//					Thread.sleep(2000);
-//
-//					String message = outgoingQueue.take();
-//					byte[] messageBytes = message.getBytes("UTF-8");
-//
-//					if ( messageBytes.length > 125 ) {
-//						System.err.format("Message too long (%,d bytes): %s\n", messageBytes.length, message );
-//					}
-//					else {
-//						byte[] frame = new byte[messageBytes.length + 2];
-//						frame[0] = -127;
-//						frame[1] = (byte) (messageBytes.length);
-//						System.arraycopy(messageBytes, 0, frame, 2, messageBytes.length);
-//
-//						socket.getOutputStream().write(frame, 0, frame.length);
-//						System.out.println("sent my dodgy message");
-//					}
-//				}
-//				catch ( Exception e ) {
-//					e.printStackTrace();
-//				}
-				
 				while ( listen ) {
 					try {
 						String message 		= outgoingQueue.take();
