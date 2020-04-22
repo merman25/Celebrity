@@ -1,6 +1,7 @@
 package com.merman.celebrity.tests;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.Team;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 
 public class ServerTest {
@@ -559,5 +561,12 @@ public class ServerTest {
 									+ mapTeamsToScores.get(game.getTeamList().get(1)).get(i);
 				Assert.assertEquals(36, totalScore);
 			});
+	}
+	
+	@Test
+	public void testToLengthArray() {
+		Assert.assertEquals("[10]", Arrays.toString( WebsocketHandler.toLengthArray(10) ));
+		Assert.assertEquals("[126, 3, -42]", Arrays.toString( WebsocketHandler.toLengthArray(982) ));
+		Assert.assertEquals("[127, 0, 0, 0, 0, 0, 1, 90, 23]", Arrays.toString( WebsocketHandler.toLengthArray(88599) ));
 	}
 }
