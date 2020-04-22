@@ -66,7 +66,7 @@ public class GameManager {
 		JSONObject jsonObject = new JSONObject()
 				.put( "publicIDOfRecipient", publicIDOfRequester )
                 .put( "host", toJSON( aGame.getHost() ) )
-                .put( "state", aGame.getStatus() )
+                .put( "status", aGame.getStatus() )
                 .put( "players", aGame.getPlayersWithoutTeams().stream()
                 				 .map( player -> toJSON( player ) )
                 				 .collect( Collectors.toList() ) )

@@ -1,4 +1,4 @@
-let gameState = "WAITING_FOR_PLAYERS";
+let gameStatus = "WAITING_FOR_PLAYERS";
 let numNamesPerPlayer = 0;
 let gameStateObject = {};
 let currentNameIndex = 0;
@@ -144,8 +144,8 @@ function processGameStateObject(newGameStateObject) {
 	iAmPlaying = iAmCurrentPlayer();
 	let iAmHosting = iAmHost();
 
-	let gameStateString = gameStateObject.state;
-	if (gameStateString == "READY_TO_START_NEXT_TURN") {
+	let gameStatusString = gameStateObject.status;
+	if (gameStatusString == "READY_TO_START_NEXT_TURN") {
 
 		if (iAmPlaying) {
 			document.getElementById("startTurnButton").style.display = 'block';
@@ -164,9 +164,9 @@ function processGameStateObject(newGameStateObject) {
 
 
 	nameList = gameStateObject.nameList;
-	setGameState(gameStateString);
+	setGameStatus(gameStatusString);
 
-	if (gameState == "PLAYING_A_TURN") {
+	if (gameStatus == "PLAYING_A_TURN") {
 		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameStateObject.secondsRemaining;
 	}
 
@@ -230,7 +230,7 @@ function processGameStateObject(newGameStateObject) {
 		document.getElementById("playerList").innerHTML = "";
 	}
 
-	if (gameStateString == "WAITING_FOR_NAMES") {
+	if (gameStatusString == "WAITING_FOR_NAMES") {
 		let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
 			document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)";
@@ -574,19 +574,19 @@ function requestNames() {
 		.catch(err => console.error(err));
 }
 
-function setGameState(newState) {
-	if (gameState != newState) {
-		console.log("Changing state from " + gameState + " to " + newState);
+function setGameStatus(newStatus) {
+	if (gameStatus != newStatus) {
+		console.log("Changing status from " + gameStatus + " to " + newStatus);
 	}
 
-	if (gameState != "WAITING_FOR_NAMES"
-		&& newState == "WAITING_FOR_NAMES") {
+	if (gameStatus != "WAITING_FOR_NAMES"
+		&& newStatus == "WAITING_FOR_NAMES") {
 		updateGameInfo("<hr>Put your names into the hat!");
 		addNameRequestForm();
 	}
 
-	if (gameState != "PLAYING_A_TURN"
-		&& newState == "PLAYING_A_TURN") {
+	if (gameStatus != "PLAYING_A_TURN"
+		&& newStatus == "PLAYING_A_TURN") {
 		currentNameIndex = gameStateObject.currentNameIndex;
 		previousNameIndex = gameStateObject.previousNameIndex;
 
@@ -596,8 +596,8 @@ function setGameState(newState) {
 		updateCurrentNameDiv();
 	}
 
-	if (gameState != "READY_TO_START_NEXT_TURN"
-		&& newState == "READY_TO_START_NEXT_TURN") {
+	if (gameStatus != "READY_TO_START_NEXT_TURN"
+		&& newStatus == "READY_TO_START_NEXT_TURN") {
 		document.getElementById("turnControlsDiv").style.display = 'none';
 		document.getElementById("currentNameDiv").innerHTML = "";
 		let roundIndex = gameStateObject.roundIndex;
@@ -610,7 +610,7 @@ function setGameState(newState) {
 		updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameStateObject.rounds);
 	}
 
-	if (newState == "READY_TO_START_NEXT_ROUND") {
+	if (newStatus == "READY_TO_START_NEXT_ROUND") {
 		document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
 		showHostDutiesElements();
 		document.getElementById("startNextRoundButton").style.display = 'block';
@@ -619,17 +619,17 @@ function setGameState(newState) {
 		document.getElementById("startNextRoundButton").style.display = 'none';
 	}
 
-	if (newState != "READY_TO_START_NEXT_ROUND"
-		&& gameState == "READY_TO_START_NEXT_ROUND") {
+	if (newStatus != "READY_TO_START_NEXT_ROUND"
+		&& gameStatus == "READY_TO_START_NEXT_ROUND") {
 		hideHostDutiesElements();
 	}
 
-	if (newState == "ENDED"
-		&& gameState != "ENDED") {
+	if (newStatus == "ENDED"
+		&& gameStatus != "ENDED") {
 		updateGameInfo("<hr>Game Over!");
 	}
 
-	gameState = newState;
+	gameStatus = newStatus;
 }
 
 function addNameRequestForm() {
