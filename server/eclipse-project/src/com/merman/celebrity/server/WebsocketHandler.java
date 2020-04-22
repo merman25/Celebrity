@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 
 public class WebsocketHandler {
 	private static final byte            MESSAGE_START_BYTE                = (byte) 0x81;                         // -127
+	private static final byte            SOCKET_CLOSING_MESSAGE_START_BYTE = (byte) 137;
 	private static final int             MESSAGE_START_BYTE_AS_INT         = 0x81;                                // 129
 
 	private static final int             LENGTH_BYTE_SUBTRACTION_CONSTANT  = 128;
@@ -46,7 +47,8 @@ public class WebsocketHandler {
 				while ( listen ) {
 					InputStream inputStream = socket.getInputStream();
 					for ( int nextByte; ( nextByte = inputStream.read() ) != -1; ) {
-						if ( nextByte == MESSAGE_START_BYTE_AS_INT ) {
+						if ( nextByte == MESSAGE_START_BYTE_AS_INT
+								|| nextByte == SOCKET_CLOSING_MESSAGE_START_BYTE ) {
 							byte magicByte = (byte) nextByte;
 							
 							byte[] lengthByteArray = new byte[9];
@@ -65,7 +67,6 @@ public class WebsocketHandler {
 								}
 								
 								long messageLength = toLength(lengthByteArray);
-								System.out.println( "Message length: " + messageLength );
 								
 								if ( messageLength < 0 ) {
 									throw new RuntimeException("Negative message length: " + messageLength);
@@ -81,20 +82,22 @@ public class WebsocketHandler {
 									for ( int totalBytesRead = 0; ( totalBytesRead += inputStream.read(encodedMessage, totalBytesRead, encodedMessage.length - totalBytesRead ) ) < encodedMessage.length; );
 									byte[] decodedMessage = decode(key, encodedMessage);
 									String message = new String( decodedMessage, "UTF-8" );
-									System.out.println("Received message: " + message );
-									System.out.println("Message length: " + message.length() );
 									
-//									if ( message.length() > 20000 ) {
-//										int lineLength = 149;
-//										for ( int charsPrinted = 0; charsPrinted < message.length(); ) {
-//											int charsToPrint = Math.min(lineLength, message.length() - charsPrinted );
-//											int oldCharsPrinted = charsPrinted;
-//											charsPrinted += charsToPrint;
-//
-//											System.out.println(" + \"" + message.substring(oldCharsPrinted, charsPrinted) + "\"");
-//										}
-//									}
-
+									if ( getSession() == null
+											&& message.startsWith("session=") ) {
+										String sessionID = message.substring("session=".length());
+										session = SessionManager.getSession(sessionID);
+										if ( session != null ) {
+											System.out.println( "Opened websocket with session " + sessionID + " [" + session.getPlayer() + "]" );
+											enqueueMessage("gotcha");
+										}
+										else {
+											System.err.println( "Unknown session ID: " + sessionID );
+										}
+									}
+									else {
+										System.out.println("Message from socket: " + message );
+									}
 								}
 							}
 						}
@@ -129,7 +132,6 @@ public class WebsocketHandler {
 						System.arraycopy(messageBytes, 0, frame, lengthArray.length + 1, messageBytes.length);
 
 						socket.getOutputStream().write(frame);
-						System.out.println("wrote message: " + message);
 					}
 					catch (InterruptedException | IOException e) {
 						e.printStackTrace();
@@ -250,7 +252,6 @@ public class WebsocketHandler {
 						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes("UTF-8")))
 						+ "\r\n\r\n").getBytes("UTF-8");
 				outputStream.write(response, 0, response.length);
-				System.out.println("handshake completed");
 				handshakeCompleted = true;
 			}
 		}
@@ -274,5 +275,9 @@ public class WebsocketHandler {
 		catch ( InterruptedException e ) {
 			e.printStackTrace();
 		}
+	}
+
+	public Session getSession() {
+		return session;
 	}
 }

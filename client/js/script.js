@@ -7,6 +7,9 @@ let iAmPlaying = false;
 let nameList = [];
 let gameStateLogging = false;
 let teamList = [];
+let webSocket = null;
+let useSocket = false;
+let firstSocketMessage = true;
 
 /* Might be useful later: event when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {} );
@@ -27,6 +30,7 @@ function myDecode(string) {
 function nameSubmitted() {
 	document.getElementById("divChooseName").style.display = 'none';
 	document.getElementById("divJoinOrHost").style.display = 'block';
+	setTimeout(tryToOpenSocket, 250);
 }
 
 function requestGameID() {
@@ -55,25 +59,48 @@ function hostNewGame() {
 			updateGameStateForever(gameID);
 		})
 		.catch(err => console.error(err));
+}
 
-
+function tryToOpenSocket() {
 	try {
 		const currentURL = window.location.href;
 		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
 			.replace(/:[0-9]+.*$/, '');
-		const socket = new WebSocket('ws://' + currentHostName + ':8081/');
-		socket.onerror = evt => console.error(evt);
-		socket.onclose = evt => console.log(evt);
-		socket.addEventListener('message', evt => {
-			const messageLength = evt.data.length;
-			console.log('Received message of length ' + messageLength);
-			console.log('message: ' + evt.data);
-		});
-		socket.onopen = event => {
-			socket.send("what's up");
-			console.log('sent it');
-			socket.send("message 2");
-			console.log('sent 2nd message');
+		webSocket = new WebSocket('ws://' + currentHostName + ':8081/');
+		webSocket.onerror = evt => {
+			console.error('Error in websocket');
+			console.error(evt);
+			useSocket = false;
+		};
+		webSocket.onclose = evt => {
+			console.log('websocket closed');
+			console.log(evt);
+			useSocket = false;
+		};
+		webSocket.onopen = event => {
+			console.log('websocket opened');
+			const sessionID = getCookie('session');
+			if (sessionID == null) {
+				sessionID = 'UNKNOWN';
+			}
+			webSocket.send('session=' + sessionID);
+			webSocket.send('what\'s up');
+			webSocket.send('all good?');
+
+		};
+
+		webSocket.onmessage = evt => {
+			const message = evt.data;
+			if (firstSocketMessage) {
+				firstSocketMessage = false;
+				if (message == 'gotcha') {
+					useSocket = true;
+					console.log('websocket is providing data');
+				}
+			}
+			else {
+				console.log('message: ' + evt.data);
+			}
 		};
 	} catch (err) {
 		console.error(err);
@@ -105,367 +132,369 @@ function updateGameStateForever(gameID) {
 function updateGameState(gameID) {
 	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
 		.then(result => result.json())
-		.then(result => {
-			gameStateObject = result;
+		.then(result => processGameStateObject(result))
+		.catch(err => console.error(err));
 
-			numNamesPerPlayer = gameStateObject.numNames;
-			iAmPlaying = iAmCurrentPlayer();
-			let iAmHosting = iAmHost();
+}
 
-			let gameStateString = gameStateObject.state;
-			if (gameStateString == "READY_TO_START_NEXT_TURN") {
+function processGameStateObject(newGameStateObject) {
+	gameStateObject = newGameStateObject;
 
-				if (iAmPlaying) {
-					document.getElementById("startTurnButton").style.display = 'block';
-					document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
-				}
-				else {
-					let currentPlayerName = myDecode(gameStateObject.currentPlayer.name);
+	numNamesPerPlayer = gameStateObject.numNames;
+	iAmPlaying = iAmCurrentPlayer();
+	let iAmHosting = iAmHost();
 
-					document.getElementById("startTurnButton").style.display = 'none';
-					document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
-				}
-			}
-			else {
-				document.getElementById("startTurnButton").style.display = 'none';
-			}
+	let gameStateString = gameStateObject.state;
+	if (gameStateString == "READY_TO_START_NEXT_TURN") {
 
+		if (iAmPlaying) {
+			document.getElementById("startTurnButton").style.display = 'block';
+			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
+		}
+		else {
+			let currentPlayerName = myDecode(gameStateObject.currentPlayer.name);
 
-			nameList = gameStateObject.nameList;
-			setGameState(gameStateString);
-
-			if (gameState == "PLAYING_A_TURN") {
-				document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameStateObject.secondsRemaining;
-			}
-
-			let playerList = gameStateObject.players;
-
-			if (playerList.length > 0) {
-				let htmlList = "<h3>Players</h3>\n<ul>\n";
-				for (let i = 0; i < playerList.length; i++) {
-					htmlList += '<li class="teamlessPlayerLiClass" playerID="' + playerList[i].publicID + '">' + myDecode(playerList[i].name) + "</li>\n";
-				}
-				htmlList += "</ul>";
-				document.getElementById("playerList").innerHTML = htmlList;
-
-				if (iAmHosting
-					&& teamList.length > 0) {
-					let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
-					for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
-						let teamlessPlayerLi = teamlessPlayerLiElements[i];
-
-						teamlessPlayerLi.addEventListener("contextmenu", event => {
-							let playerID = event.target.getAttribute("playerID");
-							event.preventDefault();
-
-							let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
-							menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
-							menuHTML += '<li class="separator"></li>';
-
-							for (let j = 0; j < teamList.length; j++) {
-								menuHTML += '<li id="changeToTeam' + j + '" class="menuItem">';
-								menuHTML += 'Put in ' + teamList[j];
-								menuHTML += '</li>';
-							}
-
-							menuHTML += '</ul>';
-
-							document.getElementById("teamlessPlayerContextMenuDiv").innerHTML = menuHTML;
-
-							for (let j = 0; j < teamList.length; j++) {
-								document.getElementById("changeToTeam" + j).addEventListener("click", event => {
-									putInTeam(playerID, j);
-								});
-							}
-
-							document.getElementById("removeTeamlessPlayerFromGame").addEventListener("click", event => {
-								removeFromGame(playerID);
-							});
-
-							let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
-							contextMenu.style.display = 'block';
-							contextMenu.style.left = (event.pageX - 10) + "px";
-							contextMenu.style.top = (event.pageY - 10) + "px";
+			document.getElementById("startTurnButton").style.display = 'none';
+			document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
+		}
+	}
+	else {
+		document.getElementById("startTurnButton").style.display = 'none';
+	}
 
 
+	nameList = gameStateObject.nameList;
+	setGameState(gameStateString);
+
+	if (gameState == "PLAYING_A_TURN") {
+		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameStateObject.secondsRemaining;
+	}
+
+	let playerList = gameStateObject.players;
+
+	if (playerList.length > 0) {
+		let htmlList = "<h3>Players</h3>\n<ul>\n";
+		for (let i = 0; i < playerList.length; i++) {
+			htmlList += '<li class="teamlessPlayerLiClass" playerID="' + playerList[i].publicID + '">' + myDecode(playerList[i].name) + "</li>\n";
+		}
+		htmlList += "</ul>";
+		document.getElementById("playerList").innerHTML = htmlList;
+
+		if (iAmHosting
+			&& teamList.length > 0) {
+			let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
+			for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
+				let teamlessPlayerLi = teamlessPlayerLiElements[i];
+
+				teamlessPlayerLi.addEventListener("contextmenu", event => {
+					let playerID = event.target.getAttribute("playerID");
+					event.preventDefault();
+
+					let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
+					menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
+					menuHTML += '<li class="separator"></li>';
+
+					for (let j = 0; j < teamList.length; j++) {
+						menuHTML += '<li id="changeToTeam' + j + '" class="menuItem">';
+						menuHTML += 'Put in ' + teamList[j];
+						menuHTML += '</li>';
+					}
+
+					menuHTML += '</ul>';
+
+					document.getElementById("teamlessPlayerContextMenuDiv").innerHTML = menuHTML;
+
+					for (let j = 0; j < teamList.length; j++) {
+						document.getElementById("changeToTeam" + j).addEventListener("click", event => {
+							putInTeam(playerID, j);
 						});
 					}
 
+					document.getElementById("removeTeamlessPlayerFromGame").addEventListener("click", event => {
+						removeFromGame(playerID);
+					});
 
-				}
-			}
-			else {
-				document.getElementById("playerList").innerHTML = "";
-			}
-
-			if (gameStateString == "WAITING_FOR_NAMES") {
-				let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
-				if (numPlayersToWaitFor != null) {
-					document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)";
-				}
-				else {
-					document.getElementById("gameStatusDiv").innerHTML = "";
-				}
-
-				if (numPlayersToWaitFor == null
-					|| numPlayersToWaitFor == "0") {
-					document.getElementById("startGameButton").style.display = 'block';
-					showHostDutiesElements();
-				}
-			}
-
-			let teamObjectList = gameStateObject.teams;
-			teamList = [];
-			if (teamObjectList.length > 0) {
-				let tableColumns = [];
-				let playerIDs = [];
-
-				for (let i = 0; i < teamObjectList.length; i++) {
-					let teamObject = teamObjectList[i];
-					let teamName = teamObject.name;
-
-					teamList[i] = teamName;
-
-					tableColumns[i] = [];
-					playerIDs[i] = [];
-
-					let teamPlayerList = teamObject.playerList;
-					for (let j = 0; j < teamPlayerList.length; j++) {
-						tableColumns[i][j] = myDecode(teamPlayerList[j].name);
-						playerIDs[i][j] = teamPlayerList[j].publicID;
-					}
-				}
-
-				let htmlTeamList = "";
-
-				if (teamList.length > 0) {
-					htmlTeamList += "<h2>Teams</h2>\n";
-					htmlTeamList += '<table>\n';
-
-					htmlTeamList += '<tr>\n';
-					for (let i = 0; i < teamList.length; i++) {
-						htmlTeamList += '<th>';
-						htmlTeamList += teamList[i];
-						htmlTeamList += "</th>\n";
-					}
-					htmlTeamList += '</tr>\n';
-
-					for (let row = 0; ; row++) {
-						let stillHaveRowsInAtLeastOneColumn = false;
-						for (let col = 0; col < tableColumns.length; col++) {
-							if (row < tableColumns[col].length) {
-								stillHaveRowsInAtLeastOneColumn = true;
-								break;
-							}
-						}
-
-						if (!stillHaveRowsInAtLeastOneColumn) {
-							break;
-						}
-
-						htmlTeamList += '<tr>\n';
-						for (let col = 0; col < tableColumns.length; col++) {
-							htmlTeamList += '<td class="playerInTeamTDClass"';
-							if (row < tableColumns[col].length) {
-								let playerID = playerIDs[col][row];
-								htmlTeamList += ' playerID="' + playerID + '" teamIndex="' + col + '">';
-								htmlTeamList += tableColumns[col][row];
-							}
-							else {
-								htmlTeamList += '>';
-							}
-							htmlTeamList += "</td>\n";
-						}
-						htmlTeamList += "</tr>\n";
-					}
-					htmlTeamList += '</table>\n';
-
-				}
-
-				document.getElementById("teamList").innerHTML = htmlTeamList;
-
-				if (iAmHosting) {
-					let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
-					for (let i = 0; i < playerInTeamTDElements.length; i++) {
-						let playerInTeamTD = playerInTeamTDElements[i];
-
-						playerInTeamTD.addEventListener("contextmenu", event => {
-							event.preventDefault();
-							let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
-							let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
+					let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
+					contextMenu.style.display = 'block';
+					contextMenu.style.left = (event.pageX - 10) + "px";
+					contextMenu.style.top = (event.pageY - 10) + "px";
 
 
-							let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
-							menuHTML += '<li class="menuItem" id="removePlayerInTeamFromGame">Remove From Game</li>';
-							menuHTML += '<li class="separator"></li>';
-
-							for (let j = 0; j < teamList.length; j++) {
-								if (j !== teamIndex) {
-									menuHTML += '<li id="changePlayerInTeamToTeam' + j + '" class="menuItem">';
-									menuHTML += 'Put in ' + teamList[j];
-									menuHTML += '</li>';
-								}
-							}
-							menuHTML += '<li id="moveUp" class="menuItem">Move up</li>';
-							menuHTML += '<li id="moveDown" class="menuItem">Move down</li>';
-							menuHTML += '<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ' + teamList[teamIndex] + '</li>';
-							menuHTML += '</ul>';
-
-							document.getElementById("playerInTeamContextMenuDiv").innerHTML = menuHTML;
-
-
-							for (let j = 0; j < teamList.length; j++) {
-								let changePlayerToTeamLiElement = document.getElementById("changePlayerInTeamToTeam" + j);
-								if (changePlayerToTeamLiElement != null) {
-									changePlayerToTeamLiElement.addEventListener("click", event => {
-										putInTeam(playerIDOfPlayerInTeam, j);
-									});
-								}
-							}
-
-							document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
-								removeFromGame(playerIDOfPlayerInTeam);
-							});
-
-							document.getElementById("moveUp").addEventListener("click", event => {
-								moveInTeam(playerIDOfPlayerInTeam, false);
-							});
-
-							document.getElementById("moveDown").addEventListener("click", event => {
-								moveInTeam(playerIDOfPlayerInTeam, true);
-							});
-
-							document.getElementById("makePlayerNextInTeam").addEventListener("click", event => {
-								makePlayerNextInTeam(playerIDOfPlayerInTeam);
-							});
-
-
-							let contextMenu = document.getElementById("playerInTeamContextMenu");
-							contextMenu.style.display = 'block';
-							contextMenu.style.left = (event.pageX - 10) + "px";
-							contextMenu.style.top = (event.pageY - 10) + "px";
-
-							contextMenu.addEventListener("mouseleave", event => {
-								hideAllContextMenus();
-							})
-
-						});
-					}
-				}
-			}
-
-			let menuItems = document.querySelectorAll(".menuItem");
-			for (let i = 0; i < menuItems.length; i++) {
-				menuItems[i].addEventListener("click", event => {
-					hideAllContextMenus();
 				});
 			}
 
-			let htmlParams = '';
-			if (iAmHosting) {
-				htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
+
+		}
+	}
+	else {
+		document.getElementById("playerList").innerHTML = "";
+	}
+
+	if (gameStateString == "WAITING_FOR_NAMES") {
+		let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
+		if (numPlayersToWaitFor != null) {
+			document.getElementById("gameStatusDiv").innerHTML = "Waiting for names from " + numPlayersToWaitFor + " player(s)";
+		}
+		else {
+			document.getElementById("gameStatusDiv").innerHTML = "";
+		}
+
+		if (numPlayersToWaitFor == null
+			|| numPlayersToWaitFor == "0") {
+			document.getElementById("startGameButton").style.display = 'block';
+			showHostDutiesElements();
+		}
+	}
+
+	let teamObjectList = gameStateObject.teams;
+	teamList = [];
+	if (teamObjectList.length > 0) {
+		let tableColumns = [];
+		let playerIDs = [];
+
+		for (let i = 0; i < teamObjectList.length; i++) {
+			let teamObject = teamObjectList[i];
+			let teamName = teamObject.name;
+
+			teamList[i] = teamName;
+
+			tableColumns[i] = [];
+			playerIDs[i] = [];
+
+			let teamPlayerList = teamObject.playerList;
+			for (let j = 0; j < teamPlayerList.length; j++) {
+				tableColumns[i][j] = myDecode(teamPlayerList[j].name);
+				playerIDs[i][j] = teamPlayerList[j].publicID;
 			}
-			else if (gameStateObject.host != null) {
-				htmlParams += '<p>' + myDecode(gameStateObject.host.name) + ' is hosting.</p>'
+		}
+
+		let htmlTeamList = "";
+
+		if (teamList.length > 0) {
+			htmlTeamList += "<h2>Teams</h2>\n";
+			htmlTeamList += '<table>\n';
+
+			htmlTeamList += '<tr>\n';
+			for (let i = 0; i < teamList.length; i++) {
+				htmlTeamList += '<th>';
+				htmlTeamList += teamList[i];
+				htmlTeamList += "</th>\n";
 			}
+			htmlTeamList += '</tr>\n';
 
-			let numRounds = gameStateObject.rounds;
-			if (numRounds > 0) {
-				htmlParams += "<h2>Settings</h2>\n" +
-					"Rounds: " + numRounds + "<br>\n" +
-					"Round duration (sec): " + gameStateObject.duration + "<br>\n<hr>\n";
-			}
-			document.getElementById("gameParamsDiv").innerHTML = htmlParams;
-
-			let namesAchievedObjectList = gameStateObject.namesAchieved;
-			let atLeastOneNonZeroScore = false;
-			let scoresHTML = "<h2>Scores</h2>\n";
-			scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
-			for (let t = 0; t < namesAchievedObjectList.length; t++) {
-				let namesAchievedObject = namesAchievedObjectList[t];
-				let teamName = namesAchievedObject.name;
-				let namesAchievedList = namesAchievedObject.namesAchieved;
-
-				scoresHTML += '<div style="padding-right: 4rem;">\n';
-				scoresHTML += "<h3>" + teamName + "</h3>\n";
-				let score = namesAchievedList.length;
-				if (score > 0) {
-					atLeastOneNonZeroScore = true;
-				}
-				scoresHTML += "Score: " + score + "\n";
-				scoresHTML += "<ol>\n";
-				for (let j = 0; j < namesAchievedList.length; j++) {
-					scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n";
-				}
-				scoresHTML += "</ol>\n</div>\n";
-			}
-			scoresHTML += '</div>';
-
-
-			if (!atLeastOneNonZeroScore) {
-				scoresHTML = "";
-			}
-
-			document.getElementById("scoresDiv").innerHTML = scoresHTML;
-
-			let totalScoresObjectList = gameStateObject.scores;
-			let atLeastOneRoundHasBeenRecorded = false;
-			let totalScoresHTML = "";
-
-			let tableHeaders = ["Round"];
-			let tableColumns = [[]];
-
-			for (let t = 0; t < totalScoresObjectList.length; t++) {
-				let totalScoresObject = totalScoresObjectList[t];
-				let teamName = totalScoresObject.name;
-				let scoreList = totalScoresObject.scores;
-
-				tableHeaders[t + 1] = teamName;
-
-				let total = 0;
-				if (scoreList.length > 0) {
-					tableColumns[t + 1] = [];
-				}
-				for (let j = 0; j < scoreList.length; j++) {
-					tableColumns[0][j] = j + 1;
-					tableColumns[t + 1][j] = scoreList[j];
-					total += parseInt(scoreList[j]);
-				}
-				if (scoreList.length > 0) {
-					tableColumns[0][scoreList.length] = "Total";
-					tableColumns[t + 1][scoreList.length] = total;
-				}
-			}
-
-			if (tableColumns[0].length > 1) {
-				totalScoresHTML += "<h2>Total Scores</h2>\n";
-				totalScoresHTML += '<table>\n';
-
-				totalScoresHTML += "<tr>\n";
-				for (let i = 0; i < tableHeaders.length; i++) {
-					totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
-				}
-				totalScoresHTML += "</tr>\n";
-
-				for (let row = 0; row < tableColumns[0].length; row++) {
-					totalScoresHTML += '<tr>\n';
-					for (let col = 0; col < tableColumns.length; col++) {
-						let styleString = '>';
-						if (row == tableColumns[col].length - 1) {
-							styleString = ' class="totalClass">';
-						}
-						totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
+			for (let row = 0; ; row++) {
+				let stillHaveRowsInAtLeastOneColumn = false;
+				for (let col = 0; col < tableColumns.length; col++) {
+					if (row < tableColumns[col].length) {
+						stillHaveRowsInAtLeastOneColumn = true;
+						break;
 					}
-					totalScoresHTML += "</tr>\n";
 				}
 
-				totalScoresHTML += "</table>";
+				if (!stillHaveRowsInAtLeastOneColumn) {
+					break;
+				}
+
+				htmlTeamList += '<tr>\n';
+				for (let col = 0; col < tableColumns.length; col++) {
+					htmlTeamList += '<td class="playerInTeamTDClass"';
+					if (row < tableColumns[col].length) {
+						let playerID = playerIDs[col][row];
+						htmlTeamList += ' playerID="' + playerID + '" teamIndex="' + col + '">';
+						htmlTeamList += tableColumns[col][row];
+					}
+					else {
+						htmlTeamList += '>';
+					}
+					htmlTeamList += "</td>\n";
+				}
+				htmlTeamList += "</tr>\n";
 			}
+			htmlTeamList += '</table>\n';
 
-			document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
+		}
 
-		})
-		.catch(err => console.error(err));
+		document.getElementById("teamList").innerHTML = htmlTeamList;
+
+		if (iAmHosting) {
+			let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
+			for (let i = 0; i < playerInTeamTDElements.length; i++) {
+				let playerInTeamTD = playerInTeamTDElements[i];
+
+				playerInTeamTD.addEventListener("contextmenu", event => {
+					event.preventDefault();
+					let playerIDOfPlayerInTeam = event.target.getAttribute("playerID");
+					let teamIndex = parseInt(event.target.getAttribute("teamIndex"));
+
+
+					let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
+					menuHTML += '<li class="menuItem" id="removePlayerInTeamFromGame">Remove From Game</li>';
+					menuHTML += '<li class="separator"></li>';
+
+					for (let j = 0; j < teamList.length; j++) {
+						if (j !== teamIndex) {
+							menuHTML += '<li id="changePlayerInTeamToTeam' + j + '" class="menuItem">';
+							menuHTML += 'Put in ' + teamList[j];
+							menuHTML += '</li>';
+						}
+					}
+					menuHTML += '<li id="moveUp" class="menuItem">Move up</li>';
+					menuHTML += '<li id="moveDown" class="menuItem">Move down</li>';
+					menuHTML += '<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ' + teamList[teamIndex] + '</li>';
+					menuHTML += '</ul>';
+
+					document.getElementById("playerInTeamContextMenuDiv").innerHTML = menuHTML;
+
+
+					for (let j = 0; j < teamList.length; j++) {
+						let changePlayerToTeamLiElement = document.getElementById("changePlayerInTeamToTeam" + j);
+						if (changePlayerToTeamLiElement != null) {
+							changePlayerToTeamLiElement.addEventListener("click", event => {
+								putInTeam(playerIDOfPlayerInTeam, j);
+							});
+						}
+					}
+
+					document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
+						removeFromGame(playerIDOfPlayerInTeam);
+					});
+
+					document.getElementById("moveUp").addEventListener("click", event => {
+						moveInTeam(playerIDOfPlayerInTeam, false);
+					});
+
+					document.getElementById("moveDown").addEventListener("click", event => {
+						moveInTeam(playerIDOfPlayerInTeam, true);
+					});
+
+					document.getElementById("makePlayerNextInTeam").addEventListener("click", event => {
+						makePlayerNextInTeam(playerIDOfPlayerInTeam);
+					});
+
+
+					let contextMenu = document.getElementById("playerInTeamContextMenu");
+					contextMenu.style.display = 'block';
+					contextMenu.style.left = (event.pageX - 10) + "px";
+					contextMenu.style.top = (event.pageY - 10) + "px";
+
+					contextMenu.addEventListener("mouseleave", event => {
+						hideAllContextMenus();
+					})
+
+				});
+			}
+		}
+	}
+
+	let menuItems = document.querySelectorAll(".menuItem");
+	for (let i = 0; i < menuItems.length; i++) {
+		menuItems[i].addEventListener("click", event => {
+			hideAllContextMenus();
+		});
+	}
+
+	let htmlParams = '';
+	if (iAmHosting) {
+		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
+	}
+	else if (gameStateObject.host != null) {
+		htmlParams += '<p>' + myDecode(gameStateObject.host.name) + ' is hosting.</p>'
+	}
+
+	let numRounds = gameStateObject.rounds;
+	if (numRounds > 0) {
+		htmlParams += "<h2>Settings</h2>\n" +
+			"Rounds: " + numRounds + "<br>\n" +
+			"Round duration (sec): " + gameStateObject.duration + "<br>\n<hr>\n";
+	}
+	document.getElementById("gameParamsDiv").innerHTML = htmlParams;
+
+	let namesAchievedObjectList = gameStateObject.namesAchieved;
+	let atLeastOneNonZeroScore = false;
+	let scoresHTML = "<h2>Scores</h2>\n";
+	scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
+	for (let t = 0; t < namesAchievedObjectList.length; t++) {
+		let namesAchievedObject = namesAchievedObjectList[t];
+		let teamName = namesAchievedObject.name;
+		let namesAchievedList = namesAchievedObject.namesAchieved;
+
+		scoresHTML += '<div style="padding-right: 4rem;">\n';
+		scoresHTML += "<h3>" + teamName + "</h3>\n";
+		let score = namesAchievedList.length;
+		if (score > 0) {
+			atLeastOneNonZeroScore = true;
+		}
+		scoresHTML += "Score: " + score + "\n";
+		scoresHTML += "<ol>\n";
+		for (let j = 0; j < namesAchievedList.length; j++) {
+			scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n";
+		}
+		scoresHTML += "</ol>\n</div>\n";
+	}
+	scoresHTML += '</div>';
+
+
+	if (!atLeastOneNonZeroScore) {
+		scoresHTML = "";
+	}
+
+	document.getElementById("scoresDiv").innerHTML = scoresHTML;
+
+	let totalScoresObjectList = gameStateObject.scores;
+	let atLeastOneRoundHasBeenRecorded = false;
+	let totalScoresHTML = "";
+
+	let tableHeaders = ["Round"];
+	let tableColumns = [[]];
+
+	for (let t = 0; t < totalScoresObjectList.length; t++) {
+		let totalScoresObject = totalScoresObjectList[t];
+		let teamName = totalScoresObject.name;
+		let scoreList = totalScoresObject.scores;
+
+		tableHeaders[t + 1] = teamName;
+
+		let total = 0;
+		if (scoreList.length > 0) {
+			tableColumns[t + 1] = [];
+		}
+		for (let j = 0; j < scoreList.length; j++) {
+			tableColumns[0][j] = j + 1;
+			tableColumns[t + 1][j] = scoreList[j];
+			total += parseInt(scoreList[j]);
+		}
+		if (scoreList.length > 0) {
+			tableColumns[0][scoreList.length] = "Total";
+			tableColumns[t + 1][scoreList.length] = total;
+		}
+	}
+
+	if (tableColumns[0].length > 1) {
+		totalScoresHTML += "<h2>Total Scores</h2>\n";
+		totalScoresHTML += '<table>\n';
+
+		totalScoresHTML += "<tr>\n";
+		for (let i = 0; i < tableHeaders.length; i++) {
+			totalScoresHTML += '<th>' + tableHeaders[i] + "</th>";
+		}
+		totalScoresHTML += "</tr>\n";
+
+		for (let row = 0; row < tableColumns[0].length; row++) {
+			totalScoresHTML += '<tr>\n';
+			for (let col = 0; col < tableColumns.length; col++) {
+				let styleString = '>';
+				if (row == tableColumns[col].length - 1) {
+					styleString = ' class="totalClass">';
+				}
+				totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
+			}
+			totalScoresHTML += "</tr>\n";
+		}
+
+		totalScoresHTML += "</table>";
+	}
+
+	document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
 
 }
 

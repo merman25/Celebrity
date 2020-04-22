@@ -66,7 +66,7 @@ public class GameManager {
 		JSONObject jsonObject = new JSONObject()
 				.put( "publicIDOfRecipient", publicIDOfRequester )
                 .put( "host", toJSON( aGame.getHost() ) )
-                .put( "state", aGame.getState() )
+                .put( "state", aGame.getStatus() )
                 .put( "players", aGame.getPlayersWithoutTeams().stream()
                 				 .map( player -> toJSON( player ) )
                 				 .collect( Collectors.toList() ) )
@@ -95,7 +95,7 @@ public class GameManager {
                 		               .collect( Collectors.toList() ) )
                 ;
 		
-		if ( aGame.getState() == GameState.PLAYING_A_TURN
+		if ( aGame.getStatus() == GameStatus.PLAYING_A_TURN
 				&& aGame.getCurrentTurn() != null ) {
 			Turn currentTurn = aGame.getCurrentTurn();
 			if ( currentTurn.isStarted()
@@ -156,7 +156,7 @@ public class GameManager {
 		game.setNumNamesPerPlayer(numNamesPerPlayer);
 		game.setRoundDurationInSec(roundDurationInSec);
 		game.allocateTeams(true);
-		game.setState(GameState.WAITING_FOR_NAMES);
+		game.setStatus(GameStatus.WAITING_FOR_NAMES);
 		
 		final Game g = game;
 		game.getTeamList().forEach(
@@ -169,9 +169,9 @@ public class GameManager {
 			game.shuffleNames();
 			game.startRound();
 			
-			while ( game.getState() != GameState.READY_TO_START_NEXT_ROUND
-					&& game.getState() != GameState.ENDED ) {
-				game.setState(GameState.PLAYING_A_TURN);
+			while ( game.getStatus() != GameStatus.READY_TO_START_NEXT_ROUND
+					&& game.getStatus() != GameStatus.ENDED ) {
+				game.setStatus(GameStatus.PLAYING_A_TURN);
 				int		remainingNames 		= game.getShuffledNameList().size() - game.getCurrentNameIndex();
 				int		numNamesAchieved	= Math.min( remainingNames, (int) ( 7 * Math.random() ) );
 				int 	newNameIndex 		= game.getCurrentNameIndex() + numNamesAchieved;
@@ -181,7 +181,7 @@ public class GameManager {
 			}
 		}
 		
-		game.setState(GameState.ENDED);
+		game.setStatus(GameStatus.ENDED);
 	}
 
 	private static List<String> createRandomNameList(int aNumNames) {

@@ -1,6 +1,6 @@
 package com.merman.celebrity.game;
 
-public enum GameState {
+public enum GameStatus {
 	WAITING_FOR_PLAYERS,
 	WAITING_FOR_NAMES,
 	READY_TO_START_NEXT_TURN,

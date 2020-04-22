@@ -6,7 +6,7 @@ import java.util.Map;
 
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
-import com.merman.celebrity.game.GameState;
+import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.RequestType;
 import com.merman.celebrity.server.Session;
@@ -125,7 +125,7 @@ public class AnnotatedHandlers {
 	public static void sendNameRequest(Session session) {
 		Game game = session.getPlayer().getGame();
 		if ( game != null ) {
-			game.setState(GameState.WAITING_FOR_NAMES);
+			game.setStatus(GameStatus.WAITING_FOR_NAMES);
 		}
 	}
 	
@@ -134,7 +134,7 @@ public class AnnotatedHandlers {
 		Player player = session.getPlayer();
 		Game game = player.getGame();
 		if ( game != null
-				&& game.getState() == GameState.WAITING_FOR_NAMES ) {
+				&& game.getStatus() == GameStatus.WAITING_FOR_NAMES ) {
 			game.setNameList(player, nameList);
 		}
 	}
@@ -144,7 +144,7 @@ public class AnnotatedHandlers {
 		Player player = session.getPlayer();
 		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
 		if ( gameHostedByPlayer != null
-				&& gameHostedByPlayer.getState() == GameState.WAITING_FOR_NAMES ) {
+				&& gameHostedByPlayer.getStatus() == GameStatus.WAITING_FOR_NAMES ) {
 			gameHostedByPlayer.freezeNameList();
 			gameHostedByPlayer.shuffleNames();
 			gameHostedByPlayer.allowNextPlayerToStartNextTurn();

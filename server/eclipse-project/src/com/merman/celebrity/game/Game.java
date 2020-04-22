@@ -15,7 +15,7 @@ public class Game {
 	private List<Team>                teamList                    = new ArrayList<>();
 	private List<Player>              playersWithoutTeams         = new ArrayList<>();
 	private Map<Player, Team>         mapPlayersToTeams           = new HashMap<Player, Team>();
-	private GameState                 state                       = GameState.WAITING_FOR_PLAYERS;
+	private GameStatus                status                      = GameStatus.WAITING_FOR_PLAYERS;
 	private Map<Player, List<String>> mapPlayersToNameLists       = new HashMap<Player, List<String>>();
 	private List<String>              masterNameList			  = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
@@ -40,12 +40,12 @@ public class Game {
 		host = aHost;
 	}
 
-	public synchronized GameState getState() {
-		return state;
+	public synchronized GameStatus getStatus() {
+		return status;
 	}
 
-	public synchronized void setState(GameState aState) {
-		state = aState;
+	public synchronized void setStatus(GameStatus aStatus) {
+		status = aStatus;
 	}
 
 	public synchronized List<Team> getTeamList() {
@@ -156,7 +156,7 @@ public class Game {
 	
 	public synchronized void allowNextPlayerToStartNextTurn() {
 //		System.out.format("Starting round %,d of %,d\n", roundIndex+1, numRounds);
-		setState(GameState.READY_TO_START_NEXT_TURN);
+		setStatus(GameStatus.READY_TO_START_NEXT_TURN);
 	}
 	
 	public synchronized Player getCurrentPlayer() {
@@ -232,7 +232,7 @@ public class Game {
 	public synchronized void startTurn() {
 		currentTurn = new Turn(this, roundDurationInSec);
 		currentTurn.start();
-		setState(GameState.PLAYING_A_TURN);
+		setStatus(GameStatus.PLAYING_A_TURN);
 	}
 
 	public synchronized Turn getCurrentTurn() {
@@ -265,7 +265,7 @@ public class Game {
 		}
 		else {
 			setPassOnNameIndex(currentNameIndex);
-			setState(GameState.READY_TO_START_NEXT_TURN);
+			setStatus(GameStatus.READY_TO_START_NEXT_TURN);
 		}
 	}
 
@@ -290,15 +290,15 @@ public class Game {
 		
 		if ( roundIndex < numRounds ) {
 			shuffleNames();
-			setState(GameState.READY_TO_START_NEXT_ROUND);
+			setStatus(GameStatus.READY_TO_START_NEXT_ROUND);
 		}
 		else {
-			setState(GameState.ENDED);
+			setStatus(GameStatus.ENDED);
 		}
 	}
 
 	public synchronized void setCurrentNameIndex(int aCurrentNameIndex) {
-		if ( getState() == GameState.PLAYING_A_TURN ) {
+		if ( getStatus() == GameStatus.PLAYING_A_TURN ) {
 			currentNameIndex = aCurrentNameIndex;
 			if ( currentNameIndex >= shuffledNameList.size() ) {
 				stopTurn();

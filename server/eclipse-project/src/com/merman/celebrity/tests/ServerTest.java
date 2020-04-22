@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
-import com.merman.celebrity.game.GameState;
+import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.Team;
 import com.merman.celebrity.server.Session;
@@ -73,7 +73,7 @@ public class ServerTest {
 					Session playerSession = SessionManager.getSession(currentPlayer.getSessionID());
 					AnnotatedHandlers.startTurn(playerSession);
 
-					Assert.assertEquals(GameState.PLAYING_A_TURN, game.getState());
+					Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
 
 					int namesRemaining					= totalNumberOfNames - numNamesAchieved;
 					int maxNumberOfNamesToAchieve 		= random.nextInt(11);
@@ -85,22 +85,22 @@ public class ServerTest {
 						AnnotatedHandlers.setCurrentNameIndex(playerSession, nameIndex + 1);
 					}
 					numNamesAchieved = numNamesAchievedAtEndOfTurn;
-					if ( game.getState() == GameState.PLAYING_A_TURN ) {
+					if ( game.getStatus() == GameStatus.PLAYING_A_TURN ) {
 						AnnotatedHandlers.endTurn(playerSession);
-						Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 					}
 					else if ( numNamesAchieved < totalNumberOfNames ) {
-						Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 					}
 					else if ( roundIndex < numRounds - 1 ) {
-						Assert.assertEquals(GameState.READY_TO_START_NEXT_ROUND, game.getState());
+						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
 						AnnotatedHandlers.startNextRound(hostSession);
-						Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 					}
 				}
 			}
 
-			Assert.assertEquals(GameState.ENDED, game.getState());
+			Assert.assertEquals(GameStatus.ENDED, game.getStatus());
 		}
 	}
 
@@ -172,9 +172,9 @@ public class ServerTest {
 		Assert.assertEquals(aNumPlayers, game.getAllReferencedPlayers().size());
 
 		// Host requests names from all players
-		Assert.assertEquals( "Initial state", GameState.WAITING_FOR_PLAYERS, game.getState() );
+		Assert.assertEquals( "Initial state", GameStatus.WAITING_FOR_PLAYERS, game.getStatus() );
 		AnnotatedHandlers.sendNameRequest(hostSession);
-		Assert.assertEquals(GameState.WAITING_FOR_NAMES, game.getState());
+		Assert.assertEquals(GameStatus.WAITING_FOR_NAMES, game.getStatus());
 		
 		int expectedNumberOfPlayersToWaitFor = aNumPlayers;
 		Assert.assertEquals(expectedNumberOfPlayersToWaitFor, game.getNumPlayersToWaitFor());
@@ -200,7 +200,7 @@ public class ServerTest {
 		// Host starts game
 		AnnotatedHandlers.startGame(hostSession);
 		
-		Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 		Assert.assertEquals("Should have correct number of total names", aNumNamesPerPlayer * aNumPlayers, game.getShuffledNameList().size() );
 		
 		return game;
@@ -345,7 +345,7 @@ public class ServerTest {
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 36	);
 		
-		Assert.assertEquals(GameState.READY_TO_START_NEXT_ROUND, game.getState());
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName());
 		
 		// Check scores for the round are consistent
@@ -514,12 +514,12 @@ public class ServerTest {
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
 		// player0 ends the round, player1 still missing
-		Assert.assertEquals(GameState.READY_TO_START_NEXT_TURN, game.getState());
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), 36	);
 		
-		Assert.assertEquals(GameState.READY_TO_START_NEXT_ROUND, game.getState());
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
 		Assert.assertEquals(5, game.getAllReferencedPlayers().size());
 		Assert.assertEquals(36, game.getShuffledNameList().size());
@@ -554,7 +554,7 @@ public class ServerTest {
 
 		// check total scores are consistent
 		Map<Team, List<Integer>> mapTeamsToScores = game.getMapTeamsToScores();
-		Assert.assertEquals(GameState.ENDED, game.getState());
+		Assert.assertEquals(GameStatus.ENDED, game.getStatus());
 		IntStream.of( 0, 1, 2 )
 			.forEach( i -> {
 				int totalScore = mapTeamsToScores.get(game.getTeamList().get(0)).get(i)
