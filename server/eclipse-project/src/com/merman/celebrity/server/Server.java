@@ -62,7 +62,7 @@ public class Server {
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();
 		
-		IncomingWebsocketListener websocketListener = new IncomingWebsocketListener(8081);
+		IncomingWebsocketListener websocketListener = new IncomingWebsocketListener(8001);
 		websocketListener.start();
 	}
 }

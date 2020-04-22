@@ -69,7 +69,7 @@ function tryToOpenSocket() {
 		const currentURL = window.location.href;
 		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
 			.replace(/:[0-9]+.*$/, '');
-		webSocket = new WebSocket('ws://' + currentHostName + ':8081/');
+		webSocket = new WebSocket('ws://' + currentHostName + ':8001/');
 		webSocket.onerror = evt => {
 			console.error('Error in websocket');
 			console.error(evt);
@@ -79,7 +79,9 @@ function tryToOpenSocket() {
 			console.log('websocket closed');
 			console.log(evt);
 			useSocket = false;
-			updateGameStateForever(gameID);
+			if (gameID != null) {
+				updateGameStateForever(gameID);
+			}
 		};
 		webSocket.onopen = event => {
 			console.log('websocket opened');
@@ -99,7 +101,7 @@ function tryToOpenSocket() {
 					useSocket = true;
 					console.log('websocket is providing data');
 				}
-				
+
 			}
 			else if (message.indexOf('GameState=') === 0) {
 				console.log('received game state in new way');
@@ -110,9 +112,9 @@ function tryToOpenSocket() {
 			else if (message.indexOf('MillisRemaining=') === 0) {
 				const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
 				const millisRemaining = parseInt(millisRemainingString);
-				const secondsRemaining = Math.ceil( millisRemaining / 1000 );
+				const secondsRemaining = Math.ceil(millisRemaining / 1000);
 
-				updateCountdownClock( secondsRemaining );
+				updateCountdownClock(secondsRemaining);
 			}
 			else {
 				console.log('message: ' + evt.data);
@@ -120,7 +122,7 @@ function tryToOpenSocket() {
 		};
 
 		const pinger = setInterval(() => {
-			if ( useSocket ) {
+			if (useSocket) {
 				console.log('sending client ping');
 				webSocket.send('client-ping');
 			}
@@ -159,9 +161,9 @@ function updateGameStateForever(gameID) {
 function updateGameState(gameID) {
 	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
 		.then(result => result.json())
-		.then(result => { 
+		.then(result => {
 			processGameStateObject(result);
-		 } )
+		})
 		.catch(err => console.error(err));
 
 }

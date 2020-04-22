@@ -78,7 +78,7 @@ public class IncomingWebsocketListener {
 			listen = true;
 			thread.start();
 
-			System.out.format("Listening for websockets on port %d\n", portNumber);
+			System.out.format("Listening for websockets at address %s on port %d\n", inetAddressToUse, portNumber);
 		}
 	}
 
