@@ -65,10 +65,8 @@ function hostNewGame() {
 		socket.onopen = event => {
 			socket.send("what's up\n");
 			console.log('sent it');
-			setTimeout(() => {
 				socket.send("message 2\n");
 				console.log('sent 2nd message');
-			}, 500 );
 		};
 	} catch (err) {
 		console.error(err);
