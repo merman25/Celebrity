@@ -55,6 +55,24 @@ function hostNewGame() {
 			updateGameStateForever(gameID);
 		})
 		.catch(err => console.error(err));
+
+
+	try {
+		const socket = new WebSocket('ws://localhost:8081/tryit');
+		socket.onerror = evt => console.error(evt);
+		socket.onclose = evt => console.log(evt);
+		socket.addEventListener('message', evt => console.log(evt));
+		socket.onopen = event => {
+			socket.send("what's up\n");
+			console.log('sent it');
+			setTimeout(() => {
+				socket.send("message 2\n");
+				console.log('sent 2nd message');
+			}, 500 );
+		};
+	} catch (err) {
+		console.error(err);
+	}
 }
 
 function updateGameInfo(html) {
