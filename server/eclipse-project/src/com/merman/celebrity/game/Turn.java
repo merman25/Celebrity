@@ -3,6 +3,8 @@ package com.merman.celebrity.game;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.merman.celebrity.game.events.TurnTimeRemainingEvent;
+
 public class Turn {
 	private int initialSeconds;
 	private int secondsRemaining;
@@ -27,13 +29,15 @@ public class Turn {
 				
 				@Override
 				public void run() {
-					int secondsUsed = initialSeconds - (int) ( ( System.nanoTime() - startTime ) / 1_000_000_000L );
-					secondsRemaining = secondsUsed;
+					long millisRemaining 	= Math.max( 0, 1000 * initialSeconds - ( System.nanoTime() - startTime ) / 1000_000 );
+					game.fireGameEvent(new TurnTimeRemainingEvent(game, millisRemaining));
+					
+					secondsRemaining 		= initialSeconds - (int) ( ( System.nanoTime() - startTime ) / 1_000_000_000L );
 					if ( secondsRemaining <= 0 ) {
 						stop();
 					}
 				}
-			}, 0, 500);
+			}, 0, 200);
 		}
 	}
 

@@ -84,6 +84,7 @@ public class AnnotatedHandlers {
 			game.setNumRounds(numRounds);
 			game.setRoundDurationInSec(roundDuration);
 			game.setNumNamesPerPlayer(numNames);
+			game.fireGameEvent();
 		}
 		else {
 			System.err.println( player + " is not hosting any game" );

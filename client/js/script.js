@@ -10,6 +10,7 @@ let teamList = [];
 let webSocket = null;
 let useSocket = false;
 let firstSocketMessage = true;
+let gameID = null;
 
 /* Might be useful later: event when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {} );
@@ -50,13 +51,15 @@ function hostNewGame() {
 	fetch('hostNewGame')
 		.then(result => result.json())
 		.then(result => {
-			const gameID = result.gameID;
+			gameID = result.gameID;
 
 			updateGameInfo("<hr>\n"
 				+ "<h2>Game ID: " + gameID + "</h2>\n"
 				+ "<p>Waiting for others to join...</p>");
 
-			updateGameStateForever(gameID);
+			if (!useSocket) {
+				updateGameStateForever(gameID);
+			}
 		})
 		.catch(err => console.error(err));
 }
@@ -76,6 +79,7 @@ function tryToOpenSocket() {
 			console.log('websocket closed');
 			console.log(evt);
 			useSocket = false;
+			updateGameStateForever(gameID);
 		};
 		webSocket.onopen = event => {
 			console.log('websocket opened');
@@ -84,8 +88,6 @@ function tryToOpenSocket() {
 				sessionID = 'UNKNOWN';
 			}
 			webSocket.send('session=' + sessionID);
-			webSocket.send('what\'s up');
-			webSocket.send('all good?');
 
 		};
 
@@ -97,11 +99,36 @@ function tryToOpenSocket() {
 					useSocket = true;
 					console.log('websocket is providing data');
 				}
+				
+			}
+			else if (message.indexOf('GameState=') === 0) {
+				console.log('received game state in new way');
+				const gameStateString = message.substring('GameState='.length, message.length);
+				const gameObj = JSON.parse(gameStateString);
+				processGameStateObject(gameObj);
+			}
+			else if (message.indexOf('MillisRemaining=') === 0) {
+				const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
+				const millisRemaining = parseInt(millisRemainingString);
+				const secondsRemaining = Math.ceil( millisRemaining / 1000 );
+
+				updateCountdownClock( secondsRemaining );
 			}
 			else {
 				console.log('message: ' + evt.data);
 			}
 		};
+
+		const pinger = setInterval(() => {
+			if ( useSocket ) {
+				console.log('sending client ping');
+				webSocket.send('client-ping');
+			}
+			else {
+				clearInterval(pinger);
+			}
+		}, 10000);
+
 	} catch (err) {
 		console.error(err);
 	}
@@ -132,7 +159,9 @@ function updateGameStateForever(gameID) {
 function updateGameState(gameID) {
 	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
 		.then(result => result.json())
-		.then(result => processGameStateObject(result))
+		.then(result => { 
+			processGameStateObject(result);
+		 } )
 		.catch(err => console.error(err));
 
 }
@@ -167,7 +196,7 @@ function processGameStateObject(newGameStateObject) {
 	setGameStatus(gameStatusString);
 
 	if (gameStatus == "PLAYING_A_TURN") {
-		document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + gameStateObject.secondsRemaining;
+		updateCountdownClock(gameStateObject.secondsRemaining);
 	}
 
 	let playerList = gameStateObject.players;
@@ -549,14 +578,16 @@ function waitForGameIDResponse() {
 					document.getElementById("joinGameForm").style.display = 'none';
 					document.getElementById("playGameDiv").style.display = 'block';
 
-					const gameID = result.GameID;
+					gameID = result.GameID;
 
 					updateGameInfo("<hr>\n"
 						+ "<h2>Game ID: " + gameID + "</h2>\n"
 						+ "<p>Waiting for others to join...</p>");
 
 
-					updateGameStateForever(gameID);
+					if (!useSocket) {
+						updateGameStateForever(gameID);
+					}
 				}
 				else {
 					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
@@ -774,4 +805,8 @@ function moveInTeam(playerID, moveDownOrLater) {
 function makePlayerNextInTeam(playerID) {
 	fetch('makeNextInTeam', { method: 'POST', body: 'playerID=' + playerID })
 		.catch(err => console.error(err));
+}
+
+function updateCountdownClock(secondsRemaining) {
+	document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + secondsRemaining;
 }

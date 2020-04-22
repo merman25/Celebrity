@@ -52,7 +52,7 @@ public class GameManager {
 		return mapHostsToGames.get(aHost);
 	}
 	
-	public static synchronized String serialise( Game aGame, String aSessionIDOfRequester ) {
+	public static String serialise( Game aGame, String aSessionIDOfRequester ) {
 		Integer publicIDOfRequester = null;
 		if ( aSessionIDOfRequester != null ) {
 			Session session = SessionManager.getSession(aSessionIDOfRequester);
@@ -106,6 +106,10 @@ public class GameManager {
 				          .put( "nameList", aGame.getShuffledNameList() )
 				          ;
 			}
+		}
+		else {
+			jsonObject.put( "secondsRemaining", 0 );
+	          
 		}
 		
 		

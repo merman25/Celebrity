@@ -3,8 +3,10 @@ package com.merman.celebrity.server;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Enumeration;
 
 public class IncomingWebsocketListener {
 	private volatile boolean listen;
@@ -46,16 +48,38 @@ public class IncomingWebsocketListener {
 		if ( listen ) {
 			throw new IllegalStateException("Already started");
 		}
-		int portNumber = getPortNumber();
-		Thread thread = new Thread( new MyListenForConnectionsRunnable(), "IncomingWebsocketListener-" + portNumber );
-		serverSocket = new ServerSocket();
-		serverSocket.setReuseAddress(true);
-		serverSocket.bind( new InetSocketAddress( InetAddress.getLocalHost(), portNumber ) );
 		
-		listen = true;
-		thread.start();
+		InetAddress inetAddressToUse = null;
+		Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+		while ( networkInterfaces.hasMoreElements() ) {
+			NetworkInterface networkInterface = networkInterfaces.nextElement();
+			if ( networkInterface.isUp()
+					&& ! networkInterface.isLoopback() ) {
+				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+				while ( inetAddresses.hasMoreElements() ) {
+					InetAddress inetAddress = inetAddresses.nextElement();
+					if ( inetAddress.getHostAddress() != null
+							&& inetAddress.getHostAddress().matches("\\d{1,3}(\\.\\d{1,3}){3}" ) ) {
+						inetAddressToUse = inetAddress;
+					}
+				}
+			}
+		}
 		
-		System.out.format("Listening for websockets on port %d\n", portNumber);
+		if ( inetAddressToUse == null ) {
+			System.err.println("Couldn't find valid inetAddress for websocket server");
+		}
+		else {
+			int portNumber = getPortNumber();
+			Thread thread = new Thread( new MyListenForConnectionsRunnable(), "IncomingWebsocketListener-" + portNumber );
+			serverSocket = new ServerSocket();
+			serverSocket.setReuseAddress(true);
+			serverSocket.bind( new InetSocketAddress( inetAddressToUse, portNumber ) );
+			listen = true;
+			thread.start();
+
+			System.out.format("Listening for websockets on port %d\n", portNumber);
+		}
 	}
 
 	/**

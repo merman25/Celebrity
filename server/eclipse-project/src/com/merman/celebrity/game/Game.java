@@ -3,11 +3,19 @@ package com.merman.celebrity.game;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+
+import com.merman.celebrity.game.events.GameEvent;
+import com.merman.celebrity.game.events.GameStateUpdateEvent;
+import com.merman.celebrity.game.events.IGameEventListener;
+import com.merman.celebrity.game.events.NotifyClientGameEventListener;
+import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.WebsocketHandler;
 
 public class Game {
 	private String                    ID;
@@ -35,6 +43,8 @@ public class Game {
 
 	private int                       roundIndex;
 	
+	private List<IGameEventListener>  eventListeners				= new ArrayList<>();
+	
 	public Game(String aID, Player aHost) {
 		ID = aID;
 		host = aHost;
@@ -46,6 +56,7 @@ public class Game {
 
 	public synchronized void setStatus(GameStatus aStatus) {
 		status = aStatus;
+		fireGameEvent();
 	}
 
 	public synchronized List<Team> getTeamList() {
@@ -67,6 +78,12 @@ public class Game {
 	public synchronized void addPlayer(Player aPlayer) {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
+		
+		WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(SessionManager.getSession(aPlayer.getSessionID()));
+		if ( websocketHandler != null ) {
+			addGameEventListener(new NotifyClientGameEventListener( websocketHandler ) );
+		}
+		fireGameEvent();
 	}
 
 	public synchronized int getNumRounds() {
@@ -146,16 +163,18 @@ public class Game {
 		
 		nextTeamIndex = -1;
 		incrementPlayer();
+		
+		fireGameEvent();
 	}
 
 	public synchronized void setNameList(Player aPlayer, List<String> aCelebNameList) {
 		if ( mapPlayersToTeams.containsKey(aPlayer) ) {
 			mapPlayersToNameLists.put(aPlayer, aCelebNameList);
+			fireGameEvent();
 		}
 	}
 	
 	public synchronized void allowNextPlayerToStartNextTurn() {
-//		System.out.format("Starting round %,d of %,d\n", roundIndex+1, numRounds);
 		setStatus(GameStatus.READY_TO_START_NEXT_TURN);
 	}
 	
@@ -205,6 +224,7 @@ public class Game {
 		}
 		
 		currentPlayer = player;
+		fireGameEvent();
 		return player;
 	}
 
@@ -303,6 +323,9 @@ public class Game {
 			if ( currentNameIndex >= shuffledNameList.size() ) {
 				stopTurn();
 			}
+			else {
+				fireGameEvent();
+			}
 		}
 	}
 
@@ -323,6 +346,8 @@ public class Game {
 			shuffledNameList.clear();
 			shuffledNameList.addAll(achievedNames);
 			shuffledNameList.addAll(remainingNames);
+
+			fireGameEvent();
 		}
 	}
 
@@ -406,6 +431,7 @@ public class Game {
 			playersWithoutTeams.remove(player);
 			mapPlayersToTeams.remove(player);
 			mapPlayersToNameLists.remove(player);
+			fireGameEvent();
 		}
 	}
 
@@ -472,6 +498,39 @@ public class Game {
 					mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
 					updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 				}
+			}
+		}
+	}
+	
+	public synchronized void addGameEventListener( IGameEventListener aGameEventListener ) {
+		eventListeners.add(aGameEventListener);
+	}
+	
+	public synchronized void removeGameEventListener( IGameEventListener aGameEventListener ) {
+		eventListeners.remove(aGameEventListener);
+	}
+	
+	public synchronized void removeAllGameEventListeners( WebsocketHandler aWebsocketHandler ) {
+		for ( Iterator<IGameEventListener> listenerIterator = eventListeners.iterator(); listenerIterator.hasNext(); ) {
+			IGameEventListener eventListener = listenerIterator.next();
+			if ( eventListener instanceof NotifyClientGameEventListener
+					&& ((NotifyClientGameEventListener) eventListener).getWebsocketHandler() == aWebsocketHandler ) {
+				listenerIterator.remove();
+			}
+		}
+	}
+	
+	public void fireGameEvent() {
+		fireGameEvent(new GameStateUpdateEvent(this));
+	}
+	
+	public synchronized void fireGameEvent(GameEvent aGameEvent) {
+		for ( IGameEventListener listener: eventListeners ) {
+			try {
+				listener.gameEvent(aGameEvent);
+			}
+			catch ( RuntimeException e ) {
+				e.printStackTrace();
 			}
 		}
 	}
