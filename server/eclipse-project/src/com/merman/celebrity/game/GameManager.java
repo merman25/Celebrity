@@ -175,7 +175,8 @@ public class GameManager {
 	}
 	
 	public static synchronized void createTestGame(String aGameID, Player aPlayer) {
-		Game game = null;
+		Game game = createGame(aPlayer, aGameID);
+		game.setFireEvents(false);
 		
 		int numOtherPlayers = 1 + (int) ( 9*Math.random() );
 		
@@ -190,14 +191,7 @@ public class GameManager {
 			}
 			player.setName( randomName );
 			
-			if ( playerIndex == 0 ) {
-				game = createGame(player, aGameID);
-				game.setFireEvents(false);
-				game.addPlayer(aPlayer);
-			}
-			else {
-				game.addPlayer(player);
-			}
+			game.addPlayer(player);
 		}
 		
 		int numRounds = 3;
