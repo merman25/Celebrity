@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Executors;
 
+import org.json.JSONObject;
+
+import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.server.handlers.AnnotatedMethodBasedHttpHandler;
 import com.merman.celebrity.server.handlers.FormHandler;
@@ -20,8 +23,25 @@ public class Server {
 	
 	private int portNumber = 8080;
 //	private int portNumber = 80;
+
+	private File gameFile;
 	
+	public Server(File aGameFile) {
+		gameFile = aGameFile;
+	}
+
 	public void start() throws IOException {
+		GameManager.deleteExisting = gameFile == null;
+		GameManager.createFiles = true;
+		
+		if ( gameFile != null
+				&& gameFile.exists() ) {
+			byte[] fileAsByteArr = Files.readAllBytes( gameFile.toPath() );
+			String	fileAsString = new String(fileAsByteArr);
+			JSONObject jsonObject = new JSONObject(fileAsString);
+			GameManager.restoreGame(jsonObject);
+		}
+		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
 
 		Files.walk( CLIENT_FILE_DIRECTORY )

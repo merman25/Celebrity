@@ -50,7 +50,7 @@ public class AnnotatedHandlers {
 		Game game = GameManager.getGame(gameID);
 		if ( game != null ) {
 			try {
-				String serialisedGame = GameManager.serialise(game, session.getSessionID());
+				String serialisedGame = GameManager.serialise(game, session.getSessionID(), true);
 				return serialisedGame;
 			}
 			catch ( RuntimeException e ) {

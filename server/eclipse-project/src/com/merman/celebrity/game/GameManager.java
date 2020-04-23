@@ -1,5 +1,6 @@
 package com.merman.celebrity.game;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -7,12 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.merman.celebrity.server.Session;
@@ -22,6 +25,9 @@ public class GameManager {
 	private static Map<String, Game>		gamesMap		= new HashMap<String, Game>();
 	private static Map<Player, Game>		mapHostsToGames	= new HashMap<Player, Game>();
 	private static List<String>             testStringList;
+	
+	public static boolean deleteExisting;
+	public static boolean createFiles;
 	
 	public static synchronized Game createGame( Player aHost ) {
 		String gameID = generateGameID();
@@ -35,6 +41,22 @@ public class GameManager {
 		game.addPlayer(aHost);
 		gamesMap.put(aGameID, game);
 		mapHostsToGames.put(aHost, game);
+		
+		if ( createFiles
+				&& ! aGameID.toLowerCase().startsWith("test") ) {
+			File file = new File("games/" + aGameID );
+			if ( file.isDirectory() ) {
+				if ( deleteExisting ) {
+					for ( File subFile : file.listFiles() ) {
+						subFile.delete();
+					}
+				}
+			}
+			else if ( ! file.exists() ) {
+				file.mkdirs();
+			}
+		}
+		
 		return game;
 	}
 
@@ -52,7 +74,7 @@ public class GameManager {
 		return mapHostsToGames.get(aHost);
 	}
 	
-	public static String serialise( Game aGame, String aSessionIDOfRequester ) {
+	public static String serialise( Game aGame, String aSessionIDOfRequester, boolean aForClient ) {
 		Integer publicIDOfRequester = null;
 		if ( aSessionIDOfRequester != null ) {
 			Session session = SessionManager.getSession(aSessionIDOfRequester);
@@ -64,39 +86,52 @@ public class GameManager {
 		// TODO should synchronize on aGame?
 		
 		JSONObject jsonObject = new JSONObject()
-				.put( "publicIDOfRecipient", publicIDOfRequester )
-                .put( "host", toJSON( aGame.getHost() ) )
-                .put( "status", aGame.getStatus() )
-                .put( "players", aGame.getPlayersWithoutTeams().stream()
-                				 .map( player -> toJSON( player ) )
-                				 .collect( Collectors.toList() ) )
+				.put( "status", aGame.getStatus() )
                 .put( "teams", aGame.getTeamList().stream()
-                			   .map( team -> new JSONObject()
-                				   .put( "name", team.getTeamName() )
-                				   .put( "playerList", team.getPlayerList().stream()
-                						   			   .map( player -> toJSON( player ) )
-                						   			   .collect( Collectors.toList() ) ) )
-                			   .collect( Collectors.toList() ) )
-                .put( "scores", aGame.getTeamList().stream()
-                		        .map( team -> new JSONObject()
-                		            .put( "name", team.getTeamName() )
-                		            .put( "scores" , aGame.getMapTeamsToScores().get(team) ) )
-                		        .collect( Collectors.toList() ) )
+         			   .map( team -> new JSONObject()
+         				   .put( "name", team.getTeamName() )
+         				   .put( "playerList", aForClient ? team.getPlayerList().stream()
+         						   			   				.map( player -> toJSON( player ) )
+         						   			   				.collect( Collectors.toList() )
+         						   			   			  : Collections.EMPTY_LIST ) )
+         			   .collect( Collectors.toList() ) )
                 .put( "rounds", aGame.getNumRounds() )
                 .put( "roundIndex", aGame.getRoundIndex() )
                 .put( "duration", aGame.getRoundDurationInSec() )
                 .put( "numNames", aGame.getNumNamesPerPlayer() )
-                .put( "currentPlayer", toJSON( aGame.getCurrentPlayer() ) )
-                .put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
+                .put( "scores", aGame.getTeamList().stream()
+        		        .map( team -> new JSONObject()
+        		            .put( "name", team.getTeamName() )
+        		            .put( "scores" , aGame.getMapTeamsToScores().get(team) ) )
+        		        .collect( Collectors.toList() ) )
                 .put( "namesAchieved", aGame.getTeamList().stream()
-                		               .map( team -> new JSONObject()
-                		            		   .put( "name", team.getTeamName() )
-                		            		   .put( "namesAchieved", aGame.getMapTeamsToAchievedNames().get( team ) ) )
-                		               .collect( Collectors.toList() ) )
+ 		               .map( team -> new JSONObject()
+ 		            		   .put( "name", team.getTeamName() )
+ 		            		   .put( "namesAchieved", aGame.getMapTeamsToAchievedNames().get( team ) ) )
+ 		               .collect( Collectors.toList() ) )
                 ;
+		if ( aForClient ) {
+			jsonObject
+            .put( "currentPlayer", toJSON( aGame.getCurrentPlayer() ) )
+            	.put( "publicIDOfRecipient", publicIDOfRequester )
+			.put( "host", toJSON( aGame.getHost() ) )
+			.put( "players", aGame.getPlayersWithoutTeams().stream()
+					.map( player -> toJSON( player ) )
+					.collect( Collectors.toList() ) )
+			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
+			;
+		}
+		else {
+			jsonObject
+			  .put( "gameID", aGame.getID() )
+	          .put( "currentNameIndex", aGame.getCurrentNameIndex() )
+	          .put( "nameList", aGame.getShuffledNameList() )
+	          ;
+		}
 		
 		if ( aGame.getStatus() == GameStatus.PLAYING_A_TURN
-				&& aGame.getCurrentTurn() != null ) {
+				&& aGame.getCurrentTurn() != null
+				&& aForClient ) {
 			Turn currentTurn = aGame.getCurrentTurn();
 			if ( currentTurn.isStarted()
 					&& ! currentTurn.isStopped() ) {
@@ -227,5 +262,81 @@ public class GameManager {
 			e.printStackTrace();
 			testStringList = Arrays.asList( "couldn't", "read", "file" );
 		}
+	}
+
+	public static void restoreGame(JSONObject aJsonObject) {
+		String gameID = aJsonObject.getString("gameID");
+		Game game = new Game(gameID, null);
+		game.setStatus(GameStatus.valueOf(aJsonObject.getString("status")));
+//		game.setStatus(GameStatus.WAITING_FOR_PLAYERS);
+		
+		JSONArray teamsArray = aJsonObject.getJSONArray("teams");
+		for ( Object object : teamsArray ) {
+			JSONObject teamObject = (JSONObject) object;
+			String teamName = teamObject.getString("name");
+			Team team = new Team();
+			team.setTeamName(teamName);
+			game.getTeamList().add(team);
+		}
+		
+		int numRounds = aJsonObject.getInt("rounds");
+		game.setNumRounds(numRounds);
+		int roundIndex = aJsonObject.getInt("roundIndex");
+		game.setRoundIndex(roundIndex);
+		int roundDuration = aJsonObject.getInt("duration");
+		game.setRoundDurationInSec(roundDuration);
+		int numNames = aJsonObject.getInt("numNames");
+		game.setNumNamesPerPlayer(numNames);
+		JSONArray scoresArray = aJsonObject.getJSONArray("scores");
+		for ( Object object : scoresArray ) {
+			JSONObject scoresObject = (JSONObject) object;
+			String teamName = scoresObject.getString("name");
+			Team teamWithScore = null;
+			for ( Team team : game.getTeamList() ) {
+				if ( team.getTeamName().equals(teamName)) {
+					teamWithScore = team;
+					break;
+				}
+			}
+			if ( teamWithScore != null ) {
+				JSONArray scoreListArray = scoresObject.getJSONArray("scores");
+				List<Integer> scoreList		= new ArrayList<>();
+				scoreListArray.forEach(score -> scoreList.add((Integer) score));
+				
+				game.getMapTeamsToScores().put(teamWithScore, scoreList);
+			}
+		}
+		
+		JSONArray namesAchievedArray = aJsonObject.getJSONArray("namesAchieved");
+		for ( Object object : namesAchievedArray ) {
+			JSONObject namesAchievedObject = (JSONObject) object;
+			String teamName = namesAchievedObject.getString("name");
+			Team teamWithNames = null;
+			for ( Team team : game.getTeamList() ) {
+				if ( team.getTeamName().equals(teamName)) {
+					teamWithNames = team;
+					break;
+				}
+			}
+			if ( teamWithNames != null ) {
+				JSONArray namesAchievedByThisTeamArray = namesAchievedObject.getJSONArray("namesAchieved");
+				List<String> namesAchievedList = new ArrayList<>();
+				namesAchievedByThisTeamArray.forEach(name -> namesAchievedList.add((String) name));
+				game.getMapTeamsToAchievedNames().put(teamWithNames, namesAchievedList);
+			}
+		}
+		
+		int currentNameIndex = aJsonObject.getInt("currentNameIndex");
+		game.setCurrentNameIndexOnDeserialisation(currentNameIndex);
+		game.setPreviousNameIndex(currentNameIndex);
+		JSONArray jsonArray = aJsonObject.getJSONArray("nameList");
+		List<String> shuffledNameList = new ArrayList<>();
+		jsonArray.forEach(name -> shuffledNameList.add((String) name));
+		game.getShuffledNameList().addAll(shuffledNameList);
+		game.getMasterNameList().addAll(shuffledNameList);
+		
+		game.incrementPlayer();
+		
+		gamesMap.put(gameID, game);
 	}
 }

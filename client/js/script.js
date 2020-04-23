@@ -183,10 +183,17 @@ function processGameStateObject(newGameStateObject) {
 			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 		}
 		else {
-			let currentPlayerName = myDecode(gameStateObject.currentPlayer.name);
-
 			document.getElementById("startTurnButton").style.display = 'none';
-			document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
+
+			const currentPlayer = gameStateObject.currentPlayer;
+			if (currentPlayer != null) {
+				let currentPlayerName = myDecode(currentPlayer.name);
+
+				document.getElementById("gameStatusDiv").innerHTML = "Waiting for " + currentPlayerName + " to start turn";
+			}
+			else {
+				document.getElementById("gameStatusDiv").innerHTML = 'I don\'t know whose turn it is any more :(';
+			}
 		}
 	}
 	else {
@@ -201,6 +208,7 @@ function processGameStateObject(newGameStateObject) {
 		updateCountdownClock(gameStateObject.secondsRemaining);
 	}
 
+
 	let playerList = gameStateObject.players;
 
 	if (playerList.length > 0) {
@@ -211,6 +219,21 @@ function processGameStateObject(newGameStateObject) {
 		htmlList += "</ul>";
 		document.getElementById("playerList").innerHTML = htmlList;
 
+		let teamObjectList = gameStateObject.teams;
+		teamList = [];
+		if (teamObjectList.length > 0) {
+			let tableColumns = [];
+			let playerIDs = [];
+	
+			for (let i = 0; i < teamObjectList.length; i++) {
+				let teamObject = teamObjectList[i];
+				let teamName = teamObject.name;
+	
+				teamList[i] = teamName;
+			}
+		}	
+
+		console.log('num teams: ' + teamList.length);
 		if (iAmHosting
 			&& teamList.length > 0) {
 			let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
@@ -238,11 +261,13 @@ function processGameStateObject(newGameStateObject) {
 					for (let j = 0; j < teamList.length; j++) {
 						document.getElementById("changeToTeam" + j).addEventListener("click", event => {
 							putInTeam(playerID, j);
+							hideAllContextMenus();
 						});
 					}
 
 					document.getElementById("removeTeamlessPlayerFromGame").addEventListener("click", event => {
 						removeFromGame(playerID);
+						hideAllContextMenus();
 					});
 
 					let contextMenu = document.getElementById("contextMenuForTeamlessPlayer");
@@ -261,6 +286,7 @@ function processGameStateObject(newGameStateObject) {
 		document.getElementById("playerList").innerHTML = "";
 	}
 
+	
 	if (gameStatusString == "WAITING_FOR_NAMES") {
 		let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
@@ -300,6 +326,8 @@ function processGameStateObject(newGameStateObject) {
 		}
 
 		let htmlTeamList = "";
+
+		console.log('team table cols' + tableColumns);
 
 		if (teamList.length > 0) {
 			htmlTeamList += "<h2>Teams</h2>\n";
@@ -780,6 +808,7 @@ function endTurn() {
 
 }
 function hideAllContextMenus() {
+	console.log('hide all context menus');
 	let contextMenus = document.querySelectorAll(".contextMenuClass");
 	for (let i = 0; i < contextMenus.length; i++) {
 		contextMenus[i].style.display = 'none';

@@ -1,5 +1,8 @@
 package com.merman.celebrity.game;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,6 +81,10 @@ public class Game {
 	public synchronized void addPlayer(Player aPlayer) {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
+		if ( host == null ) {
+			host = aPlayer;
+			currentPlayer = aPlayer;
+		}
 		
 		WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(SessionManager.getSession(aPlayer.getSessionID()));
 		if ( websocketHandler != null ) {
@@ -182,21 +189,23 @@ public class Game {
 		return currentPlayer;
 	}
 	
-	private void incrementPlayer() {
-		nextTeamIndex++;
-		nextTeamIndex %= teamList.size();
-		
-		Team team = teamList.get(nextTeamIndex);
+	public void incrementPlayer() {
+		if ( teamList.size() > 0 ) {
+			nextTeamIndex++;
+			nextTeamIndex %= teamList.size();
 
-		Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.computeIfAbsent(team, t -> -1);
+			Team team = teamList.get(nextTeamIndex);
 
-		if ( ! team.getPlayerList().isEmpty() ) {
-			nextPlayerIndex++;
-			nextPlayerIndex %= team.getPlayerList().size();
-			mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+			Integer nextPlayerIndex = mapTeamsToNextPlayerIndices.computeIfAbsent(team, t -> -1);
 
+			if ( ! team.getPlayerList().isEmpty() ) {
+				nextPlayerIndex++;
+				nextPlayerIndex %= team.getPlayerList().size();
+				mapTeamsToNextPlayerIndices.put(team, nextPlayerIndex);
+
+			}
+			updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 		}
-		updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 //			Player player = team.getPlayerList().get(nextPlayerIndex);
 //			currentPlayer = player;
 	}
@@ -287,6 +296,22 @@ public class Game {
 			setPassOnNameIndex(currentNameIndex);
 			setStatus(GameStatus.READY_TO_START_NEXT_TURN);
 		}
+
+		if ( GameManager.createFiles ) {
+			File gameDir = new File("games/" + getID());
+			if ( gameDir.isDirectory() ) {
+				int numFiles = gameDir.listFiles().length;
+				File fileToCreate;
+				while ( ( fileToCreate = new File(gameDir, "" + ++numFiles) ).exists() );
+
+				try ( PrintWriter p = new PrintWriter(fileToCreate) ) {
+					p.print(GameManager.serialise(this, null, false));
+				}
+				catch ( IOException e ) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	private void keepScore() {
@@ -327,6 +352,10 @@ public class Game {
 				fireGameEvent();
 			}
 		}
+	}
+	
+	public void setCurrentNameIndexOnDeserialisation(int aCurrentNameIndex ) {
+		currentNameIndex = aCurrentNameIndex;
 	}
 
 	public synchronized Map<Team, List<String>> getMapTeamsToAchievedNames() {
@@ -533,5 +562,17 @@ public class Game {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void setRoundIndex(int aRoundIndex) {
+		roundIndex = aRoundIndex;
+	}
+
+	public List<String> getMasterNameList() {
+		return masterNameList;
+	}
+
+	public void setPreviousNameIndex(int aPreviousNameIndex) {
+		previousNameIndex = aPreviousNameIndex;
 	}
 }
