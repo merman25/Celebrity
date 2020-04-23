@@ -53,9 +53,8 @@ function hostNewGame() {
 		.then(result => {
 			gameID = result.gameID;
 
-			updateGameInfo("<hr>\n"
-				+ "<h2>Game ID: " + gameID + "</h2>\n"
-				+ "<p>Waiting for others to join...</p>");
+			document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
+			updateGameInfo('<p>Waiting for others to join...</p>');
 
 			if (!useSocket) {
 				updateGameStateForever(gameID);
@@ -613,10 +612,9 @@ function askGameIDResponse() {
 
 				gameID = result.GameID;
 
+				document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
 				if (gameResponse === 'OK') {
-					updateGameInfo("<hr>\n"
-						+ "<h2>Game ID: " + gameID + "</h2>\n"
-						+ "<p>Waiting for others to join...</p>");
+					updateGameInfo('<p>Waiting for others to join...</p>');
 
 
 					if (!useSocket) {
@@ -650,7 +648,7 @@ function setGameStatus(newStatus) {
 
 	if (gameStatus != "WAITING_FOR_NAMES"
 		&& newStatus == "WAITING_FOR_NAMES") {
-		updateGameInfo("<hr>Put your names into the hat!");
+		updateGameInfo("Put your names into the hat!");
 		addNameRequestForm();
 	}
 
@@ -676,7 +674,7 @@ function setGameStatus(newStatus) {
 		else {
 			roundIndex = "??";
 		}
-		updateGameInfo("<hr>Playing round " + roundIndex + " of " + gameStateObject.rounds);
+		updateGameInfo("Playing round " + roundIndex + " of " + gameStateObject.rounds);
 	}
 
 	if (newStatus == "READY_TO_START_NEXT_ROUND") {
@@ -694,7 +692,7 @@ function setGameStatus(newStatus) {
 	}
 
 	if (newStatus == "ENDED") {
-		updateGameInfo("<hr>Game Over!");
+		updateGameInfo("Game Over!");
 	}
 
 	gameStatus = newStatus;

@@ -10,6 +10,7 @@ body {
     width: 800px;
     max-width: 80%; 
     margin: auto;
+    padding-bottom: 15em; /* To give some space for the context menus */
 }
 
 #divChooseName, #divJoinOrHost {
