@@ -180,6 +180,7 @@ public class GameManager {
 			
 			if ( playerIndex == 0 ) {
 				game = createGame(player, aGameID);
+				game.setFireEvents(false);
 				game.addPlayer(aPlayer);
 			}
 			else {
@@ -220,6 +221,7 @@ public class GameManager {
 			}
 		}
 		
+		game.setFireEvents(true);
 		game.setStatus(GameStatus.ENDED);
 	}
 

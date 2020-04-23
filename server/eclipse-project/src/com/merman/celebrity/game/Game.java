@@ -28,7 +28,7 @@ public class Game {
 	private Map<Player, Team>         mapPlayersToTeams           = new HashMap<Player, Team>();
 	private GameStatus                status                      = GameStatus.WAITING_FOR_PLAYERS;
 	private Map<Player, List<String>> mapPlayersToNameLists       = new HashMap<Player, List<String>>();
-	private List<String>              masterNameList			  = new ArrayList<>();
+	private List<String>              masterNameList              = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
 	private Turn                      currentTurn;
 	private int                       previousNameIndex;
@@ -45,8 +45,9 @@ public class Game {
 	private Player                    currentPlayer;
 
 	private int                       roundIndex;
-	
-	private List<IGameEventListener>  eventListeners				= new ArrayList<>();
+
+	private List<IGameEventListener>  eventListeners              = new ArrayList<>();
+	private boolean                   fireEvents                  = true;
 	
 	public Game(String aID, Player aHost) {
 		ID = aID;
@@ -554,12 +555,14 @@ public class Game {
 	}
 	
 	public synchronized void fireGameEvent(GameEvent aGameEvent) {
-		for ( IGameEventListener listener: eventListeners ) {
-			try {
-				listener.gameEvent(aGameEvent);
-			}
-			catch ( RuntimeException e ) {
-				e.printStackTrace();
+		if ( isFireEvents() ) {
+			for ( IGameEventListener listener: eventListeners ) {
+				try {
+					listener.gameEvent(aGameEvent);
+				}
+				catch ( RuntimeException e ) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -574,5 +577,13 @@ public class Game {
 
 	public void setPreviousNameIndex(int aPreviousNameIndex) {
 		previousNameIndex = aPreviousNameIndex;
+	}
+
+	public void setFireEvents(boolean aFireEvents) {
+		fireEvents  = aFireEvents;
+	}
+
+	public boolean isFireEvents() {
+		return fireEvents;
 	}
 }

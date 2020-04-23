@@ -45,11 +45,11 @@
     <hr>
     <button id="join" onclick="requestGameID()">Join Existing Game</button>
     <div id="joinGameForm" style="display:none">
-      <form id="gameIDForm" method="post" onsubmit="waitForGameIDResponse()">
+    <form id="gameIDForm" onsubmit="event.preventDefault(); askGameIDResponse()">
         <label for="gameIDField">Game ID</label>
         <input id="gameIDField" name="gameID" type="text">
         <input type="hidden" name="form" value="gameID">
-        <input type="submit" value="OK">
+        <input type="button" value="OK"> 
       </form>
     </div>
     <div id="gameIDErrorDiv"></div>

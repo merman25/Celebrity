@@ -134,13 +134,9 @@ public class ServerTest {
 		
 		// Players join game
 		for ( Session playerSession : playerSessions ) {
-			AnnotatedHandlers.setGameID(playerSession, game.getID());
+			AnnotatedHandlers.askGameIDResponse(playerSession, game.getID());
 			Assert.assertEquals(playerSession.getPlayer().getGame(), game);
 			Assert.assertTrue("Game's player list should contain player", game.getPlayersWithoutTeams().contains(playerSession.getPlayer()));
-			
-			Map<String, String> gameIDResponse = AnnotatedHandlers.askGameIDResponse(playerSession);
-			Assert.assertEquals("OK", gameIDResponse.get("GameResponse"));
-			Assert.assertEquals(game.getID(), gameIDResponse.get("GameID"));
 		}
 		
 		// Host sets game parameters and allocates teams
@@ -283,7 +279,7 @@ public class ServerTest {
 		// player 4 creates a new session, and re-joins the game
 		allSessions.set(4, SessionManager.createSession());
 		AnnotatedHandlers.setUsername(allSessions.get(4), "player4");
-		AnnotatedHandlers.setGameID(allSessions.get(4), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(4), game.getID());
 		
 		// host puts him back in team 1
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(4).getPlayer().getPublicUniqueID(), 1);
@@ -325,7 +321,7 @@ public class ServerTest {
 		// create a new session, add him back in
 		allSessions.set(3, SessionManager.createSession());
 		AnnotatedHandlers.setUsername(allSessions.get(3), "player3");
-		AnnotatedHandlers.setGameID(allSessions.get(3), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(3), game.getID());
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID(), 1);
 		Assert.assertEquals("[player4, player5, player3]", game.getTeamList().get(1).getPlayerList().toString() );
 		
@@ -367,8 +363,8 @@ public class ServerTest {
 		allSessions.set(5, SessionManager.createSession());
 		AnnotatedHandlers.setUsername(allSessions.get(1), "player1");
 		AnnotatedHandlers.setUsername(allSessions.get(5), "player5");
-		AnnotatedHandlers.setGameID(allSessions.get(1), game.getID());
-		AnnotatedHandlers.setGameID(allSessions.get(5), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(1), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(5), game.getID());
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID(), 0);
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(5).getPlayer().getPublicUniqueID(), 1);
 		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
@@ -395,7 +391,7 @@ public class ServerTest {
 		for (int i = 1; i <= 5; i++) {
 			allSessions.set(i, SessionManager.createSession());
 			AnnotatedHandlers.setUsername(allSessions.get(i), "player" + i);
-			AnnotatedHandlers.setGameID(allSessions.get(i), game.getID());
+			AnnotatedHandlers.askGameIDResponse(allSessions.get(i), game.getID());
 			AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(i).getPlayer().getPublicUniqueID(), i / 3);
 		}
 		Assert.assertEquals("[player0, player1, player2]", game.getTeamList().get(0).getPlayerList().toString() );
@@ -427,7 +423,7 @@ public class ServerTest {
 		for (int i = 3; i <= 5; i++) {
 			allSessions.set(i, SessionManager.createSession());
 			AnnotatedHandlers.setUsername(allSessions.get(i), "player" + i);
-			AnnotatedHandlers.setGameID(allSessions.get(i), game.getID());
+			AnnotatedHandlers.askGameIDResponse(allSessions.get(i), game.getID());
 			AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(i).getPlayer().getPublicUniqueID(), 1);
 		}
 		Assert.assertEquals("[player3, player4, player5]", game.getTeamList().get(1).getPlayerList().toString() );
@@ -455,7 +451,7 @@ public class ServerTest {
 		// player 3 re-joins
 		allSessions.set(3, SessionManager.createSession());
 		AnnotatedHandlers.setUsername(allSessions.get(3), "player3");
-		AnnotatedHandlers.setGameID(allSessions.get(3), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(3), game.getID());
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID(), 1);
 		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
@@ -486,7 +482,7 @@ public class ServerTest {
 		for (int i = 3; i <= 5; i++) {
 			allSessions.set(i, SessionManager.createSession());
 			AnnotatedHandlers.setUsername(allSessions.get(i), "player" + i);
-			AnnotatedHandlers.setGameID(allSessions.get(i), game.getID());
+			AnnotatedHandlers.askGameIDResponse(allSessions.get(i), game.getID());
 			AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(i).getPlayer().getPublicUniqueID(), 1);
 		}
 		Assert.assertEquals("[player3, player4, player5]", game.getTeamList().get(1).getPlayerList().toString() );
@@ -538,7 +534,7 @@ public class ServerTest {
 		// put back player1 where he should be
 		allSessions.set(1, SessionManager.createSession());
 		AnnotatedHandlers.setUsername(allSessions.get(1), "player1");
-		AnnotatedHandlers.setGameID(allSessions.get(1), game.getID());
+		AnnotatedHandlers.askGameIDResponse(allSessions.get(1), game.getID());
 		AnnotatedHandlers.putPlayerInTeam(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID(), 0);
 		AnnotatedHandlers.movePlayerEarlier(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());

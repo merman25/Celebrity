@@ -20,21 +20,6 @@ public class AnnotatedHandlers {
 		session.getPlayer().setName(username);
 	}
 	
-	@HTTPRequest(requestName = "gameID", requestType = RequestType.FORM, argNames = {"gameID"})
-	public static void setGameID(Session session, String gameID) {
-		Game game = GameManager.getGame(gameID);
-		if ( gameID.trim().toLowerCase().startsWith("test")) {
-			GameManager.createTestGame(gameID, session.getPlayer());
-		}
-		else if ( game != null ) {
-			System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] wants to join game " + gameID );
-			game.addPlayer(session.getPlayer());
-		}
-		else {
-			System.err.println("Game not found: " + gameID);
-		}
-	}
-	
 	@HTTPRequest(requestName = "hostNewGame")
 	public static Map<String, String> hostNewGame(Session session) {
 		System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] will host a game" );
@@ -106,19 +91,27 @@ public class AnnotatedHandlers {
 
 	}
 	
-	@HTTPRequest(requestName = "askGameIDResponse")
-	public static Map<String, String> askGameIDResponse(Session session) {
+	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
+	public static Map<String, String> askGameIDResponse(Session session, String gameID) {
 		Map<String, String>	responseMap		= new HashMap<String, String>();
 		
-		Game game = session.getPlayer().getGame();
-		if ( game != null ) {
+		Game game = GameManager.getGame(gameID);
+		if ( gameID.trim().toLowerCase().startsWith("test")) {
+			GameManager.createTestGame(gameID, session.getPlayer());
+			responseMap.put("GameResponse", "TestGameCreated");
+			responseMap.put("GameID", gameID);
+		}
+		else if ( game != null ) {
+			System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] wants to join game " + gameID );
+			game.addPlayer(session.getPlayer());
 			responseMap.put("GameResponse", "OK");
 			responseMap.put("GameID", game.getID());
 		}
 		else {
+			System.err.println("Game not found: " + gameID);
 			responseMap.put("GameResponse", "NotFound");
 		}
-		
+
 		return responseMap;
 	}
 	

@@ -47,7 +47,7 @@ public class Server {
 		Files.walk( CLIENT_FILE_DIRECTORY )
 		.forEach( path -> {
 			if ( Files.isRegularFile(path) ) {
-				String pathAsString = CLIENT_FILE_DIRECTORY.relativize(path).toString();
+				String pathAsString = CLIENT_FILE_DIRECTORY.relativize(path).toString().replace('\\', '/');
 				System.out.println( "adding file: " + pathAsString );
 				server.createContext("/" + pathAsString, new ServeFileHandler(pathAsString));
 			}

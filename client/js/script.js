@@ -123,7 +123,7 @@ function tryToOpenSocket() {
 
 		const pinger = setInterval(() => {
 			if (useSocket) {
-				console.log('sending client ping');
+				// console.log('sending client ping');
 				webSocket.send('client-ping');
 			}
 			else {
@@ -224,16 +224,15 @@ function processGameStateObject(newGameStateObject) {
 		if (teamObjectList.length > 0) {
 			let tableColumns = [];
 			let playerIDs = [];
-	
+
 			for (let i = 0; i < teamObjectList.length; i++) {
 				let teamObject = teamObjectList[i];
 				let teamName = teamObject.name;
-	
+
 				teamList[i] = teamName;
 			}
-		}	
+		}
 
-		console.log('num teams: ' + teamList.length);
 		if (iAmHosting
 			&& teamList.length > 0) {
 			let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
@@ -286,7 +285,7 @@ function processGameStateObject(newGameStateObject) {
 		document.getElementById("playerList").innerHTML = "";
 	}
 
-	
+
 	if (gameStatusString == "WAITING_FOR_NAMES") {
 		let numPlayersToWaitFor = gameStateObject.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
@@ -326,8 +325,6 @@ function processGameStateObject(newGameStateObject) {
 		}
 
 		let htmlTeamList = "";
-
-		console.log('team table cols' + tableColumns);
 
 		if (teamList.length > 0) {
 			htmlTeamList += "<h2>Teams</h2>\n";
@@ -591,25 +588,22 @@ function allocateTeams() {
 		.catch(err => console.error(err));
 }
 
-function waitForGameIDResponse() {
+function askGameIDResponse() {
 	document.getElementById("divJoinOrHost").style.display = 'none';
+	const enteredGameID = document.getElementById('gameIDField').value;
 
-	/* FIXME looks like the reason the timeout is needed is that, without it,
-	 * it tries to simultaneously send this POST request along with the form
-	 * submission, and this fails. So I guess we need to combine the form
-	 * submission with the request below?
-	*/
-	setTimeout(() =>
-		fetch('askGameIDResponse', { method: 'POST' })
-			.then(result => result.json())
-			.then(result => {
-				const gameResponse = result.GameResponse;
-				if (gameResponse == "OK") {
-					document.getElementById("joinGameForm").style.display = 'none';
-					document.getElementById("playGameDiv").style.display = 'block';
+	fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID })
+		.then(result => result.json())
+		.then(result => {
+			console.log('result: ' + result);
+			const gameResponse = result.GameResponse;
+			if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
+				document.getElementById("joinGameForm").style.display = 'none';
+				document.getElementById("playGameDiv").style.display = 'block';
 
-					gameID = result.GameID;
+				gameID = result.GameID;
 
+				if (gameResponse === 'OK') {
 					updateGameInfo("<hr>\n"
 						+ "<h2>Game ID: " + gameID + "</h2>\n"
 						+ "<p>Waiting for others to join...</p>");
@@ -619,12 +613,16 @@ function waitForGameIDResponse() {
 						updateGameStateForever(gameID);
 					}
 				}
-				else {
-					document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
-				}
+			}
+			else {
+				document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
+			}
 
-			})
-			.catch(err => console.error(err)), 500);
+		})
+		.catch(err => console.error(err));
+
+	// prevent form from being submitted using default mechanism
+	return false;
 }
 
 function requestNames() {
@@ -685,8 +683,7 @@ function setGameStatus(newStatus) {
 		hideHostDutiesElements();
 	}
 
-	if (newStatus == "ENDED"
-		&& gameStatus != "ENDED") {
+	if (newStatus == "ENDED") {
 		updateGameInfo("<hr>Game Over!");
 	}
 
@@ -808,7 +805,6 @@ function endTurn() {
 
 }
 function hideAllContextMenus() {
-	console.log('hide all context menus');
 	let contextMenus = document.querySelectorAll(".contextMenuClass");
 	for (let i = 0; i < contextMenus.length; i++) {
 		contextMenus[i].style.display = 'none';
