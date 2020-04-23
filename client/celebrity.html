@@ -35,7 +35,7 @@
     <hr>
     <p>Give yourself a name:</p>
     <form method="post" onsubmit="nameSubmitted()">
-      <input id="nameField" name="username" type="text">
+      <input id="nameField" name="username" type="text" autofocus>
       <input type="hidden" name="form" value="username">
       <input type="submit" value="OK">
     </form>
@@ -49,7 +49,7 @@
         <label for="gameIDField">Game ID</label>
         <input id="gameIDField" name="gameID" type="text">
         <input type="hidden" name="form" value="gameID">
-        <input type="button" value="OK"> 
+        <input type="submit" value="OK"> 
       </form>
     </div>
     <div id="gameIDErrorDiv"></div>

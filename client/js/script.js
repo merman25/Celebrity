@@ -212,11 +212,16 @@ function processGameStateObject(newGameStateObject) {
 	let playerList = gameStateObject.players;
 
 	if (playerList.length > 0) {
-		let htmlList = "<h3>Players</h3>\n<ul>\n";
-		for (let i = 0; i < playerList.length; i++) {
-			htmlList += '<li class="teamlessPlayerLiClass" playerID="' + playerList[i].publicID + '">' + myDecode(playerList[i].name) + "</li>\n";
+		let htmlList = '<h3>Players</h3>\n<ul>\n';
+
+		let spanClassString = '';
+		if (iAmHosting) {
+			spanClassString = ' class="rightClickable"';
 		}
-		htmlList += "</ul>";
+		for (let i = 0; i < playerList.length; i++) {
+			htmlList += '<li class="teamlessPlayerLiClass""><span playerID="' + playerList[i].publicID + '"' + spanClassString + '>' + myDecode(playerList[i].name) + "</span></li>\n";
+		}
+		htmlList += '</ul>';
 		document.getElementById("playerList").innerHTML = htmlList;
 
 		let teamObjectList = gameStateObject.teams;
@@ -351,9 +356,14 @@ function processGameStateObject(newGameStateObject) {
 					break;
 				}
 
+				let tdExtraClassString = '';
+				if (iAmHosting) {
+					tdExtraClassString = ' rightClickable';
+				}
+
 				htmlTeamList += '<tr>\n';
 				for (let col = 0; col < tableColumns.length; col++) {
-					htmlTeamList += '<td class="playerInTeamTDClass"';
+					htmlTeamList += '<td class="playerInTeamTDClass' + tdExtraClassString + '"';
 					if (row < tableColumns[col].length) {
 						let playerID = playerIDs[col][row];
 						htmlTeamList += ' playerID="' + playerID + '" teamIndex="' + col + '">';
