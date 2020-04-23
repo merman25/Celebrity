@@ -76,10 +76,12 @@ public class GameManager {
 	
 	public static String serialise( Game aGame, String aSessionIDOfRequester, boolean aForClient ) {
 		Integer publicIDOfRequester = null;
+		Player playerRequesting = null;
 		if ( aSessionIDOfRequester != null ) {
 			Session session = SessionManager.getSession(aSessionIDOfRequester);
 			if ( session != null ) {
-				publicIDOfRequester = session.getPlayer().getPublicUniqueID();
+				playerRequesting = session.getPlayer();
+				publicIDOfRequester = playerRequesting.getPublicUniqueID();
 			}
 		}
 		
@@ -113,13 +115,23 @@ public class GameManager {
 		if ( aForClient ) {
 			jsonObject
             .put( "currentPlayer", toJSON( aGame.getCurrentPlayer() ) )
-            	.put( "publicIDOfRecipient", publicIDOfRequester )
+            .put( "yourName", playerRequesting.getName() )
+            .put( "yourTeamIndex", aGame.getTeamList().indexOf( aGame.getMapPlayersToTeams().get(playerRequesting) ) )
+            .put( "publicIDOfRecipient", publicIDOfRequester )
 			.put( "host", toJSON( aGame.getHost() ) )
 			.put( "players", aGame.getPlayersWithoutTeams().stream()
 					.map( player -> toJSON( player ) )
 					.collect( Collectors.toList() ) )
 			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
 			;
+			
+			if ( aGame.getCurrentPlayer() != null ) {
+				jsonObject.put( "currentPlayerID", aGame.getCurrentPlayer().getPublicUniqueID() );
+			}
+			
+			if ( aGame.getNextTeamIndex() >= 0 ) {
+				jsonObject.put("nextTeamIndex", aGame.getNextTeamIndex());
+			}
 		}
 		else {
 			jsonObject

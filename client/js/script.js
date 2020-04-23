@@ -11,6 +11,7 @@ let webSocket = null;
 let useSocket = false;
 let firstSocketMessage = true;
 let gameID = null;
+let myPlayerID = null;
 
 /* Might be useful later: event when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {} );
@@ -171,6 +172,7 @@ function processGameStateObject(newGameStateObject) {
 	gameStateObject = newGameStateObject;
 
 	numNamesPerPlayer = gameStateObject.numNames;
+	myPlayerID = gameStateObject.publicIDOfRecipient;
 	iAmPlaying = iAmCurrentPlayer();
 	let iAmHosting = iAmHost();
 
@@ -458,7 +460,44 @@ function processGameStateObject(newGameStateObject) {
 		});
 	}
 
-	let htmlParams = '';
+	const playerName = myDecode(gameStateObject.yourName);
+	const playerTeamIndex = gameStateObject.yourTeamIndex;
+	const nextTeamIndex = gameStateObject.nextTeamIndex;
+
+	console.log('playerTeamIndex: ' + playerTeamIndex + ', nextTeamIndex: ' + nextTeamIndex + ', myPlayerID: ' + myPlayerID + ', currentPlayerID: ' + gameStateObject.currentPlayerID + ', gameStatus: ' + gameStatus);
+
+	let htmlParams = '<p>You\'re playing as ' + playerName;
+	if (playerTeamIndex >= 0
+		&& teamList.length > playerTeamIndex) {
+		htmlParams += ' on ' + teamList[playerTeamIndex];
+	}
+	htmlParams += '.</p>';
+
+	if ((gameStatus === 'PLAYING_A_TURN'
+		|| gameStatus === 'READY_TO_START_NEXT_TURN'
+		|| gameStatus === 'READY_TO_START_NEXT_ROUND')
+		&& typeof (nextTeamIndex) !== 'undefined'
+		&& typeof (gameStateObject.currentPlayerID) !== 'undefined') {
+		if (nextTeamIndex === playerTeamIndex) {
+			if (myPlayerID !== gameStateObject.currentPlayerID) {
+				if (gameStatus === 'PLAYING_A_TURN') {
+					htmlParams += '<p>You\'re guessing while ' + myDecode(gameStateObject.currentPlayer.name) + ' plays, <b>pay attention!</b></p>';
+				}
+				else {
+					htmlParams += '<p>On the next turn, you\'ll be guessing while ' + myDecode(gameStateObject.currentPlayer.name) + ' plays. <b>Pay attention!</b></p>';
+				}
+			}
+		}
+		else if (playerTeamIndex >= 0) {
+			if (gameStatus === 'PLAYING_A_TURN') {
+				htmlParams += '<p>' + teamList[nextTeamIndex] + ' is playing now, you\'re not on that team. <b>Don\'t say anything!</b></p>';
+			}
+			else {
+				htmlParams += '<p>' + teamList[nextTeamIndex] + ' will play on the next turn, you\'re not on that team. <b>Don\'t say anything!</b></p>';
+			}
+		}
+	}
+
 	if (iAmHosting) {
 		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
 	}

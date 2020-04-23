@@ -586,4 +586,12 @@ public class Game {
 	public boolean isFireEvents() {
 		return fireEvents;
 	}
+
+	public Map<Player, Team> getMapPlayersToTeams() {
+		return mapPlayersToTeams;
+	}
+
+	public int getNextTeamIndex() {
+		return nextTeamIndex;
+	}
 }
