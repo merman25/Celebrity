@@ -464,8 +464,6 @@ function processGameStateObject(newGameStateObject) {
 	const playerTeamIndex = gameStateObject.yourTeamIndex;
 	const nextTeamIndex = gameStateObject.nextTeamIndex;
 
-	console.log('playerTeamIndex: ' + playerTeamIndex + ', nextTeamIndex: ' + nextTeamIndex + ', myPlayerID: ' + myPlayerID + ', currentPlayerID: ' + gameStateObject.currentPlayerID + ', gameStatus: ' + gameStatus);
-
 	let htmlParams = '<p>You\'re playing as ' + playerName;
 	if (playerTeamIndex >= 0
 		&& teamList.length > playerTeamIndex) {
@@ -643,7 +641,6 @@ function askGameIDResponse() {
 	fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID })
 		.then(result => result.json())
 		.then(result => {
-			console.log('result: ' + result);
 			const gameResponse = result.GameResponse;
 			if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 				document.getElementById("joinGameForm").style.display = 'none';
