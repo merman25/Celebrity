@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -33,75 +36,80 @@ public class ServerTest {
 		
 		int limit = 1000;
 		for( int gameIndex=0; gameIndex<limit; gameIndex++) {
-			int numPlayers = 1 + random.nextInt(10);
-			int numNamesPerPlayer = 1 + random.nextInt(10);
-			int numRounds = 1 + random.nextInt(5);
-			int roundDurationInSec = 60;
-			int totalNumberOfNames = numNamesPerPlayer * numPlayers;
-			int numTeams = numPlayers > 1 ? 2 : 1;
+			System.out.format("Testing game %,d of %,d\n", gameIndex+1, limit);
+			playARandomGame(random);
+		}
+	}
 
-			System.out.format("Testing game %,d of %,d: %,d players, %,d names per player, %,d rounds, %,d teams\n", gameIndex+1, limit, numPlayers, numNamesPerPlayer, numRounds, numTeams);
-			Game game = initGame(numPlayers, numNamesPerPlayer, numRounds, roundDurationInSec, numTeams, true);
-			Session hostSession = SessionManager.getSession(game.getHost().getSessionID());
-			Assert.assertNotNull(hostSession);
+	private void playARandomGame(Random random) {
+		int numPlayers = 1 + random.nextInt(10);
+		int numNamesPerPlayer = 1 + random.nextInt(10);
+		int numRounds = 1 + random.nextInt(5);
+		int roundDurationInSec = 60;
+		int totalNumberOfNames = numNamesPerPlayer * numPlayers;
+		int numTeams = numPlayers > 1 ? 2 : 1;
 
-			List<List<Player>>		playerListPerTeam		= new ArrayList<>();
-			for ( Team team : game.getTeamList() ) {
-				List<Player>	playerList		= new ArrayList<>();
-				playerList.addAll(team.getPlayerList());
-				playerListPerTeam.add(playerList);
-			}
+		System.out.format("Playing game with %,d players, %,d names per player, %,d rounds, %,d teams\n", numPlayers, numNamesPerPlayer, numRounds, numTeams);
+		Game game = initGame(numPlayers, numNamesPerPlayer, numRounds, roundDurationInSec, numTeams, true);
+		Session hostSession = SessionManager.getSession(game.getHost().getSessionID());
+		Assert.assertNotNull(hostSession);
+
+		List<List<Player>>		playerListPerTeam		= new ArrayList<>();
+		for ( Team team : game.getTeamList() ) {
+			List<Player>	playerList		= new ArrayList<>();
+			playerList.addAll(team.getPlayerList());
+			playerListPerTeam.add(playerList);
+		}
 
 
-			int expectedTeamIndex = -1;
-			Map<Integer, Integer>		mapTeamIndicesToExpectedPlayerIndices		= new HashMap<>();
+		int expectedTeamIndex = -1;
+		Map<Integer, Integer>		mapTeamIndicesToExpectedPlayerIndices		= new HashMap<>();
 
-			for (int roundIndex = 0; roundIndex < numRounds; roundIndex++) {
-				for (int numNamesAchieved = 0; numNamesAchieved < totalNumberOfNames; ) {
-					Player currentPlayer = game.getCurrentPlayer();
-					Assert.assertNotNull(currentPlayer);
+		for (int roundIndex = 0; roundIndex < numRounds; roundIndex++) {
+			for (int numNamesAchieved = 0; numNamesAchieved < totalNumberOfNames; ) {
+				Player currentPlayer = game.getCurrentPlayer();
+				Assert.assertNotNull(currentPlayer);
 
-					expectedTeamIndex++;
-					expectedTeamIndex %= numTeams;
-					int expectedPlayerIndex = mapTeamIndicesToExpectedPlayerIndices.computeIfAbsent(expectedTeamIndex, i->-1);
-					expectedPlayerIndex++;
-					expectedPlayerIndex %= playerListPerTeam.get(expectedTeamIndex).size();
-					mapTeamIndicesToExpectedPlayerIndices.put(expectedTeamIndex, expectedPlayerIndex);
+				expectedTeamIndex++;
+				expectedTeamIndex %= numTeams;
+				int expectedPlayerIndex = mapTeamIndicesToExpectedPlayerIndices.computeIfAbsent(expectedTeamIndex, i->-1);
+				expectedPlayerIndex++;
+				expectedPlayerIndex %= playerListPerTeam.get(expectedTeamIndex).size();
+				mapTeamIndicesToExpectedPlayerIndices.put(expectedTeamIndex, expectedPlayerIndex);
 
-					Assert.assertEquals("Expected player is playing", playerListPerTeam.get(expectedTeamIndex).get(expectedPlayerIndex), currentPlayer);
+				Assert.assertEquals("Expected player is playing", playerListPerTeam.get(expectedTeamIndex).get(expectedPlayerIndex), currentPlayer);
 
-					Session playerSession = SessionManager.getSession(currentPlayer.getSessionID());
-					AnnotatedHandlers.startTurn(playerSession);
+				Session playerSession = SessionManager.getSession(currentPlayer.getSessionID());
+				AnnotatedHandlers.startTurn(playerSession);
 
-					Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
+				Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
 
-					int namesRemaining					= totalNumberOfNames - numNamesAchieved;
-					int maxNumberOfNamesToAchieve 		= random.nextInt(11);
-					int numNamesToAchieveOnThisTurn 	= Math.min( namesRemaining, maxNumberOfNamesToAchieve );
-					int numNamesAchievedAtEndOfTurn		= numNamesAchieved + numNamesToAchieveOnThisTurn;
+				int namesRemaining					= totalNumberOfNames - numNamesAchieved;
+				int maxNumberOfNamesToAchieve 		= random.nextInt(11);
+				int numNamesToAchieveOnThisTurn 	= Math.min( namesRemaining, maxNumberOfNamesToAchieve );
+				int numNamesAchievedAtEndOfTurn		= numNamesAchieved + numNamesToAchieveOnThisTurn;
 
-					for (int nameIndex = numNamesAchieved; nameIndex < numNamesAchievedAtEndOfTurn; nameIndex++) {
-						Assert.assertEquals(nameIndex, game.getCurrentNameIndex() );
-						AnnotatedHandlers.setCurrentNameIndex(playerSession, nameIndex + 1);
-					}
-					numNamesAchieved = numNamesAchievedAtEndOfTurn;
-					if ( game.getStatus() == GameStatus.PLAYING_A_TURN ) {
-						AnnotatedHandlers.endTurn(playerSession);
-						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
-					}
-					else if ( numNamesAchieved < totalNumberOfNames ) {
-						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
-					}
-					else if ( roundIndex < numRounds - 1 ) {
-						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
-						AnnotatedHandlers.startNextRound(hostSession);
-						Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
-					}
+				for (int nameIndex = numNamesAchieved; nameIndex < numNamesAchievedAtEndOfTurn; nameIndex++) {
+					Assert.assertEquals(nameIndex, game.getCurrentNameIndex() );
+					AnnotatedHandlers.setCurrentNameIndex(playerSession, nameIndex + 1);
+				}
+				numNamesAchieved = numNamesAchievedAtEndOfTurn;
+				if ( game.getStatus() == GameStatus.PLAYING_A_TURN ) {
+					AnnotatedHandlers.endTurn(playerSession);
+					Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
+				}
+				else if ( numNamesAchieved < totalNumberOfNames ) {
+					Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
+				}
+				else if ( roundIndex < numRounds - 1 ) {
+					Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
+					AnnotatedHandlers.startNextRound(hostSession);
+					Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 				}
 			}
-
-			Assert.assertEquals(GameStatus.ENDED, game.getStatus());
 		}
+
+		Assert.assertEquals(GameStatus.ENDED, game.getStatus());
 	}
 
 	private Game initGame(int aNumPlayers, int aNumNamesPerPlayer, int aNumRounds, int aRoundDurationInSec, int aNumTeams, boolean aAllocateTeamsAtRandom) {
@@ -564,5 +572,31 @@ public class ServerTest {
 		Assert.assertEquals("[10]", Arrays.toString( WebsocketHandler.toLengthArray(10) ));
 		Assert.assertEquals("[126, 3, -42]", Arrays.toString( WebsocketHandler.toLengthArray(982) ));
 		Assert.assertEquals("[127, 0, 0, 0, 0, 0, 1, 90, 23]", Arrays.toString( WebsocketHandler.toLengthArray(88599) ));
+	}
+	
+	@Test
+	public void testSimultaneousGames() {
+		int numGames = 10;
+		ExecutorService threadPool = Executors.newFixedThreadPool(numGames);
+
+		Random random = new Random(271828);
+		List<Callable<Void>>		callableGameList		= new ArrayList<>();
+		for (int gameIndex = 0; gameIndex < numGames; gameIndex++) {
+			boolean add = callableGameList.add( new Callable<Void>() {
+
+				@Override
+				public Void call() throws Exception {
+					playARandomGame(random);
+					return null;
+				}
+			} );
+		}
+		try {
+			threadPool.invokeAll(callableGameList);
+		}
+		catch ( InterruptedException e ) {
+			e.printStackTrace();
+			Assert.assertFalse("Threads interrupted", true);
+		}
 	}
 }
