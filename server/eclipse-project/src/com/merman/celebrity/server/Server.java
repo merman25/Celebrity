@@ -24,22 +24,25 @@ public class Server {
 	private int portNumber = 8080;
 //	private int portNumber = 80;
 
-	private File gameFile;
+	private List<File> gameFileList;
 	
-	public Server(File aGameFile) {
-		gameFile = aGameFile;
+	public Server(List<File> aGameFileList) {
+		gameFileList = aGameFileList;
 	}
 
 	public void start() throws IOException {
-		GameManager.deleteExisting = gameFile == null;
+		GameManager.deleteExisting = gameFileList == null || gameFileList.isEmpty();
 		GameManager.createFiles = true;
 		
-		if ( gameFile != null
-				&& gameFile.exists() ) {
-			byte[] fileAsByteArr = Files.readAllBytes( gameFile.toPath() );
-			String	fileAsString = new String(fileAsByteArr);
-			JSONObject jsonObject = new JSONObject(fileAsString);
-			GameManager.restoreGame(jsonObject);
+		if ( gameFileList != null ) {
+			for ( File gameFile : gameFileList ) {
+				if ( gameFile.exists() ) {
+					byte[] fileAsByteArr = Files.readAllBytes( gameFile.toPath() );
+					String	fileAsString = new String(fileAsByteArr);
+					JSONObject jsonObject = new JSONObject(fileAsString);
+					GameManager.restoreGame(jsonObject);
+				}
+			}
 		}
 		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);

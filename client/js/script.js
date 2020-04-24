@@ -770,6 +770,12 @@ function hideHostDutiesElements() {
 }
 
 function showHostDutiesElements() {
+	if (iAmHost()) {
+		// If we've restored a game from backup, need to show the host controls
+		document.getElementById('hostGameDiv').style.display = 'block';
+		document.getElementById('gameParamsForm').style.display = 'none';
+		document.getElementById('allocateTeamsDiv').style.display = 'none';
+	}
 	performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
 	for (let i = 0; i < performHostDutiesElements.length; i++) {
 		performHostDutiesElements[i].style.display = 'block';
