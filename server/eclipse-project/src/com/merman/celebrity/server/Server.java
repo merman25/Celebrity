@@ -31,7 +31,7 @@ public class Server {
 	}
 
 	public void start() throws IOException {
-		GameManager.deleteExisting = gameFileList == null || gameFileList.isEmpty();
+		GameManager.deleteExisting = gameFileList == null || gameFileList.isEmpty() || gameFileList.stream().noneMatch(file -> file.exists());
 		GameManager.createFiles = true;
 		
 		if ( gameFileList != null ) {
