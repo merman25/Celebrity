@@ -1,0 +1,26 @@
+{
+  "name": "celebrity",
+  "version": "0.1.0",
+  "description": "Simple web-based version of \"Celebrity\" game, to be played over video chat.",
+  "main": "celebrity.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/merman25/Celebrity.git"
+  },
+  "keywords": [
+    "celebrity",
+    "game"
+  ],
+  "author": "merman25",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/merman25/Celebrity/issues"
+  },
+  "homepage": "https://github.com/merman25/Celebrity#readme",
+  "devDependencies": {
+    "cypress": "^4.4.1"
+  }
+}
