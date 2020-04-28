@@ -90,7 +90,7 @@ public class WebsocketHandler {
 								
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
-										System.out.format("Pong received from %s\n", getSession().getPlayer() );
+//										System.out.format("Pong received from %s\n", getSession().getPlayer() );
 									}
 									else {
 										System.out.println( "zero-length message received" );
@@ -118,7 +118,7 @@ public class WebsocketHandler {
 										session = SessionManager.getSession(sessionID);
 										if ( session != null ) {
 											SessionManager.putSocket( session, WebsocketHandler.this );
-											System.out.println( "Opened websocket with session " + sessionID + " [" + session.getPlayer() + "]" );
+											System.out.format( "Opened websocket with session %s [%s] from IP %s\n", sessionID, session.getPlayer(), socket.getRemoteSocketAddress() );
 											enqueueMessage("gotcha");
 										}
 										else {
@@ -126,7 +126,7 @@ public class WebsocketHandler {
 										}
 									}
 									else if ( message.equals("client-ping") ) {
-										System.out.println("Received client ping from " + getSession().getPlayer() );
+//										System.out.println("Received client ping from " + getSession().getPlayer() );
 										enqueueMessage("client-pong");
 									}
 									else {
@@ -206,7 +206,7 @@ public class WebsocketHandler {
 		public void run() {
 			if ( listen ) {
 				try {
-					System.out.println("Pinging " + getSession().getPlayer());
+//					System.out.println("Pinging " + getSession().getPlayer());
 					outputStreamRunnable.sendMessage((byte) PING_BYTE, "");
 				}
 				catch ( SocketException e ) {

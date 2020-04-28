@@ -8,12 +8,12 @@ let nameList = [];
 let gameStateLogging = false;
 let teamList = [];
 let webSocket = null;
-let useSocket = false;
+let useSocket = true;
 let firstSocketMessage = true;
 let gameID = null;
 let myPlayerID = null;
 
-/* Might be useful later: event when DOM is fully loaded
+/* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
 */
 
@@ -29,9 +29,16 @@ function myDecode(string) {
 	return htmlEscape(decodeURIComponent(string.replace(/\+/g, " ")));
 }
 
-function nameSubmitted() {
+function submitName() {
 	document.getElementById("divChooseName").style.display = 'none';
 	document.getElementById("divJoinOrHost").style.display = 'block';
+
+	const username = document.getElementById('nameField').value;
+	console.log('username', username);
+
+	fetch('username', { method: 'POST', body: 'username=' + username })
+		.catch(err => console.error(err));
+
 	setTimeout(tryToOpenSocket, 250);
 }
 
@@ -66,74 +73,76 @@ function hostNewGame() {
 
 function tryToOpenSocket() {
 	try {
-		const currentURL = window.location.href;
-		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
-			.replace(/:[0-9]+.*$/, '');
-		webSocket = new WebSocket('ws://' + currentHostName + ':8001/');
-		webSocket.onerror = evt => {
-			console.error('Error in websocket');
-			console.error(evt);
-			useSocket = false;
-		};
-		webSocket.onclose = evt => {
-			console.log('websocket closed');
-			console.log(evt);
-			useSocket = false;
-			if (gameID != null) {
-				updateGameStateForever(gameID);
-			}
-		};
-		webSocket.onopen = event => {
-			console.log('websocket opened');
-			const sessionID = getCookie('session');
-			if (sessionID == null) {
-				sessionID = 'UNKNOWN';
-			}
-			webSocket.send('session=' + sessionID);
-
-		};
-
-		webSocket.onmessage = evt => {
-			const message = evt.data;
-			if (firstSocketMessage) {
-				firstSocketMessage = false;
-				if (message == 'gotcha') {
-					useSocket = true;
-					console.log('websocket is providing data');
+		if (useSocket) {
+			const currentURL = window.location.href;
+			const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
+				.replace(/:[0-9]+.*$/, '');
+			webSocket = new WebSocket('ws://' + currentHostName + ':8001/');
+			webSocket.onerror = evt => {
+				console.error('Error in websocket');
+				console.error(evt);
+				useSocket = false;
+			};
+			webSocket.onclose = evt => {
+				console.log('websocket closed');
+				console.log(evt);
+				useSocket = false;
+				if (gameID != null) {
+					updateGameStateForever(gameID);
 				}
+			};
+			webSocket.onopen = event => {
+				console.log('websocket opened');
+				const sessionID = getCookie('session');
+				if (sessionID == null) {
+					sessionID = 'UNKNOWN';
+				}
+				webSocket.send('session=' + sessionID);
 
-			}
-			else if (message.indexOf('GameState=') === 0) {
-				console.log('received game state in new way');
-				const gameStateString = message.substring('GameState='.length, message.length);
-				const gameObj = JSON.parse(gameStateString);
-				processGameStateObject(gameObj);
-			}
-			else if (message.indexOf('MillisRemaining=') === 0) {
-				const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
-				const millisRemaining = parseInt(millisRemainingString);
-				const secondsRemaining = Math.ceil(millisRemaining / 1000);
+			};
 
-				updateCountdownClock(secondsRemaining);
-			}
-			else {
-				console.log('message: ' + evt.data);
-			}
-		};
+			webSocket.onmessage = evt => {
+				const message = evt.data;
+				if (firstSocketMessage) {
+					firstSocketMessage = false;
+					if (message == 'gotcha') {
+						useSocket = true;
+						console.log('websocket is providing data');
+					}
 
-		const pinger = setInterval(() => {
-			if (useSocket) {
-				// console.log('sending client ping');
-				webSocket.send('client-ping');
-			}
-			else {
-				clearInterval(pinger);
-			}
-		}, 10000);
+				}
+				else if (message.indexOf('GameState=') === 0) {
+					console.log('received game state in new way');
+					const gameStateString = message.substring('GameState='.length, message.length);
+					const gameObj = JSON.parse(gameStateString);
+					processGameStateObject(gameObj);
+				}
+				else if (message.indexOf('MillisRemaining=') === 0) {
+					const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
+					const millisRemaining = parseInt(millisRemainingString);
+					const secondsRemaining = Math.ceil(millisRemaining / 1000);
 
+					updateCountdownClock(secondsRemaining);
+				}
+				else if (evt.data !== 'client-pong') {
+					console.log('message: ' + evt.data);
+				}
+			};
+
+			const pinger = setInterval(() => {
+				if (useSocket) {
+					// console.log('sending client ping');
+					webSocket.send('client-ping');
+				}
+				else {
+					clearInterval(pinger);
+				}
+			}, 10000);
+		}
 	} catch (err) {
 		console.error(err);
 	}
+
 }
 
 function updateGameInfo(html) {
@@ -624,8 +633,15 @@ function iAmHost() {
 	}
 }
 
-function gameParamsSubmitted() {
+function submitGameParams() {
 	document.getElementById("gameParamsForm").style.display = 'none';
+
+	const numRounds = document.getElementById('numRoundsField').value;
+	const roundDuration = document.getElementById('roundDurationField').value;
+	const numNames = document.getElementById('numNamesField').value;
+
+	fetch('gameParams', { method: 'POST', body: `numRounds=${numRounds}&roundDuration=${roundDuration}&numNames=${numNames}` })
+		.catch(err => console.error(err));
 }
 
 function allocateTeams() {
@@ -735,7 +751,7 @@ function setGameStatus(newStatus) {
 }
 
 function addNameRequestForm() {
-	let html = '<form id="nameListForm" method="post" onsubmit="nameListSubmitted()">\n';
+	let html = '<form id="nameListForm" method="post" onsubmit="return false;">\n';
 	for (let i = 1; i <= numNamesPerPlayer; i++) {
 		html += '<div class="col-label">\n';
 		html += '<label for="name' + i + '">Name ' + i + '</label>\n';
@@ -747,19 +763,31 @@ function addNameRequestForm() {
 	}
 
 	html += '<div class="clear"></div>';
-	html += '<input type="hidden" name="form" value="nameList">\n';
-	html += '<input type="submit" value="Put in Hat">\n';
+	html += '<button onclick="submitNameList()">Put in Hat</button>\n';
 	html += '</form>\n';
 
 	document.getElementById("nameList").innerHTML = html;
 
 }
 
-function nameListSubmitted() {
-	setTimeout(function () {
-		let element = document.getElementById("nameList");
-		element.style.display = 'none';
-	}, 200);
+function submitNameList() {
+	document.getElementById("nameList").style.display = 'none';
+
+	let requestBody = '';
+	for (let i = 1; i <= numNamesPerPlayer; i++) {
+		const paramName = 'name' + i;
+		const nameToSubmit = document.getElementById(paramName).value;
+		if (requestBody.length > 0) {
+			requestBody += '&';
+		}
+		requestBody += paramName;
+		requestBody += '=';
+		requestBody += nameToSubmit;
+	}
+
+	fetch('nameList', { method: 'POST', body: requestBody })
+		.catch(err => console.error(err));
+
 }
 
 function hideHostDutiesElements() {

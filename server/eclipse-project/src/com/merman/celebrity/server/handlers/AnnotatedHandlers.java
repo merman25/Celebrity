@@ -8,13 +8,12 @@ import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
-import com.merman.celebrity.server.RequestType;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
 
 public class AnnotatedHandlers {
 
-	@HTTPRequest(requestName = "username", requestType = RequestType.FORM, argNames = {"username"})
+	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
 		System.out.println( "Setting user name " + username + " to session " + session );
 		session.getPlayer().setName(username);
@@ -46,7 +45,7 @@ public class AnnotatedHandlers {
 		return null;
 	}
 	
-	@HTTPRequest(requestName = "gameParams", requestType = RequestType.FORM, argNames = {"numRounds", "roundDuration", "numNames"})
+	@HTTPRequest(requestName = "gameParams", argNames = {"numRounds", "roundDuration", "numNames"})
 	public static void setGameParams(Session session, Integer numRounds, Integer roundDuration, Integer numNames ) {
 		if ( numRounds <= 0 || numRounds > 10 ) {
 			System.err.println( "numRounds " + numRounds + ", should be 1-10" );
@@ -123,7 +122,7 @@ public class AnnotatedHandlers {
 		}
 	}
 	
-	@HTTPRequest(requestName = "nameList", requestType = RequestType.FORM, argNames = {"nameList"})
+	@HTTPRequest(requestName = "nameList", argNames = {"nameList"})
 	public static void provideNames(Session session, List<String> nameList ) {
 		Player player = session.getPlayer();
 		Game game = player.getGame();

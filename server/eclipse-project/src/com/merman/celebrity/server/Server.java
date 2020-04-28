@@ -51,7 +51,7 @@ public class Server {
 		.forEach( path -> {
 			if ( Files.isRegularFile(path) ) {
 				String pathAsString = CLIENT_FILE_DIRECTORY.relativize(path).toString().replace('\\', '/');
-				System.out.println( "adding file: " + pathAsString );
+//				System.out.println( "adding file: " + pathAsString );
 				server.createContext("/" + pathAsString, new ServeFileHandler(pathAsString));
 			}
 		} );
@@ -61,11 +61,11 @@ public class Server {
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
 			if ( handler.getRequestType() == RequestType.GET_OR_POST ) {
-//				System.out.println("adding context " + handler.getContextName());
+				System.out.println("adding context " + handler.getContextName());
 				server.createContext("/" + handler.getContextName(), handler);
 			}
 			else if ( handler.getRequestType() == RequestType.FORM ) {
-//				System.out.println("adding form handler " + handler.getContextName());
+				System.out.println("adding form handler " + handler.getContextName());
 				FormHandlerRegistry.addHandler(new FormHandler(handler.getContextName(), handler) {
 
 					@Override

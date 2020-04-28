@@ -44,7 +44,6 @@ public class ServeFileHandler extends AHttpHandler {
 				builder.append("<script>\n");
 				builder.append("clearCookie(\"session\");\n");
 				builder.append("var session=\"" + session.getSessionID() + "\"\n");
-//				builder.append("document.getElementById(\"sessionField\").value=session;\n");
 				builder.append("setCookie(\"session\", session, 1);\n" );
 				builder.append("</script>\n");
 				builder.append(response.substring(indexOfMarker));

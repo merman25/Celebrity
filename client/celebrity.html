@@ -7,8 +7,7 @@
   <!-- Icons made by <a href="https://www.flaticon.com/authors/roundicons" title="Roundicons">Roundicons</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
       -->
 
-  <!-- setting the viewport doesn't seem to make a difference -->
-  <!--    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.8"> -->
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
   <title>Celebrity</title>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+Paaji+2&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="styles.css">
@@ -36,10 +35,9 @@
   <div id="divChooseName">
     <hr>
     <p>Give yourself a name:</p>
-    <form method="post" onsubmit="nameSubmitted()">
+    <form id="nameForm" onsubmit="return false;">
       <input id="nameField" name="username" type="text" autofocus>
-      <input type="hidden" name="form" value="username">
-      <input type="submit" value="OK">
+      <button id="nameSubmitButton" onclick="submitName()">OK</button>
     </form>
   </div>
 
@@ -47,11 +45,10 @@
     <hr>
     <button id="join" onclick="requestGameID()">Join Existing Game</button>
     <div id="joinGameForm" style="display:none">
-    <form id="gameIDForm" onsubmit="event.preventDefault(); askGameIDResponse()">
+      <form id="gameIDForm" onsubmit="return false;">
         <label for="gameIDField">Game ID</label>
         <input id="gameIDField" name="gameID" type="text">
-        <input type="hidden" name="form" value="gameID">
-        <input type="submit" value="OK"> 
+        <button onclick="askGameIDResponse()">OK</button>
       </form>
     </div>
     <div id="gameIDErrorDiv"></div>
@@ -67,7 +64,7 @@
 
 
   <div id="hostGameDiv" style="display:none">
-    <form id="gameParamsForm" method="post" onsubmit="gameParamsSubmitted()">
+    <form id="gameParamsForm" onsubmit="return false;">
       <hr>
       <div class="col-label">
         <label for="numRoundsField">Number of Rounds</label>
@@ -88,9 +85,8 @@
         <input id="numNamesField" name="numNames" type="text" value="6" size="10"><br>
       </div>
       <div class="clear"></div>
-      <input type="hidden" name="form" value="gameParams">
       <div class="col-label">
-        <input type="submit" value="Set">
+        <button onclick="submitGameParams()">Set</button>
       </div>
     </form>
 

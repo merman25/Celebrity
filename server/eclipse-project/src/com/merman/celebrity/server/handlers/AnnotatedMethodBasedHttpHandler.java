@@ -1,7 +1,6 @@
 package com.merman.celebrity.server.handlers;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -127,8 +126,17 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			if ( responseObject == null ) {
+//				sendResponse(aHttpExchange, HTTPResponseConstants.Found, "");
+				
+//				dumpRequest(aHttpExchange);
+//				aHttpExchange.getResponseHeaders().set("Location", "http://192.168.1.17:8080/celebrity.html");
+//				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.Found, 0);
+				
 				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.No_Content, -1);
 				aHttpExchange.getResponseBody().close();
+				
+//				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.OK, -1);
+//				aHttpExchange.getResponseBody().close();
 			}
 			else if ( responseObject instanceof String ) {
 				sendResponse(aHttpExchange, HTTPResponseConstants.OK, (String) responseObject);
@@ -142,13 +150,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 		}
 	}
 
-	public void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
-		aExchange.sendResponseHeaders(aCode, aResponse.getBytes().length);
-		OutputStream os = aExchange.getResponseBody();
-		os.write(aResponse.getBytes());
-		os.close();
-	}
-	
 	public String serialiseMap( Map<?, ?> aMap ) {
 		JSONObject		jsonObject		= new JSONObject();
 		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
