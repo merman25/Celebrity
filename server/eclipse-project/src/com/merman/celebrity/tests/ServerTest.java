@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -28,23 +27,25 @@ import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
+import com.merman.celebrity.util.SharedRandom;
 
 public class ServerTest {
+	
 	@Test
 	public void testStandardGamesWithNoProblems() {
-		Random random = new Random(31415);
+		SharedRandom.setSeed(314159);
 		
 		int limit = 1000;
 		for( int gameIndex=0; gameIndex<limit; gameIndex++) {
 			System.out.format("Testing game %,d of %,d\n", gameIndex+1, limit);
-			playARandomGame(random);
+			playARandomGame();
 		}
 	}
 
-	private void playARandomGame(Random random) {
-		int numPlayers = 1 + random.nextInt(10);
-		int numNamesPerPlayer = 1 + random.nextInt(10);
-		int numRounds = 1 + random.nextInt(5);
+	private void playARandomGame() {
+		int numPlayers = 1 + SharedRandom.getRandom().nextInt(10);
+		int numNamesPerPlayer = 1 + SharedRandom.getRandom().nextInt(10);
+		int numRounds = 1 + SharedRandom.getRandom().nextInt(5);
 		int roundDurationInSec = 60;
 		int totalNumberOfNames = numNamesPerPlayer * numPlayers;
 		int numTeams = numPlayers > 1 ? 2 : 1;
@@ -85,7 +86,7 @@ public class ServerTest {
 				Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
 
 				int namesRemaining					= totalNumberOfNames - numNamesAchieved;
-				int maxNumberOfNamesToAchieve 		= random.nextInt(11);
+				int maxNumberOfNamesToAchieve 		= SharedRandom.getRandom().nextInt(11);
 				int numNamesToAchieveOnThisTurn 	= Math.min( namesRemaining, maxNumberOfNamesToAchieve );
 				int numNamesAchievedAtEndOfTurn		= numNamesAchieved + numNamesToAchieveOnThisTurn;
 
@@ -576,17 +577,18 @@ public class ServerTest {
 	
 	@Test
 	public void testSimultaneousGames() {
+		SharedRandom.setSeed(271828);
+
 		int numGames = 10;
 		ExecutorService threadPool = Executors.newFixedThreadPool(numGames);
 
-		Random random = new Random(271828);
 		List<Callable<Void>>		callableGameList		= new ArrayList<>();
 		for (int gameIndex = 0; gameIndex < numGames; gameIndex++) {
 			boolean add = callableGameList.add( new Callable<Void>() {
 
 				@Override
 				public Void call() throws Exception {
-					playARandomGame(random);
+					playARandomGame();
 					return null;
 				}
 			} );

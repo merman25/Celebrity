@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
@@ -20,6 +19,7 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.util.SharedRandom;
 
 public class GameManager {
 	private static Map<String, Game>		gamesMap		= new HashMap<String, Game>();
@@ -62,7 +62,7 @@ public class GameManager {
 
 	private static String generateGameID() {
 		String gameID;
-		while ( gamesMap.containsKey( ( gameID = String.valueOf( 1000 + new Random().nextInt(9000) ) ) ) );
+		while ( gamesMap.containsKey( ( gameID = String.valueOf( 1000 + SharedRandom.getRandom().nextInt(9000) ) ) ) );
 		return gameID;
 	}
 
@@ -178,7 +178,7 @@ public class GameManager {
 		Game game = createGame(aPlayer, aGameID);
 		game.setFireEvents(false);
 		
-		int numOtherPlayers = 1 + (int) ( 9*Math.random() );
+		int numOtherPlayers = 1 + (int) ( 9*SharedRandom.getRandom().nextDouble() );
 		
 		
 		for (int playerIndex = 0; playerIndex < numOtherPlayers; playerIndex++) {
@@ -219,7 +219,7 @@ public class GameManager {
 					&& game.getStatus() != GameStatus.ENDED ) {
 				game.setStatus(GameStatus.PLAYING_A_TURN);
 				int		remainingNames 		= game.getShuffledNameList().size() - game.getCurrentNameIndex();
-				int		numNamesAchieved	= Math.min( remainingNames, (int) ( 7 * Math.random() ) );
+				int		numNamesAchieved	= Math.min( remainingNames, (int) ( 7 * SharedRandom.getRandom().nextDouble() ) );
 				int 	newNameIndex 		= game.getCurrentNameIndex() + numNamesAchieved;
 				
 				game.setCurrentNameIndex( newNameIndex );
@@ -249,14 +249,14 @@ public class GameManager {
 		if ( testStringList == null ) {
 			createTestStringList();
 		}
-		int numWords = 1 + (int) (4*Math.random());
+		int numWords = 1 + (int) (4*SharedRandom.getRandom().nextDouble());
 		StringBuilder		nameBuilder		= new StringBuilder();
 		
 		for (int wordIndex = 0; wordIndex < numWords; wordIndex++) {
 			if ( wordIndex > 0 ) {
 				nameBuilder.append( " " );
 			}
-			nameBuilder.append( testStringList.get( (int) ( Math.random() * testStringList.size() ) ) );
+			nameBuilder.append( testStringList.get( (int) ( SharedRandom.getRandom().nextDouble() * testStringList.size() ) ) );
 		}
 		return nameBuilder.toString();
 	}

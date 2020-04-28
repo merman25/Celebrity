@@ -39,7 +39,7 @@ function submitName() {
 	fetch('username', { method: 'POST', body: 'username=' + username })
 		.catch(err => console.error(err));
 
-	setTimeout(tryToOpenSocket, 250);
+	tryToOpenSocket();
 }
 
 function requestGameID() {

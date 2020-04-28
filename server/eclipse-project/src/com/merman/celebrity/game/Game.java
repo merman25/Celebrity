@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import com.merman.celebrity.game.events.GameEvent;
 import com.merman.celebrity.game.events.GameStateUpdateEvent;
@@ -19,6 +18,7 @@ import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.util.SharedRandom;
 
 public class Game {
 	private String                    ID;
@@ -126,7 +126,7 @@ public class Game {
 		teamList.clear();
 		mapPlayersToTeams.clear();
 		if ( aAllocateTeamsAtRandom ) {
-			Collections.shuffle(playerList);
+			Collections.shuffle(playerList, SharedRandom.getRandom());
 		}
 		
 		Team team1 = new Team();
@@ -368,7 +368,7 @@ public class Game {
 			List<String>		achievedNames		= new ArrayList<>(shuffledNameList.subList(0, aPassNameIndex));
 			List<String>		remainingNames		= new ArrayList<>(shuffledNameList.subList(aPassNameIndex, shuffledNameList.size()));
 
-			int					newIndex			= new Random().nextInt( remainingNames.size() - 1 ) + 1;
+			int					newIndex			= SharedRandom.getRandom().nextInt( remainingNames.size() - 1 ) + 1;
 			String				oldName				= remainingNames.get(newIndex);
 			remainingNames.set(newIndex, remainingNames.get(0));
 			remainingNames.set(0, oldName);
