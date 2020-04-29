@@ -1,3 +1,19 @@
+export function retrievePlayerParameters(index, playerNames, celebrityNames) {
+    const hostName = playerNames[0];
+    const playerName = playerNames[index];
+    const otherPlayers = playerNames.filter(name => name !== playerName);
+    const celebrityList = celebrityNames[index];
+    const iAmHosting = index == 0;
+
+    return {
+        hostName: hostName,
+        playerName: playerName,
+        otherPlayers: otherPlayers,
+        celebrityNames: celebrityList,
+        iAmHosting: iAmHosting,
+    }
+}
+
 export function playGame(playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames) {
     if (iAmHosting) {
         startHostingNewGame(playerName, gameID);
