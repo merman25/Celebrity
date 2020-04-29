@@ -247,7 +247,8 @@ public class Game {
 		currentNameIndex = 0;
 		shuffledNameList.clear();
 		shuffledNameList.addAll(masterNameList);
-		Collections.shuffle(shuffledNameList);
+		Collections.shuffle(shuffledNameList, SharedRandom.getRandom());
+		System.out.println("shuffled names: " + shuffledNameList);
 	}
 	
 	public synchronized List<String> getShuffledNameList() {

@@ -763,7 +763,7 @@ function addNameRequestForm() {
 	}
 
 	html += '<div class="clear"></div>';
-	html += '<button onclick="submitNameList()">Put in Hat</button>\n';
+	html += '<button id="submitNamesButton" onclick="submitNameList()">Put in Hat</button>\n';
 	html += '</form>\n';
 
 	document.getElementById("nameList").innerHTML = html;
