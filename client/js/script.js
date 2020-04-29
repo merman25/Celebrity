@@ -229,7 +229,7 @@ function processGameStateObject(newGameStateObject) {
 			spanClassString = ' class="rightClickable"';
 		}
 		for (let i = 0; i < playerList.length; i++) {
-			htmlList += '<li class="teamlessPlayerLiClass""><span playerID="' + playerList[i].publicID + '"' + spanClassString + '>' + myDecode(playerList[i].name) + "</span></li>\n";
+			htmlList += `<li class="teamlessPlayerLiClass testClass_teamless${i}"><span playerID="${playerList[i].publicID}"${spanClassString}>${myDecode(playerList[i].name)}</span></li>\n`;
 		}
 		htmlList += '</ul>';
 		document.getElementById("playerList").innerHTML = htmlList;

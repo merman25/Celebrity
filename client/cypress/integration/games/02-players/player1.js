@@ -4,9 +4,10 @@ describe('Player 1', () => {
 
         cy.get('[id="nameField"]').type('Marvin the Paranoid Android');
         cy.get('[id="nameSubmitButton"]').click();
+        cy.wait(1000);
         cy.get('[id=host]').click();
 
-        cy.get('.teamlessPlayerLiClass').contains('Marvin the Paranoid Android');
-        cy.get('.teamlessPlayerLiClass').next({timeout: 60000}).contains('Bender O\'Neill');
+        cy.get('.testClass_teamless0').contains('Marvin the Paranoid Android');
+        cy.get('.testClass_teamless1', {timeout: 60000}).contains('Bender O\'Neill');
     });
 });
