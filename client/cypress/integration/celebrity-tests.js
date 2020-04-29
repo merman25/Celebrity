@@ -1,98 +1,31 @@
-function isVisible(element) {
-  /* According to https://stackoverflow.com/a/21696585,
-   * a more complete test is window.getComputedStyle(el) !== 'none';
-   * But this is also expected to be slower, and only necessary for 'position: fixed' elements.
-   * 
-   * UPDATE: checking getComputedStyle is anyway incorrect by itself, because it doesn't check
-   * the style of parent elements
-  */
-  return /* window.getComputedStyle(element).display !== 'none'; */ element.offsetParent !== null;
-}
-
-function hasContent(element) {
-  const content = element.innerHTML.trim();
-  return content !== '';
-}
-
-function not(predicate) {
-  return x => !predicate(x);
-}
-
-function and(...predicates) {
-  return function (x) {
-    for (let i = 0; i < predicates.length; i++) {
-      if (!predicates[i](x)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-}
-
-function assert(selector, predicate, {
-  unique = true,
-  describeExpected = 'ok'
-} = {}) {
-  cy.get(selector)
-    .then(selectedElements => {
-
-      /* Presumed bug in Cypress, which I've decided is a nice feature.
-       * If the message arg passed to `expect` includes 'but' as a whole word,
-       * then when the message is printed in red or green in the Cypress plug-in's panel
-       * on the left of the browser, the text 'but' and all subsequent text is omitted.
-       * 
-       * It's basically a way to delete the text which the plugin adds at the end, which always
-       * says either:
-       *  expected true to equal true
-       * for successful assertions, or:
-       *  expected true to equal false
-       * for unsuccessful ones.
-       * 
-       * Might need to change the way I use this if I ever pass anything other than true to `to.equal`.
-      */
-      const magic = ' but this string is magic';
-
-      if (unique) {
-        expect(selectedElements.length, `selector ${selector} gives a unique element${magic}`).to.equal(1);
-      }
-
-      for (let i = 0; i < selectedElements.length; i++) {
-        const element = selectedElements[i];
-        const indexString = selectedElements.length == 1 ? '' : `${i + 1} of ${selectedElements.length} `;
-        const assertionText = `field ${selector} ${indexString}is ${describeExpected}${magic}`;
-        expect(predicate(element), assertionText).to.equal(true);
-      }
-
-    });
-}
+import * as common from "./common-test-functions";
 
 describe('Check initial visibility', () => {
   it('Start Page', () => {
     cy.visit('http://192.168.1.17:8080/celebrity.html');
 
     // divs
-    assert('[id="instructions"]', isVisible, { describeExpected: 'visible' });
-    assert('[id="divChooseName"]', isVisible, { describeExpected: 'visible' });
-    assert('[id="divJoinOrHost"]', not(isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="instructions"]', common.isVisible, { describeExpected: 'visible' });
+    common.assert('[id="divChooseName"]', common.isVisible, { describeExpected: 'visible' });
+    common.assert('[id="divJoinOrHost"]', common.not(common.isVisible), { describeExpected: 'invisible' });
 
     cy.get('[id="divChooseName"').should('be.visible');
     cy.get('[id="divJoinOrHost"').should('not.be.visible');
 
-    assert('[id="gameIDDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
-    assert('[id="gameInfoDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="gameIDDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="gameInfoDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
 
-    assert('[id="hostGameDiv"]', not(isVisible), { describeExpected: 'invisible' });
-    assert('[id="playGameDiv"]', not(isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="hostGameDiv"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="playGameDiv"]', common.not(common.isVisible), { describeExpected: 'invisible' });
 
-    assert('[id="teamlessPlayerContextMenuDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
-    assert('[id="playerInTeamContextMenuDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="teamlessPlayerContextMenuDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="playerInTeamContextMenuDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible common.and empty' });
 
     // fields
-    assert('[id="nameField"]', isVisible, { describeExpected: 'visible' });
-    assert('[id="nameSubmitButton"]', isVisible, { describeExpected: 'visible' });
-    assert('[id="gameIDField"]', not(isVisible), { describeExpected: 'invisible' });
-    
+    common.assert('[id="nameField"]', common.isVisible, { describeExpected: 'visible' });
+    common.assert('[id="nameSubmitButton"]', common.isVisible, { describeExpected: 'visible' });
+    common.assert('[id="gameIDField"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+
     // buttons
     cy.get('[id="join"]').should('not.be.visible');
     cy.get('[id="host"]').should('not.be.visible');
@@ -104,31 +37,31 @@ describe('Check initial visibility', () => {
     cy.visit('http://192.168.1.17:8080/celebrity.html');
 
     cy.get('[id="nameField"]')
-    .type('Otto von Testmark');
+      .type('Otto von Testmark');
 
     cy.get('[id="nameSubmitButton"]')
-    .click();
+      .click();
     // cy.get('[id="nameForm"]')
     // .submit();
 
     // divs
-    assert('[id="instructions"]', isVisible, { describeExpected: 'visible' });
-    assert('[id="divChooseName"]', not(isVisible), { describeExpected: 'invisible' });
-    assert('[id="divJoinOrHost"]', isVisible, { describeExpected: 'visible' });
+    common.assert('[id="instructions"]', common.isVisible, { describeExpected: 'visible' });
+    common.assert('[id="divChooseName"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="divJoinOrHost"]', common.isVisible, { describeExpected: 'visible' });
 
-    assert('[id="gameIDDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
-    assert('[id="gameInfoDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="gameIDDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="gameInfoDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
 
-    assert('[id="hostGameDiv"]', not(isVisible), { describeExpected: 'invisible' });
-    assert('[id="playGameDiv"]', not(isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="hostGameDiv"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="playGameDiv"]', common.not(common.isVisible), { describeExpected: 'invisible' });
 
-    assert('[id="teamlessPlayerContextMenuDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
-    assert('[id="playerInTeamContextMenuDiv"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="teamlessPlayerContextMenuDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
+    common.assert('[id="playerInTeamContextMenuDiv"]', common.and(common.isVisible, common.not(common.hasContent)), { describeExpected: 'visible and empty' });
 
     // fields
-    assert('[id="nameField"]', not(isVisible), { describeExpected: 'invisible' });
-    assert('[id="nameSubmitButton"]', not(isVisible), { describeExpected: 'invisible' });
-    assert('[id="gameIDField"]', not(isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="nameField"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="nameSubmitButton"]', common.not(common.isVisible), { describeExpected: 'invisible' });
+    common.assert('[id="gameIDField"]', common.not(common.isVisible), { describeExpected: 'invisible' });
 
     // buttons
     cy.get('[id="join"]').should('be.visible');
@@ -140,10 +73,10 @@ describe('Check initial visibility', () => {
     cy.visit('http://192.168.1.17:8080/celebrity.html');
 
     cy.get('[id="nameField"]')
-    .type('Marvin the Paranoid Android');
+      .type('Marvin the Paranoid Android');
 
     cy.get('[id="nameSubmitButton"]')
-    .click();
+      .click();
 
     cy.get('[id="host"]').click();
   });

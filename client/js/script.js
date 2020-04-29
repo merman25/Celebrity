@@ -222,14 +222,14 @@ function processGameStateObject(newGameStateObject) {
 	let playerList = gameStateObject.players;
 
 	if (playerList.length > 0) {
-		let htmlList = '<h3>Players</h3>\n<ul>\n';
+		let htmlList = '<h3>Players</h3>\n<ul id="teamlessPlayerUl">\n';
 
 		let spanClassString = '';
 		if (iAmHosting) {
 			spanClassString = ' class="rightClickable"';
 		}
 		for (let i = 0; i < playerList.length; i++) {
-			htmlList += `<li class="teamlessPlayerLiClass testClass_teamless${i}"><span playerID="${playerList[i].publicID}"${spanClassString}>${myDecode(playerList[i].name)}</span></li>\n`;
+			htmlList += `<li class="teamlessPlayerLiClass"><span playerID="${playerList[i].publicID}"${spanClassString}>${myDecode(playerList[i].name)}</span></li>\n`;
 		}
 		htmlList += '</ul>';
 		document.getElementById("playerList").innerHTML = htmlList;
