@@ -1,3 +1,57 @@
+export function playGame(playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames) {
+    if (iAmHosting) {
+        startHostingNewGame(playerName, gameID);
+    }
+    else {
+        cy.wait(10000);
+        joinGame(playerName, gameID, hostName);
+    }
+    checkTeamlessPlayerList(otherPlayers);
+    if (iAmHosting) {
+        setGameParams(playerName);
+    }
+    checkGameParams();
+    if (iAmHosting) {
+        allocateTeams();
+    }
+    else {
+        checkHostControlsAreNotVisible();
+    }
+
+    checkTeamList(playerName, otherPlayers);
+
+    if (iAmHosting) {
+        requestNames();
+    }
+    else {
+        cy.get('[id="nameListForm"]').should('be.visible');
+        cy.get('[id="startGameButton"]').should('not.be.visible');
+        cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 1 player(s)', { timeout: 60000 });
+    }
+
+    submitNames(celebrityNames);
+
+    if (iAmHosting) {
+        startGame();
+        cy.get('[id="startTurnButton"]').should('not.be.visible');
+
+        // Alexander the Great, Marilyn Monroe, Audrey Hepburn, Paul McCartney, Rosa Parks, Archimedes, Hypatia, Helen of Troy, Neil Armstrong, Xerxes, Hippolyta, John F. Kennedy
+
+        cy.get('[id="startNextRoundButton"]').click({ timeout: 60000 });
+        startTurnAndGetAllNames();
+        cy.get('[id="startNextRoundButton"]').click();
+        }
+    else {
+        cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 0 player(s)', {timeout: 60000});
+        cy.get('[id="startGameButton"]').should('not.be.visible');
+        cy.get('[id="startNextRoundButton"]').should('not.be.visible');
+        
+        startTurnAndGetAllNames();
+        waitForMyTurn(60);
+        startTurnAndGetAllNames();
+    }
+}
+
 export function isVisible(element) {
     /* According to https://stackoverflow.com/a/21696585,
      * a more complete test is window.getComputedStyle(el) !== 'none';
@@ -80,14 +134,15 @@ export function checkTeamlessPlayerList(otherPlayers) {
     }
 }
 
-export function setGameParamsAndAllocateTeams() {
+export function setGameParams() {
     // Wait before clicking, to give other players time to verify player list
     cy.wait(1000);
 
     cy.get('[id="submitGameParamsButton"]').click();
     cy.get('[id="gameParamsForm"]').should('not.be.visible');
+}
 
-    checkGameParams();
+export function allocateTeams() {
     cy.get('[id="teamsButton"]').click();
     cy.get('[id="teamsButton"]').should('be.visible');
 }

@@ -8,22 +8,8 @@ describe('Player 1', () => {
         const gameID = '4795';
         const otherPlayers = ['Bender'];
         const celebrityNames = ['Neil Armstrong', 'Marilyn Monroe', 'John F. Kennedy', 'Audrey Hepburn', 'Paul McCartney', 'Rosa Parks'];
+        const iAmHosting = true;
 
-        common.startHostingNewGame(playerName, gameID);
-        common.checkTeamlessPlayerList(otherPlayers);
-        common.setGameParamsAndAllocateTeams(playerName);
-        common.checkTeamList(playerName, otherPlayers);
-        common.requestNames();
-        common.submitNames(celebrityNames);
-        common.startGame();
-
-        cy.get('[id="startTurnButton"]').should('not.be.visible');
-
-        // Alexander the Great, Marilyn Monroe, Audrey Hepburn, Paul McCartney, Rosa Parks, Archimedes, Hypatia, Helen of Troy, Neil Armstrong, Xerxes, Hippolyta, John F. Kennedy
-
-        cy.get('[id="startNextRoundButton"]').click({ timeout: 60000 });
-        common.startTurnAndGetAllNames();
-        cy.get('[id="startNextRoundButton"]').click();
-
+        common.playGame(playerName, iAmHosting, playerName, gameID, otherPlayers, celebrityNames);
     });
 });
