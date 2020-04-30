@@ -19,7 +19,6 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
         startHostingNewGame(playerName, gameID);
     }
     else {
-        // cy.wait(10000);
         joinGame(playerName, gameID, hostName);
     }
 
@@ -51,34 +50,15 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
     if (iAmHosting) {
         requestNames();
     }
-    // else {
-        cy.get('[id="nameListForm"]').should('be.visible');
-        cy.get('[id="startGameButton"]').should('not.be.visible');
-    // }
-    // const numPlayersToWaitFor = otherPlayers.length + 1 - index;
-    // const options = index == 0 ? {} : { timeout: index * 60000 };
-    // cy.get('[id="gameStatusDiv"]').contains(`Waiting for names from ${numPlayersToWaitFor} player(s)`, options);
+    cy.get('[id="nameListForm"]').should('be.visible');
+    cy.get('[id="startGameButton"]').should('not.be.visible');
 
     submitNames(celebrityNames);
 
     if (iAmHosting) {
-        // Alexander the Great, Marilyn Monroe, Audrey Hepburn, Paul McCartney, Rosa Parks, Archimedes, Hypatia, Helen of Troy, Neil Armstrong, Xerxes, Hippolyta, John F. Kennedy
         startGame();
-        // cy.get('[id="startTurnButton"]').should('not.be.visible');
-
-
-        // cy.get('[id="startNextRoundButton"]').click({ timeout: 60000 });
-        // startTurnAndGetAllNames();
-        // cy.get('[id="startNextRoundButton"]').click();
     }
     else {
-        // cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 0 player(s)', {timeout: 60000});
-        // cy.get('[id="startGameButton"]').should('not.be.visible');
-        // cy.get('[id="startNextRoundButton"]').should('not.be.visible');
-
-        // startTurnAndGetAllNames();
-        // waitForMyTurn(60);
-        // startTurnAndGetAllNames();
     }
 
     const numPlayers = (otherPlayers.length + 1);
@@ -111,28 +91,7 @@ function waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, tur
                 cy.get('[id="startNextRoundButton"]').click();
                 waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turns);
             }
-            // else {
-            //     // FIXME it's still finding the Div in the list yielded by get,
-            //     // forcing me to use first().
-            //     cy.get('.testTriggerClass').first().click();
-            //     if (triggerElement.id === 'startTurnButton') {
-            //         getAllNames(numNames);
-            //     }
-            //     waitForWakeUpTrigger(numNames);
-            // }
         });
-    // cy.get('[id="gameInfoDiv"]').then(elements => {
-    //     console.log('elements', elements);
-    //     const gameInfoDiv = elements[0];
-    //     console.log('gameInfoDiv', gameInfoDiv);
-
-    //     if (gameInfoDiv.innerHTML !== 'Game Over!') {
-    //         waitForClickableButton(numNames);
-    //     }
-    //     else {
-    //         console.log('Finished!!');
-    //     }
-    // });
 }
 
 function getNames(counter, numPlayers, teamInfoObject, turns) {
@@ -153,7 +112,7 @@ function getNames(counter, numPlayers, teamInfoObject, turns) {
     for (let i = 0; i < turnToTake.length; i++) {
         cy.wait(500);
         let move = turnToTake[i];
-        if ( move === 'got-it') {
+        if (move === 'got-it') {
             cy.get('[id="gotNameButton"]').click({ force: true });
         }
         else if (move === 'pass') {
@@ -165,46 +124,6 @@ function getNames(counter, numPlayers, teamInfoObject, turns) {
     }
 
     cy.get('[id="scoresDiv"]').click(); // scroll here to look at scores (for video)
-}
-
-function waitForClickableButton(numNames) {
-    // FIXME one of these timeouts isn't needed
-    cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
-        .then(buttons => {
-            let button = buttons[0];
-            if (button.id === 'startTurnButton') {
-                getAllNames(numNames);
-            }
-            playUntilEnd(numNames);
-        });
-}
-
-export function playATurn(numNames) {
-    // FIXME one of these timeouts isn't needed
-    cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
-        .then(buttons => {
-            let button = buttons[0];
-            if (button.id === 'startTurnButton') {
-                getAllNames(numNames);
-            }
-            else {
-                expect(button.id).to.equal('startNextRoundButton');
-                // FIXME one of these timeouts isn't needed
-                cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
-                getAllNames(numNames);
-            }
-        });
-
-    cy.get('.testTriggerClass', { timeout: 60000 });
-    cy.get('[id="gameInfoDiv"]').then(elements => {
-        console.log('elements', elements);
-        const gameInfoDiv = elements[0];
-        console.log('gameInfoDiv', gameInfoDiv);
-
-        if (gameInfoDiv.innerHTML !== 'Game Over!') {
-            playATurn(numNames);
-        }
-    });
 }
 
 export function isVisible(element) {
@@ -315,15 +234,6 @@ export function checkHostControlsAreNotVisible() {
     cy.get('[id="requestNamesButton"]').should('not.be.visible');
 }
 
-function sleep(milliseconds) {
-    var start = new Date().getTime();
-    while (true) {
-      if ((new Date().getTime() - start) > milliseconds){
-        break;
-      }
-    }
-  }
-
 export function checkTeamList(playerName, otherPlayers, teamInfoObjectFCT) {
     cy.get('[id="teamList"]').contains('Teams');
     cy.get('[id="teamList"]').contains(playerName);
@@ -334,26 +244,9 @@ export function checkTeamList(playerName, otherPlayers, teamInfoObjectFCT) {
 
     cy.get('.playerInTeamTDClass').contains(playerName)
         .then(elements => {
-            // console.log('Found player TD of type', typeof(elements));
-            // console.log('Properties', Object.keys(elements));
-            // console.log(elements);
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-
             const element = elements[0];
-            console.log('Found player TD element', element);
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
-            // cy.get('[id="gameInfoDiv"]').should('be.visible');
             teamInfoObjectFCT.teamIndex = parseInt(element.getAttribute('teamindex'));
             teamInfoObjectFCT.playerIndex = parseInt(element.getAttribute('playerindex'));
-
-            console.log('set team info', teamInfoObjectFCT);
         });
 }
 
@@ -381,23 +274,6 @@ export function startGame() {
     cy.get('[id="startGameButton"]').click();
     cy.get('[id="startGameButton"]').should('not.be.visible');
     cy.get('[id="startNextRoundButton"]').should('not.be.visible');
-}
-
-export function startTurnAndGetAllNames() {
-    cy.get('[id="startTurnButton"]').click();
-    getAllNames();
-}
-
-export function getAllNames(numNames) {
-    // {force: true} disables scrolling, which is nice for videos but not
-    // what we want in a real test. When doing {force: true}, we need the
-    // should('be.visible') to make sure we at least wait for the button to appear.
-    cy.get('[id="gotNameButton"]').should('be.visible');
-    // cy.window().then(window => window.scrollTo(0, 0));
-    cy.scrollTo(0, 0);
-    for (let i = 0; i < numNames; i++) {
-        cy.get('[id="gotNameButton"]').click({ force: true });
-    }
 }
 
 export function joinGame(playerName, gameID, hostName) {
