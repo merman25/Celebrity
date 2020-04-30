@@ -14,7 +14,7 @@ export function retrievePlayerParameters(index, playerNames, celebrityNames) {
     }
 }
 
-export function playGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames) {
+export function playGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames, turns) {
     if (iAmHosting) {
         startHostingNewGame(playerName, gameID);
     }
@@ -23,10 +23,10 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
         joinGame(playerName, gameID, hostName);
     }
 
-    cy.window().then(window => {
-        window.resizeTo(800, 600);
-        window.moveTo(index * 200, 0);
-    });
+    // cy.window().then(window => {
+    //     window.resizeTo(800, 600);
+    //     window.moveTo(index * 200, 0);
+    // });
 
     checkTeamlessPlayerList(otherPlayers);
     if (iAmHosting) {
@@ -38,13 +38,15 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
 
     checkGameParams();
     if (iAmHosting) {
+        cy.wait(1000);
         allocateTeams();
     }
     else {
         checkHostControlsAreNotVisible();
     }
 
-    checkTeamList(playerName, otherPlayers);
+    const teamInfoObject = {};
+    checkTeamList(playerName, otherPlayers, teamInfoObject);
 
     if (iAmHosting) {
         requestNames();
@@ -62,7 +64,6 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
     if (iAmHosting) {
         // Alexander the Great, Marilyn Monroe, Audrey Hepburn, Paul McCartney, Rosa Parks, Archimedes, Hypatia, Helen of Troy, Neil Armstrong, Xerxes, Hippolyta, John F. Kennedy
         startGame();
-        cy.pause();
         // cy.get('[id="startTurnButton"]').should('not.be.visible');
 
 
@@ -80,8 +81,9 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
         // startTurnAndGetAllNames();
     }
 
-    const numNames = 6 * (otherPlayers.length + 1);
-    waitForWakeUpTrigger(numNames);
+    const numPlayers = (otherPlayers.length + 1);
+    const numNames = 6 * numPlayers;
+    waitForWakeUpTrigger(numNames, numPlayers, 0, teamInfoObject, turns);
 }
 
 // wait for wake up trigger
@@ -90,33 +92,34 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
 // Check if the button I just clicked was the start turn button. If yes, play my turn.
 // Goto 1.
 
-function waitForWakeUpTrigger(numNames) {
-    cy.get('.testTriggerClass', { timeout: 60000 })
-    .then(elements => {
-        const triggerElement = elements[0];
-        console.log(`found test trigger on ${triggerElement.id}`);
-        if ( triggerElement.innerText === 'You\'re done, bot!') {
-            console.log('Finished!!');
-        }
-        else if ( triggerElement.innerText === 'Start turn, bot!') {
-            cy.get('[id="startTurnButton"]').click();
-            getAllNames(numNames);
-            waitForWakeUpTrigger(numNames);
-        }
-        else if ( triggerElement.innerText === 'Start next round, bot!') {
-            cy.get('[id="startNextRoundButton"]').click();
-            waitForWakeUpTrigger(numNames);
-        }
-        // else {
-        //     // FIXME it's still finding the Div in the list yielded by get,
-        //     // forcing me to use first().
-        //     cy.get('.testTriggerClass').first().click();
-        //     if (triggerElement.id === 'startTurnButton') {
-        //         getAllNames(numNames);
-        //     }
-        //     waitForWakeUpTrigger(numNames);
-        // }
-    });
+function waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turns) {
+    cy.get('.testTriggerClass', { timeout: 120000 })
+        .then(elements => {
+            const triggerElement = elements[0];
+            console.log(`found test trigger on ${triggerElement.id}`);
+            if (triggerElement.innerText === 'You\'re done, bot!') {
+                console.log('Finished!!');
+            }
+            else if (triggerElement.innerText === 'Start turn, bot!') {
+                cy.get('[id="startTurnButton"]').click();
+                // getAllNames(numNames);
+                getNames(counter, numPlayers, teamInfoObject, turns);
+                waitForWakeUpTrigger(numNames, numPlayers, counter + 1, teamInfoObject, turns);
+            }
+            else if (triggerElement.innerText === 'Start next round, bot!') {
+                cy.get('[id="startNextRoundButton"]').click();
+                waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turns);
+            }
+            // else {
+            //     // FIXME it's still finding the Div in the list yielded by get,
+            //     // forcing me to use first().
+            //     cy.get('.testTriggerClass').first().click();
+            //     if (triggerElement.id === 'startTurnButton') {
+            //         getAllNames(numNames);
+            //     }
+            //     waitForWakeUpTrigger(numNames);
+            // }
+        });
     // cy.get('[id="gameInfoDiv"]').then(elements => {
     //     console.log('elements', elements);
     //     const gameInfoDiv = elements[0];
@@ -129,6 +132,35 @@ function waitForWakeUpTrigger(numNames) {
     //         console.log('Finished!!');
     //     }
     // });
+}
+
+function getNames(counter, numPlayers, teamInfoObject, turns) {
+    cy.wait(5000); // so I can follow it
+    const numTeams = 2;
+    const turnIndex = counter * numPlayers + numTeams * teamInfoObject.playerIndex + teamInfoObject.teamIndex;
+    console.log(`counter ${counter}, numPlayers ${numPlayers}, teamIndex ${teamInfoObject.teamIndex}, playerIndex ${teamInfoObject.playerIndex} ==> turnIndex ${turnIndex}`);
+
+    const turnToTake = turns[turnIndex];
+
+    // {force: true} disables scrolling, which is nice for videos but not
+    // what we want in a real test. When doing {force: true}, we need the
+    // should('be.visible') to make sure we at least wait for the button to appear.
+    cy.get('[id="gotNameButton"]').should('be.visible');
+    cy.get('[id="passButton"]').should('be.visible');
+    cy.get('[id="endTurnButton"]').should('be.visible');
+    cy.scrollTo(0, 0);
+    for (let i = 0; i < turnToTake.length; i++) {
+        let move = turnToTake[i];
+        if ( move === 'got-it') {
+            cy.get('[id="gotNameButton"]').click({ force: true });
+        }
+        else if (move === 'pass') {
+            cy.get('[id="passButton"]').click({ force: true });
+        }
+        else if (move === 'end-turn') {
+            cy.get('[id="endTurnButton"]').click();
+        }
+    }
 }
 
 function waitForClickableButton(numNames) {
@@ -249,7 +281,7 @@ export function startHostingNewGame(playerName, gameID) {
 
 export function checkTeamlessPlayerList(otherPlayers) {
     for (const player of otherPlayers) {
-        cy.contains('.teamlessPlayerLiClass', player, { timeout: 60000 });
+        cy.contains('.teamlessPlayerLiClass', player, { timeout: 120000 });
     }
 }
 
@@ -279,13 +311,46 @@ export function checkHostControlsAreNotVisible() {
     cy.get('[id="requestNamesButton"]').should('not.be.visible');
 }
 
-export function checkTeamList(playerName, otherPlayers) {
+function sleep(milliseconds) {
+    var start = new Date().getTime();
+    while (true) {
+      if ((new Date().getTime() - start) > milliseconds){
+        break;
+      }
+    }
+  }
+
+export function checkTeamList(playerName, otherPlayers, teamInfoObjectFCT) {
     cy.get('[id="teamList"]').contains('Teams');
     cy.get('[id="teamList"]').contains(playerName);
 
     for (const player of otherPlayers) {
         cy.get('[id="teamList"]').contains(player);
     }
+
+    cy.get('.playerInTeamTDClass').contains(playerName)
+        .then(elements => {
+            // console.log('Found player TD of type', typeof(elements));
+            // console.log('Properties', Object.keys(elements));
+            // console.log(elements);
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+
+            const element = elements[0];
+            console.log('Found player TD element', element);
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            // cy.get('[id="gameInfoDiv"]').should('be.visible');
+            teamInfoObjectFCT.teamIndex = parseInt(element.getAttribute('teamindex'));
+            teamInfoObjectFCT.playerIndex = parseInt(element.getAttribute('playerindex'));
+
+            console.log('set team info', teamInfoObjectFCT);
+        });
 }
 
 export function requestNames() {

@@ -8,6 +8,6 @@ describe('Player 3', () => {
         const index = 2;
         const {playerName, otherPlayers, celebrityNames, iAmHosting, hostName} = common.retrievePlayerParameters(index, defs.playerNames, defs.celebrityNames);
 
-        common.playGame(index, playerName, iAmHosting, hostName, defs.gameID, otherPlayers, celebrityNames);
+        common.playGame(index, playerName, iAmHosting, hostName, defs.gameID, otherPlayers, celebrityNames, defs.turns);
     });
 });

@@ -378,7 +378,7 @@ function processGameStateObject(newGameStateObject) {
 					htmlTeamList += '<td class="playerInTeamTDClass' + tdExtraClassString + '"';
 					if (row < tableColumns[col].length) {
 						let playerID = playerIDs[col][row];
-						htmlTeamList += ' playerID="' + playerID + '" teamIndex="' + col + '">';
+						htmlTeamList += ' playerID="' + playerID + '" teamindex="' + col + '" playerindex="' + row + '">';
 						htmlTeamList += tableColumns[col][row];
 					}
 					else {
