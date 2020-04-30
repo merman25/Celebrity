@@ -14,18 +14,28 @@ export function retrievePlayerParameters(index, playerNames, celebrityNames) {
     }
 }
 
-export function playGame(playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames) {
+export function playGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames) {
     if (iAmHosting) {
         startHostingNewGame(playerName, gameID);
     }
     else {
-        cy.wait(10000);
+        // cy.wait(10000);
         joinGame(playerName, gameID, hostName);
     }
+
+    cy.window().then(window => {
+        window.resizeTo(800, 600);
+        window.moveTo(index * 200, 0);
+    });
+
     checkTeamlessPlayerList(otherPlayers);
     if (iAmHosting) {
         setGameParams(playerName);
     }
+    else {
+        cy.wait(1000);
+    }
+
     checkGameParams();
     if (iAmHosting) {
         allocateTeams();
@@ -42,30 +52,123 @@ export function playGame(playerName, iAmHosting, hostName, gameID, otherPlayers,
     else {
         cy.get('[id="nameListForm"]').should('be.visible');
         cy.get('[id="startGameButton"]').should('not.be.visible');
-        cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 1 player(s)', { timeout: 60000 });
     }
+    const numPlayersToWaitFor = otherPlayers.length + 1 - index;
+    const options = index == 0 ? {} : { timeout: index * 60000 };
+    cy.get('[id="gameStatusDiv"]').contains(`Waiting for names from ${numPlayersToWaitFor} player(s)`, options);
 
     submitNames(celebrityNames);
 
     if (iAmHosting) {
-        startGame();
-        cy.get('[id="startTurnButton"]').should('not.be.visible');
-
         // Alexander the Great, Marilyn Monroe, Audrey Hepburn, Paul McCartney, Rosa Parks, Archimedes, Hypatia, Helen of Troy, Neil Armstrong, Xerxes, Hippolyta, John F. Kennedy
+        startGame();
+        cy.pause();
+        // cy.get('[id="startTurnButton"]').should('not.be.visible');
 
-        cy.get('[id="startNextRoundButton"]').click({ timeout: 60000 });
-        startTurnAndGetAllNames();
-        cy.get('[id="startNextRoundButton"]').click();
-        }
-    else {
-        cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 0 player(s)', {timeout: 60000});
-        cy.get('[id="startGameButton"]').should('not.be.visible');
-        cy.get('[id="startNextRoundButton"]').should('not.be.visible');
-        
-        startTurnAndGetAllNames();
-        waitForMyTurn(60);
-        startTurnAndGetAllNames();
+
+        // cy.get('[id="startNextRoundButton"]').click({ timeout: 60000 });
+        // startTurnAndGetAllNames();
+        // cy.get('[id="startNextRoundButton"]').click();
     }
+    else {
+        // cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 0 player(s)', {timeout: 60000});
+        // cy.get('[id="startGameButton"]').should('not.be.visible');
+        // cy.get('[id="startNextRoundButton"]').should('not.be.visible');
+
+        // startTurnAndGetAllNames();
+        // waitForMyTurn(60);
+        // startTurnAndGetAllNames();
+    }
+
+    const numNames = 6 * (otherPlayers.length + 1);
+    waitForWakeUpTrigger(numNames);
+}
+
+// wait for wake up trigger
+// when it appears, check game status. If game over, end.
+// If not, wait for clickable button and click it.
+// Check if the button I just clicked was the start turn button. If yes, play my turn.
+// Goto 1.
+
+function waitForWakeUpTrigger(numNames) {
+    cy.get('.testTriggerClass', { timeout: 60000 })
+    .then(elements => {
+        const triggerElement = elements[0];
+        console.log(`found test trigger on ${triggerElement.id}`);
+        if ( triggerElement.innerText === 'You\'re done, bot!') {
+            console.log('Finished!!');
+        }
+        else if ( triggerElement.innerText === 'Start turn, bot!') {
+            cy.get('[id="startTurnButton"]').click();
+            getAllNames(numNames);
+            waitForWakeUpTrigger(numNames);
+        }
+        else if ( triggerElement.innerText === 'Start next round, bot!') {
+            cy.get('[id="startNextRoundButton"]').click();
+            waitForWakeUpTrigger(numNames);
+        }
+        // else {
+        //     // FIXME it's still finding the Div in the list yielded by get,
+        //     // forcing me to use first().
+        //     cy.get('.testTriggerClass').first().click();
+        //     if (triggerElement.id === 'startTurnButton') {
+        //         getAllNames(numNames);
+        //     }
+        //     waitForWakeUpTrigger(numNames);
+        // }
+    });
+    // cy.get('[id="gameInfoDiv"]').then(elements => {
+    //     console.log('elements', elements);
+    //     const gameInfoDiv = elements[0];
+    //     console.log('gameInfoDiv', gameInfoDiv);
+
+    //     if (gameInfoDiv.innerHTML !== 'Game Over!') {
+    //         waitForClickableButton(numNames);
+    //     }
+    //     else {
+    //         console.log('Finished!!');
+    //     }
+    // });
+}
+
+function waitForClickableButton(numNames) {
+    // FIXME one of these timeouts isn't needed
+    cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
+        .then(buttons => {
+            let button = buttons[0];
+            if (button.id === 'startTurnButton') {
+                getAllNames(numNames);
+            }
+            playUntilEnd(numNames);
+        });
+}
+
+export function playATurn(numNames) {
+    // FIXME one of these timeouts isn't needed
+    cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
+        .then(buttons => {
+            let button = buttons[0];
+            if (button.id === 'startTurnButton') {
+                getAllNames(numNames);
+            }
+            else {
+                expect(button.id).to.equal('startNextRoundButton');
+                // FIXME one of these timeouts isn't needed
+                cy.get('.buttonForBotToClick', { timeout: 60000 }).filter(':visible', { timeout: 60000 }).click()
+                getAllNames(numNames);
+            }
+        });
+
+    cy.get('.testTriggerClass', { timeout: 60000 });
+    cy.get('[id="gameInfoDiv"]').then(elements => {
+        console.log('elements', elements);
+        const gameInfoDiv = elements[0];
+        console.log('gameInfoDiv', gameInfoDiv);
+
+        if (gameInfoDiv.innerHTML !== 'Game Over!') {
+            playATurn(numNames);
+        }
+    });
 }
 
 export function isVisible(element) {
@@ -192,7 +295,6 @@ export function requestNames() {
 
     cy.get('[id="nameListForm"]').should('be.visible');
     cy.get('[id="startGameButton"]').should('not.be.visible');
-    cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 2 player(s)');
 }
 
 export function submitNames(celebrityNames) {
@@ -214,9 +316,18 @@ export function startGame() {
 
 export function startTurnAndGetAllNames() {
     cy.get('[id="startTurnButton"]').click();
+    getAllNames();
+}
 
-    for (let i = 0; i < 12; i++) {
-        cy.get('[id="gotNameButton"]').click();
+export function getAllNames(numNames) {
+    // {force: true} disables scrolling, which is nice for videos but not
+    // what we want in a real test. When doing {force: true}, we need the
+    // should('be.visible') to make sure we at least wait for the button to appear.
+    cy.get('[id="gotNameButton"]').should('be.visible');
+    // cy.window().then(window => window.scrollTo(0, 0));
+    cy.scrollTo(0, 0);
+    for (let i = 0; i < numNames; i++) {
+        cy.get('[id="gotNameButton"]').click({ force: true });
     }
 }
 
@@ -240,5 +351,5 @@ export function joinGame(playerName, gameID, hostName) {
 }
 
 export function waitForMyTurn(aTimeoutInSeconds) {
-    cy.contains('[id="gameStatusDiv"]', 'It\'s your turn!', {timeout: 1000*aTimeoutInSeconds});
+    cy.contains('[id="gameStatusDiv"]', 'It\'s your turn!', { timeout: 1000 * aTimeoutInSeconds });
 }

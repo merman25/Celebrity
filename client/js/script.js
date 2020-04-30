@@ -189,7 +189,9 @@ function processGameStateObject(newGameStateObject) {
 	if (gameStatusString == "READY_TO_START_NEXT_TURN") {
 
 		if (iAmPlaying) {
-			document.getElementById("startTurnButton").style.display = 'block';
+			const startTurnButton = document.getElementById("startTurnButton");
+			startTurnButton.style.display = 'block';
+			addTestTrigger('Start turn, bot!');
 			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 		}
 		else {
@@ -708,6 +710,8 @@ function setGameStatus(newStatus) {
 		&& newStatus == "PLAYING_A_TURN") {
 		currentNameIndex = gameStateObject.currentNameIndex;
 		previousNameIndex = gameStateObject.previousNameIndex;
+		console.log('removing test trigger class');
+		// document.getElementById('testTriggerDiv').classList.remove('testTriggerClass');
 
 		if (iAmPlaying) {
 			document.getElementById("turnControlsDiv").style.display = 'flex';
@@ -719,6 +723,7 @@ function setGameStatus(newStatus) {
 		&& newStatus == "READY_TO_START_NEXT_TURN") {
 		document.getElementById("turnControlsDiv").style.display = 'none';
 		document.getElementById("currentNameDiv").innerHTML = "";
+		// addTestTriggerClass(document.getElementById('testTriggerDiv'));
 		let roundIndex = gameStateObject.roundIndex;
 		if (roundIndex != null) {
 			roundIndex = parseInt(roundIndex) + 1;
@@ -732,10 +737,15 @@ function setGameStatus(newStatus) {
 	if (newStatus == "READY_TO_START_NEXT_ROUND") {
 		document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
 		showHostDutiesElements();
-		document.getElementById("startNextRoundButton").style.display = 'block';
+		const startNextRoundButton = document.getElementById("startNextRoundButton");
+		startNextRoundButton.style.display = 'block';
+		if (iAmHost()) {
+			addTestTrigger('Start next round, bot!');
+		}
 	}
 	else {
-		document.getElementById("startNextRoundButton").style.display = 'none';
+		const startNextRoundButton = document.getElementById("startNextRoundButton");
+		startNextRoundButton.style.display = 'none';
 	}
 
 	if (newStatus != "READY_TO_START_NEXT_ROUND"
@@ -745,9 +755,31 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == "ENDED") {
 		updateGameInfo("Game Over!");
+		console.log('adding test trigger class');
+		addTestTrigger('You\'re done, bot!');
 	}
 
 	gameStatus = newStatus;
+}
+
+function addTestTrigger(text) {
+	const testTriggerDiv = document.getElementById('testTriggerDiv');
+	testTriggerDiv.innerText = text;
+
+	if (!testTriggerDiv.classList.contains('testTriggerClass')) {
+		console.log(`adding test trigger text ${text}`);
+		testTriggerDiv.classList.add('testTriggerClass');
+	}
+	else {
+		console.log(`added test trigger text ${text}, but the class was already present`);
+	}
+}
+
+function clearTestTrigger() {
+	console.log('clearing test trigger');
+	const testTriggerDiv = document.getElementById('testTriggerDiv');
+	testTriggerDiv.innerText = '';
+	testTriggerDiv.classList.remove('testTriggerClass');
 }
 
 function addNameRequestForm() {
@@ -818,7 +850,9 @@ function startGame() {
 }
 
 function startTurn() {
-	document.getElementById("startTurnButton").style.display = 'none';
+	const startTurnButton = document.getElementById("startTurnButton");
+	startTurnButton.style.display = 'none';
+	clearTestTrigger();
 	fetch('startTurn')
 		.catch(err => console.error(err));
 }
@@ -855,6 +889,7 @@ function finishRound() {
 }
 
 function startNextRound() {
+	clearTestTrigger();
 	fetch('startNextRound')
 		.catch(err => console.error(err));
 

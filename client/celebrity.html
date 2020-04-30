@@ -101,12 +101,12 @@
     </div>
     <button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
     <button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
-    <button id="startNextRoundButton" onclick="startNextRound()" style="display:none">Start Next Round</button>
+    <button id="startNextRoundButton" class="buttonForBotToClick" onclick="startNextRound()" style="display:none">Start Next Round</button>
   </div>
 
   <div id="playGameDiv" style="display:none">
     <hr>
-    <button id="startTurnButton" onclick="startTurn()" style="display:none">Start Turn</button>
+    <button id="startTurnButton" class="buttonForBotToClick" onclick="startTurn()" style="display:none">Start Turn</button>
     <div id="gameStatusDiv"></div>
     <div id="currentNameDiv"></div>
     <div id="turnControlsDiv" style="display:none; flex-direction: row;">
@@ -131,6 +131,7 @@
 
   <div id="teamlessPlayerContextMenuDiv"></div>
   <div id="playerInTeamContextMenuDiv"></div>
+  <div id="testTriggerDiv" styel="display:none"></div>
 
   <script src="js/script.js"></script>
 </body>
