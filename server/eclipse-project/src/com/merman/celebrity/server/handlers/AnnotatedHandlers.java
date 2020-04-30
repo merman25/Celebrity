@@ -140,7 +140,7 @@ public class AnnotatedHandlers {
 				&& gameHostedByPlayer.getStatus() == GameStatus.WAITING_FOR_NAMES ) {
 			gameHostedByPlayer.freezeNameList();
 			gameHostedByPlayer.shuffleNames();
-			gameHostedByPlayer.allowNextPlayerToStartNextTurn();
+			gameHostedByPlayer.startRound();
 		}
 	}
 	
@@ -162,7 +162,6 @@ public class AnnotatedHandlers {
 	@HTTPRequest(requestName = "pass", argNames = {"passNameIndex"})
 	public static Map<String, String> pass(Session session, Integer passNameIndex) {
 		Game game = session.getPlayer().getGame();
-		System.out.format("Session [%s], player %s, game %s, passing on index %d\n", session.getSessionID(), session.getPlayer().getName(), game.getID(), passNameIndex );
 		game.setPassOnNameIndex(passNameIndex);
 		
 		Map<String, String>	responseMap = new HashMap<>();

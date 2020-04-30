@@ -61,6 +61,7 @@ public class Game {
 
 	public synchronized void setStatus(GameStatus aStatus) {
 		status = aStatus;
+		System.out.format("Setting status to %s\n", aStatus);
 		fireGameEvent();
 	}
 
@@ -249,7 +250,6 @@ public class Game {
 		shuffledNameList.clear();
 		shuffledNameList.addAll(masterNameList);
 		Collections.shuffle(shuffledNameList, SharedRandom.getRandom());
-		System.out.println("shuffled names: " + shuffledNameList);
 	}
 	
 	public synchronized List<String> getShuffledNameList() {
@@ -257,6 +257,7 @@ public class Game {
 	}
 	
 	public synchronized void startRound() {
+		System.out.format("Starting round %d\n", roundIndex+1);
 		mapTeamsToAchievedNames.clear();
 		allowNextPlayerToStartNextTurn();
 	}
@@ -322,7 +323,7 @@ public class Game {
 		List<String>		namesAchieved		= new ArrayList<>(shuffledNameList.subList(previousNameIndex, currentNameIndex));
 		mapTeamsToAchievedNames.computeIfAbsent(currentTeam, t -> new ArrayList<>()).addAll(namesAchieved);
 		
-//		System.out.format("%s got %d names for %s\n", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName());
+		System.out.format("%s got %d names for %s\n", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName());
 		
 		previousNameIndex = currentNameIndex;
 	}

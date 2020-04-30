@@ -51,13 +51,13 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
     if (iAmHosting) {
         requestNames();
     }
-    else {
+    // else {
         cy.get('[id="nameListForm"]').should('be.visible');
         cy.get('[id="startGameButton"]').should('not.be.visible');
-    }
-    const numPlayersToWaitFor = otherPlayers.length + 1 - index;
-    const options = index == 0 ? {} : { timeout: index * 60000 };
-    cy.get('[id="gameStatusDiv"]').contains(`Waiting for names from ${numPlayersToWaitFor} player(s)`, options);
+    // }
+    // const numPlayersToWaitFor = otherPlayers.length + 1 - index;
+    // const options = index == 0 ? {} : { timeout: index * 60000 };
+    // cy.get('[id="gameStatusDiv"]').contains(`Waiting for names from ${numPlayersToWaitFor} player(s)`, options);
 
     submitNames(celebrityNames);
 
@@ -107,6 +107,7 @@ function waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, tur
                 waitForWakeUpTrigger(numNames, numPlayers, counter + 1, teamInfoObject, turns);
             }
             else if (triggerElement.innerText === 'Start next round, bot!') {
+                cy.wait(1000); // Give player who finished the round time to click the scores div
                 cy.get('[id="startNextRoundButton"]').click();
                 waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turns);
             }
@@ -135,7 +136,8 @@ function waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, tur
 }
 
 function getNames(counter, numPlayers, teamInfoObject, turns) {
-    cy.wait(5000); // so I can follow it
+    cy.scrollTo(0, 0);
+    // cy.wait(5000); // so I can follow it
     const numTeams = 2;
     const turnIndex = counter * numPlayers + numTeams * teamInfoObject.playerIndex + teamInfoObject.teamIndex;
     console.log(`counter ${counter}, numPlayers ${numPlayers}, teamIndex ${teamInfoObject.teamIndex}, playerIndex ${teamInfoObject.playerIndex} ==> turnIndex ${turnIndex}`);
@@ -148,8 +150,8 @@ function getNames(counter, numPlayers, teamInfoObject, turns) {
     cy.get('[id="gotNameButton"]').should('be.visible');
     cy.get('[id="passButton"]').should('be.visible');
     cy.get('[id="endTurnButton"]').should('be.visible');
-    cy.scrollTo(0, 0);
     for (let i = 0; i < turnToTake.length; i++) {
+        cy.wait(500);
         let move = turnToTake[i];
         if ( move === 'got-it') {
             cy.get('[id="gotNameButton"]').click({ force: true });
@@ -161,6 +163,8 @@ function getNames(counter, numPlayers, teamInfoObject, turns) {
             cy.get('[id="endTurnButton"]').click();
         }
     }
+
+    cy.get('[id="scoresDiv"]').click(); // scroll here to look at scores (for video)
 }
 
 function waitForClickableButton(numNames) {

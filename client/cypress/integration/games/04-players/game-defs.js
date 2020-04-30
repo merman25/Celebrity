@@ -21,19 +21,19 @@ export const turns = [
     [g, g, g, g, e], // 22
     [g, g], // 24
 
-    [g, g, p, g, p, g, g, e], // 5
     [g, g, g, g, e], // 9
-    [p, g, g, g, g, g, g, e], // 15
+    [g, g, g, g, e], // 22
+    [g, g, p, g, p, g, g, e], // 5
+    [g, g, e], // 24
     [g, g, g, p, e], // 18
     [e], //18
-    [g, g, g, g, e], // 22
-    [g, g], // 24
+    [p, g, g, g, g, g, g], // 15
 
     [g, g, p, g, p, g, g, e], // 5
-    [g, g, g, g, e], // 9
-    [p, g, g, g, g, g, g, e], // 15
-    [g, g, g, p, e], // 18
     [e], //18
+    [g, g, g, g, e], // 9
+    [g, g, e], // 24
+    [p, g, g, g, g, g, g, e], // 15
     [g, g, g, g, e], // 22
-    [g, g], // 24
+    [g, g, g], // 18
 ];
