@@ -85,6 +85,7 @@ public class Game {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
 		if ( host == null ) {
+			System.out.format("Game %s had no host, setting %s as the host\n", getID(), aPlayer);
 			host = aPlayer;
 			currentPlayer = aPlayer;
 		}
