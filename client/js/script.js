@@ -112,7 +112,6 @@ function tryToOpenSocket() {
 
 				}
 				else if (message.indexOf('GameState=') === 0) {
-					console.log('received game state in new way');
 					const gameStateString = message.substring('GameState='.length, message.length);
 					const gameObj = JSON.parse(gameStateString);
 					processGameStateObject(gameObj);
@@ -184,6 +183,10 @@ function processGameStateObject(newGameStateObject) {
 	myPlayerID = gameStateObject.publicIDOfRecipient;
 	iAmPlaying = iAmCurrentPlayer();
 	let iAmHosting = iAmHost();
+
+	if (! iAmPlaying) {
+		clearTestTrigger();
+	}
 
 	let gameStatusString = gameStateObject.status;
 	if (gameStatusString == "READY_TO_START_NEXT_TURN") {
@@ -429,24 +432,29 @@ function processGameStateObject(newGameStateObject) {
 						if (changePlayerToTeamLiElement != null) {
 							changePlayerToTeamLiElement.addEventListener("click", event => {
 								putInTeam(playerIDOfPlayerInTeam, j);
+								hideAllContextMenus();
 							});
 						}
 					}
 
 					document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
 						removeFromGame(playerIDOfPlayerInTeam);
+						hideAllContextMenus();
 					});
 
 					document.getElementById("moveUp").addEventListener("click", event => {
 						moveInTeam(playerIDOfPlayerInTeam, false);
+						hideAllContextMenus();
 					});
 
 					document.getElementById("moveDown").addEventListener("click", event => {
 						moveInTeam(playerIDOfPlayerInTeam, true);
+						hideAllContextMenus();
 					});
 
 					document.getElementById("makePlayerNextInTeam").addEventListener("click", event => {
 						makePlayerNextInTeam(playerIDOfPlayerInTeam);
+						hideAllContextMenus();
 					});
 
 
@@ -462,13 +470,6 @@ function processGameStateObject(newGameStateObject) {
 				});
 			}
 		}
-	}
-
-	let menuItems = document.querySelectorAll(".menuItem");
-	for (let i = 0; i < menuItems.length; i++) {
-		menuItems[i].addEventListener("click", event => {
-			hideAllContextMenus();
-		});
 	}
 
 	const playerName = myDecode(gameStateObject.yourName);
@@ -696,10 +697,6 @@ function requestNames() {
 }
 
 function setGameStatus(newStatus) {
-	if (gameStatus != newStatus) {
-		console.log("Changing status from " + gameStatus + " to " + newStatus);
-	}
-
 	if (gameStatus != "WAITING_FOR_NAMES"
 		&& newStatus == "WAITING_FOR_NAMES") {
 		updateGameInfo("Put your names into the hat!");
@@ -710,8 +707,6 @@ function setGameStatus(newStatus) {
 		&& newStatus == "PLAYING_A_TURN") {
 		currentNameIndex = gameStateObject.currentNameIndex;
 		previousNameIndex = gameStateObject.previousNameIndex;
-		console.log('removing test trigger class');
-		// document.getElementById('testTriggerDiv').classList.remove('testTriggerClass');
 
 		if (iAmPlaying) {
 			document.getElementById("turnControlsDiv").style.display = 'flex';
@@ -723,7 +718,6 @@ function setGameStatus(newStatus) {
 		&& newStatus == "READY_TO_START_NEXT_TURN") {
 		document.getElementById("turnControlsDiv").style.display = 'none';
 		document.getElementById("currentNameDiv").innerHTML = "";
-		// addTestTriggerClass(document.getElementById('testTriggerDiv'));
 		let roundIndex = gameStateObject.roundIndex;
 		if (roundIndex != null) {
 			roundIndex = parseInt(roundIndex) + 1;
@@ -755,7 +749,6 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == "ENDED") {
 		updateGameInfo("Game Over!");
-		console.log('adding test trigger class');
 		addTestTrigger('You\'re done, bot!');
 	}
 
@@ -767,16 +760,11 @@ function addTestTrigger(text) {
 	testTriggerDiv.innerText = text;
 
 	if (!testTriggerDiv.classList.contains('testTriggerClass')) {
-		console.log(`adding test trigger text ${text}`);
 		testTriggerDiv.classList.add('testTriggerClass');
-	}
-	else {
-		console.log(`added test trigger text ${text}, but the class was already present`);
 	}
 }
 
 function clearTestTrigger() {
-	console.log('clearing test trigger');
 	const testTriggerDiv = document.getElementById('testTriggerDiv');
 	testTriggerDiv.innerText = '';
 	testTriggerDiv.classList.remove('testTriggerClass');

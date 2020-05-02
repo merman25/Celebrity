@@ -13,8 +13,13 @@ describe(`Player ${index + 1}`, () => {
     it('Plays a game', () => {
         cy.visit('http://192.168.1.17:8080/celebrity.html');
 
-        const { playerName, otherPlayers, celebrityNames, iAmHosting, hostName } = common.retrievePlayerParameters(index, defs.playerNames, defs.celebrityNames);
+        const clientState = common.retrievePlayerParameters(index, defs.playerNames, defs.celebrityNames);
+        clientState.index = index;
+        clientState.gameID = defs.gameID;
+        clientState.turnIndexOffset = 0;
+        clientState.turns = defs.turns;
+        clientState.customActions = defs.customActions;
 
-        common.playGame(index, playerName, iAmHosting, hostName, defs.gameID, otherPlayers, celebrityNames, defs.turns);
+        common.playGame(clientState);
     });
 });

@@ -14,12 +14,12 @@ export function retrievePlayerParameters(index, playerNames, celebrityNames) {
     }
 }
 
-export function playGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames, turns) {
-    if (iAmHosting) {
-        startHostingNewGame(playerName, gameID);
+export function playGame(clientState) {
+    if (clientState.iAmHosting) {
+        startHostingNewGame(clientState.playerName, clientState.gameID);
     }
     else {
-        joinGame(playerName, gameID, hostName);
+        joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
     }
 
     // cy.window().then(window => {
@@ -27,9 +27,9 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
     //     window.moveTo(index * 200, 0);
     // });
 
-    checkTeamlessPlayerList(otherPlayers);
-    if (iAmHosting) {
-        setGameParams(playerName);
+    checkTeamlessPlayerList(clientState.otherPlayers);
+    if (clientState.iAmHosting) {
+        setGameParams(clientState.playerName);
     }
     else {
         cy.wait(1000);
@@ -38,7 +38,7 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
     checkGameParams();
     assert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
 
-    if (iAmHosting) {
+    if (clientState.iAmHosting) {
         cy.wait(1000);
         allocateTeams();
     }
@@ -46,103 +46,93 @@ export function playGame(index, playerName, iAmHosting, hostName, gameID, otherP
         checkHostControlsAreNotVisible();
     }
 
-    const teamInfoObject = {};
-    checkTeamList(playerName, otherPlayers, teamInfoObject);
+    checkTeamList(clientState);
 
-    if (iAmHosting) {
+    if (clientState.iAmHosting) {
         requestNames();
     }
     cy.get('[id="nameListForm"]').should('be.visible');
     cy.get('[id="startGameButton"]').should('not.be.visible');
 
-    submitNames(celebrityNames);
+    submitNames(clientState.celebrityNames);
 
-    if (iAmHosting) {
+    if (clientState.iAmHosting) {
         startGame();
     }
     else {
     }
 
-    const numPlayers = (otherPlayers.length + 1);
-    const numNames = 6 * numPlayers;
-    waitForWakeUpTrigger(numNames, numPlayers, 0, teamInfoObject, 0, turns);
+    clientState.counter = 0;
+    waitForWakeUpTrigger(clientState);
 }
 
-export function hostRestoredGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames, turnIndexOffset, turns) {
-    cy.get('[id="nameField"]').type(playerName);
+export function hostRestoredGame(clientState) {
+    cy.get('[id="nameField"]').type(clientState.playerName);
     cy.get('[id="nameSubmitButton"]').click();
 
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
 
     cy.get('[id="join"]').click();
-    cy.get('[id="gameIDField"]').type(gameID);
+    cy.get('[id="gameIDField"]').type(clientState.gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
 
     cy.get('[id="gameIDDiv"]').should('be.visible')
     cy.get('[id="gameParamsDiv"]').contains('You\'re the host.');
 
-    if (gameID) {
-        cy.get('[id="gameIDDiv"]').contains(`Game ID: ${gameID}`)
+    if (clientState.gameID) {
+        cy.get('[id="gameIDDiv"]').contains(`Game ID: ${clientState.gameID}`)
     }
     cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
 
-    cy.contains('.teamlessPlayerLiClass', playerName);
+    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
 
     checkGameParams();
-    checkTeamlessPlayerList(otherPlayers);
+    checkTeamlessPlayerList(clientState.otherPlayers);
 
     cy.wait(2000); // give the other players time to check the teamless player list
 
-    const allPlayers = [playerName, ...otherPlayers];
-    console.log('allPlayers', allPlayers);
+    const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
 
     for (let i = 0; i < allPlayers.length; i++) {
         const player = allPlayers[i];
-        cy.get('.teamlessPlayerLiClass').contains(player).rightclick();
-
-        cy.get('[id="contextMenuForTeamlessPlayer"]').should('be.visible');
-        cy.get(`[id="changeToTeam${i % 2}"]`).click();
+        selectContextMenuItemForPlayer(player, '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', `changeToTeam${i % 2}`);
     }
 
-    const teamInfoObject = {};
-    checkTeamList(playerName, otherPlayers, teamInfoObject);
+    checkTeamList(clientState);
 
-    const numPlayers = (otherPlayers.length + 1);
-    const numNames = 6 * numPlayers;
-    waitForWakeUpTrigger(numNames, numPlayers, 0, teamInfoObject, turnIndexOffset, turns);
+    clientState.counter = 0;
+    waitForWakeUpTrigger(clientState);
 }
 
-export function joinRestoredGame(index, playerName, iAmHosting, hostName, gameID, otherPlayers, celebrityNames, turnIndexOffset, turns) {
-    cy.get('[id="nameField"]').type(playerName);
+export function joinRestoredGame(clientState) {
+    cy.get('[id="nameField"]').type(clientState.playerName);
     cy.get('[id="nameSubmitButton"]').click();
 
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
 
     cy.get('[id="join"]').click();
-    cy.get('[id="gameIDField"]').type(gameID);
+    cy.get('[id="gameIDField"]').type(clientState.gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
 
     cy.get('[id="gameParamsForm"]').should('not.be.visible')
     cy.get('[id="gameIDDiv"').should('be.visible')
 
-    cy.get('[id="gameParamsDiv"]').contains(`${hostName} is hosting.`);
+    cy.get('[id="gameParamsDiv"]').contains(`${clientState.hostName} is hosting.`);
 
-    cy.get('[id="gameIDDiv"]').contains(`Game ID: ${gameID}`)
+    cy.get('[id="gameIDDiv"]').contains(`Game ID: ${clientState.gameID}`)
     cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
 
-    cy.contains('.teamlessPlayerLiClass', playerName);
+    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
 
     checkGameParams();
-    checkTeamlessPlayerList(otherPlayers);
+    checkTeamlessPlayerList(clientState.otherPlayers);
 
-    const teamInfoObject = {};
-    checkTeamList(playerName, otherPlayers, teamInfoObject, { timeout: 30000 });
+    checkTeamList(clientState, { timeout: 30000 });
 
-    const numPlayers = (otherPlayers.length + 1);
-    const numNames = 6 * numPlayers;
-    waitForWakeUpTrigger(numNames, numPlayers, 0, teamInfoObject, turnIndexOffset, turns);
+    clientState.counter = 0;
+    waitForWakeUpTrigger(clientState);
 }
 
 // wait for wake up trigger
@@ -151,24 +141,42 @@ export function joinRestoredGame(index, playerName, iAmHosting, hostName, gameID
 // Check if the button I just clicked was the start turn button. If yes, play my turn.
 // Goto 1.
 
-function waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turnIndexOffset, turns) {
+export function waitForWakeUpTrigger(clientState) {
     cy.get('.testTriggerClass', { timeout: 120000 })
         .then(elements => {
             const triggerElement = elements[0];
-            console.log(`found test trigger on ${triggerElement.id}`);
-            if (triggerElement.innerText === 'You\'re done, bot!') {
+
+            let tookAction = false;
+            if (clientState.customActions) {
+                for (const [predicate, action] of clientState.customActions) {
+                    if (predicate(clientState)) {
+                        tookAction = true;
+                        action(clientState);
+                    }
+                }
+            }
+
+            if (tookAction) {
+                waitForWakeUpTrigger(clientState);
+            }
+            else if (triggerElement.innerText === 'You\'re done, bot!') {
                 console.log('Finished!!');
             }
             else if (triggerElement.innerText === 'Start turn, bot!') {
                 cy.get('[id="startTurnButton"]').click();
-                // getAllNames(numNames);
-                getNames(counter, numPlayers, teamInfoObject, turnIndexOffset, turns);
-                waitForWakeUpTrigger(numNames, numPlayers, counter + 1, teamInfoObject, turnIndexOffset, turns);
+                const numPlayers = clientState.otherPlayers.length + 1;
+                getNames(clientState.counter, numPlayers, clientState, clientState.turnIndexOffset, clientState.turns);
+
+                // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
+                // that the counter value is now wrong. And you can't increment it back, since that code
+                // will be executed before the cy.get() in the new call to waitForWakeUpTrigger.
+                clientState.counter = clientState.counter + 1;
+                waitForWakeUpTrigger(clientState);
             }
             else if (triggerElement.innerText === 'Start next round, bot!') {
-                cy.wait(1000); // Give player who finished the round time to click the scores div
+                cy.wait(2000); // Give player who finished the round time to click the scores div
                 cy.get('[id="startNextRoundButton"]').click();
-                waitForWakeUpTrigger(numNames, numPlayers, counter, teamInfoObject, turnIndexOffset, turns);
+                waitForWakeUpTrigger(clientState);
             }
         });
 }
@@ -182,20 +190,22 @@ function getNames(counter, numPlayers, teamInfoObject, turnIndexOffset, turns) {
 
     const turnToTake = turns[turnIndex];
 
+    let options = {};
+
     // {force: true} disables scrolling, which is nice for videos but not
     // what we want in a real test. When doing {force: true}, we need the
     // should('be.visible') to make sure we at least wait for the button to appear.
+    // options = {force: true};
     cy.get('[id="gotNameButton"]').should('be.visible');
     cy.get('[id="passButton"]').should('be.visible');
     cy.get('[id="endTurnButton"]').should('be.visible');
-    for (let i = 0; i < turnToTake.length; i++) {
+    for (const move of turnToTake) {
         cy.wait(500);
-        let move = turnToTake[i];
         if (move === 'got-it') {
-            cy.get('[id="gotNameButton"]').click({ force: true });
+            cy.get('[id="gotNameButton"]').click(options);
         }
         else if (move === 'pass') {
-            cy.get('[id="passButton"]').click({ force: true });
+            cy.get('[id="passButton"]').click(options);
         }
         else if (move === 'end-turn') {
             cy.get('[id="endTurnButton"]').click();
@@ -312,19 +322,19 @@ function checkHostControlsAreNotVisible() {
     cy.get('[id="requestNamesButton"]').should('not.be.visible');
 }
 
-function checkTeamList(playerName, otherPlayers, teamInfoObjectFCT, options = {}) {
+export function checkTeamList(clientState, options = {}) {
     cy.get('[id="teamList"]').contains('Teams');
-    cy.get('[id="teamList"]').contains(playerName, options);
+    cy.get('[id="teamList"]').contains(clientState.playerName, options);
 
-    for (const player of otherPlayers) {
+    for (const player of clientState.otherPlayers) {
         cy.get('[id="teamList"]').contains(player);
     }
 
-    cy.get('.playerInTeamTDClass').contains(playerName)
+    cy.get('.playerInTeamTDClass').contains(clientState.playerName)
         .then(elements => {
             const element = elements[0];
-            teamInfoObjectFCT.teamIndex = parseInt(element.getAttribute('teamindex'));
-            teamInfoObjectFCT.playerIndex = parseInt(element.getAttribute('playerindex'));
+            clientState.teamIndex = parseInt(element.getAttribute('teamindex'));
+            clientState.playerIndex = parseInt(element.getAttribute('playerindex'));
         });
 }
 
@@ -374,4 +384,13 @@ function joinGame(playerName, gameID, hostName) {
     cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
 
     cy.contains('.teamlessPlayerLiClass', playerName);
+}
+
+export function selectContextMenuItemForPlayer(player, playerElementSelector, contextMenuID, menuItemID) {
+    cy.get(playerElementSelector).contains(player).rightclick();
+
+    cy.get(`[id="${contextMenuID}"]`).should('be.visible');
+    cy.get(`[id="${menuItemID}"]`).click();
+    cy.get(`[id="${contextMenuID}"]`).should('not.be.visible');
+
 }
