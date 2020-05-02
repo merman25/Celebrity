@@ -69,6 +69,17 @@ export const customActions = [
         cy.get('.playerInTeamTDClass').first().contains(clientState.otherPlayers[2]);
         cy.wait(2000); // give the others time to verify
 
+        cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
+        cy.wait(2000); // give the others time to verify
+        common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'removePlayerInTeamFromGame')
+        cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`);
+        cy.wait(2000); // give the others time to verify
+
+        common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', 'changeToTeam1');
+        common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
+        cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`);
+        cy.wait(2000); // give the others time to verify
+
         common.checkTeamList(clientState);
 
     }],
@@ -80,6 +91,11 @@ export const customActions = [
         doneCustomAction = true;
 
         cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, {timeout: 10000});
+
+        cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
+        cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`);
+        cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`, {timeout: 10000});
+
         common.checkTeamList(clientState);
     }],
 
@@ -90,6 +106,12 @@ export const customActions = [
         doneCustomAction = true;
 
         cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, {timeout: 10000});
+        // refresh the page
+        cy.visit('http://192.168.1.17:8080/celebrity.html');
+        common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+        cy.get('[id="teamList"]').not(`:contains("${clientState.playerName}")`);
+        cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.playerName}")`, {timeout: 10000});
+
         common.checkTeamList(clientState);
     }],
 
@@ -100,6 +122,10 @@ export const customActions = [
         doneCustomAction = true;
 
         cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.playerName}")`, {timeout: 10000});
+        cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[2]);
+        cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[2]}")`);
+        cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, {timeout: 10000});
+
         common.checkTeamList(clientState);
     }],
 ];

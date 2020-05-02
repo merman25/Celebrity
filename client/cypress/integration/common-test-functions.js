@@ -20,6 +20,8 @@ export function playGame(clientState) {
     }
     else {
         joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+        cy.get('[id="gameParamsDiv"]').contains('Settings').should('not.exist');
+        cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
     }
 
     // cy.window().then(window => {
@@ -364,7 +366,7 @@ function startGame() {
     cy.get('[id="startNextRoundButton"]').should('not.be.visible');
 }
 
-function joinGame(playerName, gameID, hostName) {
+export function joinGame(playerName, gameID, hostName) {
     cy.get('[id="nameField"]').type(playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
@@ -378,10 +380,7 @@ function joinGame(playerName, gameID, hostName) {
     cy.get('[id="gameIDDiv"').should('be.visible')
 
     cy.get('[id="gameParamsDiv"]').contains(`${hostName} is hosting.`);
-    cy.get('[id="gameParamsDiv"]').contains('Settings').should('not.exist');
-
     cy.get('[id="gameIDDiv"]').contains(`Game ID: ${gameID}`)
-    cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
 
     cy.contains('.teamlessPlayerLiClass', playerName);
 }
