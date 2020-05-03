@@ -208,8 +208,6 @@ function getNames(clientState) {
                 namesSeen[roundIndex] = namesSeenOnThisRound;
             }
 
-            // TODO
-            // - Test 'Make player next in team' menu item
             for (const move of turnToTake) {
 
                 cy.wait(500);

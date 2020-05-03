@@ -85,6 +85,12 @@ const gameSpec = {
             cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`);
             cy.wait(4000); // give the others time to verify
 
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[0]} to start turn`);
+            cy.wait(4000); // give the others time to verify
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`);
+
             common.checkTeamList(clientState);
 
         }],
@@ -100,6 +106,9 @@ const gameSpec = {
             cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1], { timeout: 10000 });
             cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
             cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
+
+            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
 
             common.checkTeamList(clientState);
         }],
@@ -117,6 +126,9 @@ const gameSpec = {
             cy.get('[id="teamList"]').not(`:contains("${clientState.playerName}")`, { timeout: 10000 });
             cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 10000 });
 
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
+
             common.checkTeamList(clientState);
         }],
 
@@ -130,6 +142,9 @@ const gameSpec = {
             cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[2], { timeout: 10000 });
             cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
             cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
+
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
+            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
 
             common.checkTeamList(clientState);
         }],
