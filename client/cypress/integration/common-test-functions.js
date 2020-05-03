@@ -1,3 +1,5 @@
+import { DOMSpecs } from "./dom-specs.js";
+
 export function retrievePlayerParameters(index, playerNames, celebrityNames) {
     const hostName = playerNames[0];
     const playerName = playerNames[index];
@@ -17,11 +19,11 @@ export function retrievePlayerParameters(index, playerNames, celebrityNames) {
 export function playGame(clientState) {
     if (clientState.iAmHosting) {
         startHostingNewGame(clientState.playerName, clientState.gameID);
+        checkDOMContent(DOMSpecs, clientState);
     }
     else {
         joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
-        cy.get('[id="gameParamsDiv"]').contains('Settings').should('not.exist');
-        cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
+        checkDOMContent(DOMSpecs, clientState);
     }
 
     // cy.window().then(window => {
@@ -31,37 +33,33 @@ export function playGame(clientState) {
 
     checkTeamlessPlayerList(clientState.otherPlayers);
     if (clientState.iAmHosting) {
+        // Give everyone time to check the DOM content before it changes
+        cy.wait(2000);
         setGameParams(clientState.playerName);
     }
-    else {
-        cy.wait(1000);
-    }
 
-    checkGameParams();
+    checkDOMContent(DOMSpecs, clientState);
     assert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
 
+    // Give everyone time to check the DOM content before it changes
+    cy.wait(2000);
+
     if (clientState.iAmHosting) {
-        cy.wait(1000);
         allocateTeams();
     }
-    else {
-        checkHostControlsAreNotVisible();
-    }
+    checkDOMContent(DOMSpecs, clientState);
 
     checkTeamList(clientState);
 
     if (clientState.iAmHosting) {
         requestNames();
     }
-    cy.get('[id="nameListForm"]').should('be.visible');
     cy.get('[id="startGameButton"]').should('not.be.visible');
 
     submitNames(clientState.celebrityNames);
 
     if (clientState.iAmHosting) {
         startGame();
-    }
-    else {
     }
 
     clientState.counter = 0;
@@ -79,17 +77,9 @@ export function hostRestoredGame(clientState) {
     cy.get('[id="gameIDField"]').type(clientState.gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
 
-    cy.get('[id="gameIDDiv"]').should('be.visible')
-    cy.get('[id="gameParamsDiv"]').contains('You\'re the host.');
-
-    if (clientState.gameID) {
-        cy.get('[id="gameIDDiv"]').contains(`Game ID: ${clientState.gameID}`)
-    }
-    cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
-
+    checkDOMContent(DOMSpecs, clientState);
     cy.contains('.teamlessPlayerLiClass', clientState.playerName);
 
-    checkGameParams();
     checkTeamlessPlayerList(clientState.otherPlayers);
 
     cy.wait(2000); // give the other players time to check the teamless player list
@@ -103,6 +93,7 @@ export function hostRestoredGame(clientState) {
 
     checkTeamList(clientState);
 
+    checkDOMContent(DOMSpecs, clientState);
     clientState.counter = 0;
     waitForWakeUpTrigger(clientState);
 }
@@ -118,21 +109,14 @@ export function joinRestoredGame(clientState) {
     cy.get('[id="gameIDField"]').type(clientState.gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
 
-    cy.get('[id="gameParamsForm"]').should('not.be.visible')
-    cy.get('[id="gameIDDiv"').should('be.visible')
-
-    cy.get('[id="gameParamsDiv"]').contains(`${clientState.hostName} is hosting.`);
-
-    cy.get('[id="gameIDDiv"]').contains(`Game ID: ${clientState.gameID}`)
-    cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
-
     cy.contains('.teamlessPlayerLiClass', clientState.playerName);
 
-    checkGameParams();
+    checkDOMContent(DOMSpecs, clientState);
     checkTeamlessPlayerList(clientState.otherPlayers);
 
     checkTeamList(clientState, { timeout: 30000 });
 
+    checkDOMContent(DOMSpecs, clientState);
     clientState.counter = 0;
     waitForWakeUpTrigger(clientState);
 }
@@ -147,6 +131,8 @@ export function waitForWakeUpTrigger(clientState) {
     cy.get('.testTriggerClass', { timeout: 120000 })
         .then(elements => {
             const triggerElement = elements[0];
+
+            checkDOMContent(DOMSpecs, clientState);
 
             let tookAction = false;
             if (clientState.customActions) {
@@ -281,16 +267,6 @@ function startHostingNewGame(playerName, gameID) {
     cy.wait(2000);
     cy.get('[id=host]').click();
 
-    cy.get('[id="gameParamsForm"]').should('be.visible')
-    cy.get('[id="gameIDDiv"]').should('be.visible')
-    cy.get('[id="gameParamsDiv"]').contains('You\'re the host.');
-    cy.get('[id="gameParamsDiv"]').contains('Settings').should('not.exist');
-
-    if (gameID) {
-        cy.get('[id="gameIDDiv"]').contains(`Game ID: ${gameID}`)
-    }
-    cy.get('[id="gameInfoDiv"]').contains('Waiting for others to join...');
-
     cy.contains('.teamlessPlayerLiClass', playerName);
 }
 
@@ -305,23 +281,11 @@ function setGameParams() {
     cy.wait(1000);
 
     cy.get('[id="submitGameParamsButton"]').click();
-    cy.get('[id="gameParamsForm"]').should('not.be.visible');
 }
 
 function allocateTeams() {
     cy.get('[id="teamsButton"]').click();
     cy.get('[id="teamsButton"]').should('be.visible');
-}
-
-function checkGameParams() {
-    cy.get('[id="gameParamsDiv"]').contains('Settings');
-    cy.get('[id="gameParamsDiv"]').contains('Rounds: 3');
-    cy.get('[id="gameParamsDiv"]').contains('Round duration (sec): 60');
-}
-
-function checkHostControlsAreNotVisible() {
-    cy.get('[id="teamsButton"]').should('not.be.visible');
-    cy.get('[id="requestNamesButton"]').should('not.be.visible');
 }
 
 export function checkTeamList(clientState, options = {}) {
@@ -376,12 +340,6 @@ export function joinGame(playerName, gameID, hostName) {
     cy.get('[id="gameIDField"]').type(gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
 
-    cy.get('[id="gameParamsForm"]').should('not.be.visible')
-    cy.get('[id="gameIDDiv"').should('be.visible')
-
-    cy.get('[id="gameParamsDiv"]').contains(`${hostName} is hosting.`);
-    cy.get('[id="gameIDDiv"]').contains(`Game ID: ${gameID}`)
-
     cy.contains('.teamlessPlayerLiClass', playerName);
 }
 
@@ -392,4 +350,75 @@ export function selectContextMenuItemForPlayer(player, playerElementSelector, co
     cy.get(`[id="${menuItemID}"]`).click();
     cy.get(`[id="${contextMenuID}"]`).should('not.be.visible');
 
+}
+
+function retrieveTestBotInfo() {
+    return cy.get('[id="testBotInfoDiv"]')
+        .then(elements => {
+            const testBotInfoDiv = elements[0];
+            const testBotInfoText = testBotInfoDiv.innerText;
+            if (testBotInfoText === null
+                || testBotInfoText.trim() === '') {
+                return {};
+            }
+            const testBotInfo = JSON.parse(testBotInfoText);
+
+            return testBotInfo;
+        })
+}
+
+function checkDOMContent(DOMSpecs, clientState) {
+    retrieveTestBotInfo()
+        .then(testBotInfo => {
+            DOMSpecs.forEach(spec => {
+                const selector = spec.selector;
+                if (spec.visibleWhen) {
+                    if (spec.visibleWhen.find(s => s.predicate(testBotInfo, clientState)))
+                        cy.get(selector).should('be.visible');
+
+                    if (spec.visibleWhen.find(s => s.invertible && !s.predicate(testBotInfo, clientState)))
+                        cy.get(selector).should('not.be.visible');
+                }
+
+                if (spec.invisibleWhen) {
+                    if (spec.invisibleWhen.find(s => s.predicate(testBotInfo, clientState)))
+                        cy.get(selector).should('not.be.visible');
+                }
+
+                if (spec.notExistWhen) {
+                    if (spec.notExistWhen.find(s => s.predicate(testBotInfo, clientState)))
+                        cy.get(selector).should('not.exist');
+                }
+
+                if (spec.containsWhen) {
+                    const groupSpecsByTrueFalse = groupBy(spec.containsWhen, s => s.predicate(testBotInfo, clientState));
+                    if (groupSpecsByTrueFalse[true])
+                        groupSpecsByTrueFalse[true].forEach(s => {
+                            const text = s.text != null ? s.text : s.textFunction(testBotInfo, clientState);
+                            cy.get(selector).contains(text);
+                        });
+
+                    if (groupSpecsByTrueFalse[false])
+                        groupSpecsByTrueFalse[false].filter(s => s.invertible)
+                            .forEach(s => {
+                                const text = s.text != null ? s.text : s.textFunction(testBotInfo, clientState);
+                                cy.get(selector).contains(text).should('not.exist');
+                            });
+
+                }
+            });
+        });
+}
+
+function groupBy(inputArray, groupingFunction) {
+    const groupedArray = inputArray.reduce((groupMap, value) => {
+        const mapKey = groupingFunction(value);
+        groupMap[mapKey] = groupMap[mapKey] || [];
+        groupMap[mapKey].push(value);
+
+        return groupMap;
+    },
+        {});
+
+    return groupedArray;
 }

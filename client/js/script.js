@@ -1,5 +1,5 @@
 let gameStatus = "WAITING_FOR_PLAYERS";
-let numNamesPerPlayer = 0;
+let numNamesPerPlayer = null;
 let gameStateObject = {};
 let currentNameIndex = 0;
 let previousNameIndex = 0;
@@ -12,6 +12,7 @@ let useSocket = true;
 let firstSocketMessage = true;
 let gameID = null;
 let myPlayerID = null;
+let teamsAllocated = false;
 
 /* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
@@ -184,7 +185,7 @@ function processGameStateObject(newGameStateObject) {
 	iAmPlaying = iAmCurrentPlayer();
 	let iAmHosting = iAmHost();
 
-	if (! iAmPlaying) {
+	if (!iAmPlaying) {
 		clearTestTrigger();
 	}
 
@@ -325,6 +326,7 @@ function processGameStateObject(newGameStateObject) {
 	let teamObjectList = gameStateObject.teams;
 	teamList = [];
 	if (teamObjectList.length > 0) {
+		teamsAllocated = true;
 		let tableColumns = [];
 		let playerIDs = [];
 
@@ -609,6 +611,12 @@ function processGameStateObject(newGameStateObject) {
 	}
 
 	document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
+
+	setTestBotInfo({ 
+		gameStatus: gameStatus,
+		gameParamsSet: numNamesPerPlayer != null && numNamesPerPlayer > 0,
+		teamsAllocated: teamsAllocated,
+	 });
 
 }
 
@@ -937,4 +945,14 @@ function makePlayerNextInTeam(playerID) {
 
 function updateCountdownClock(secondsRemaining) {
 	document.getElementById("gameStatusDiv").innerHTML = "Seconds remaining: " + secondsRemaining;
+}
+
+function setTestBotInfo(testBotInfo) {
+	const testBotInfoDiv = document.getElementById('testBotInfoDiv');
+	if (testBotInfo != null) {
+		testBotInfoDiv.innerText = JSON.stringify(testBotInfo);
+	}
+	else {
+		testBotInfoDiv.innerText = '';
+	}
 }
