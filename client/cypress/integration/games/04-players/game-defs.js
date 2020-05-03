@@ -1,3 +1,4 @@
+export const restoredGame = false;
 export const playerNames = ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2'];
 export const gameID = '4795';
 export const celebrityNames = [

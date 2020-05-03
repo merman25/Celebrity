@@ -17,106 +17,66 @@ export function retrievePlayerParameters(index, playerNames, celebrityNames) {
 }
 
 export function playGame(clientState) {
-    if (clientState.iAmHosting) {
-        startHostingNewGame(clientState.playerName, clientState.gameID);
-        checkDOMContent(DOMSpecs, clientState);
+    if (!clientState.iAmHosting
+        || clientState.restoredGame) {
+        joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
     }
     else {
-        joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
-        checkDOMContent(DOMSpecs, clientState);
+        startHostingNewGame(clientState.playerName, clientState.gameID);
     }
+    checkDOMContent(DOMSpecs, clientState);
 
-    // cy.window().then(window => {
-    //     window.resizeTo(800, 600);
-    //     window.moveTo(index * 200, 0);
-    // });
-
+    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
     checkTeamlessPlayerList(clientState.otherPlayers);
-    if (clientState.iAmHosting) {
+
+    if (clientState.iAmHosting
+        && !clientState.restoredGame) {
         // Give everyone time to check the DOM content before it changes
         cy.wait(2000);
         setGameParams(clientState.playerName);
     }
 
     checkDOMContent(DOMSpecs, clientState);
-    assert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    if (!clientState.restoredGame) {
+        assert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+    }
 
     // Give everyone time to check the DOM content before it changes
     cy.wait(2000);
 
     if (clientState.iAmHosting) {
-        allocateTeams();
+        if (!clientState.restoredGame) {
+            allocateTeams();
+        }
+        else {
+            const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
+
+            for (let i = 0; i < allPlayers.length; i++) {
+                const player = allPlayers[i];
+                selectContextMenuItemForPlayer(player, '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', `changeToTeam${i % 2}`);
+            }
+
+        }
     }
     checkDOMContent(DOMSpecs, clientState);
 
     checkTeamList(clientState);
 
-    if (clientState.iAmHosting) {
+    if (clientState.iAmHosting
+        && !clientState.restoredGame) {
         requestNames();
     }
     cy.get('[id="startGameButton"]').should('not.be.visible');
 
-    submitNames(clientState.celebrityNames);
+    if (!clientState.restoredGame) {
+        submitNames(clientState.celebrityNames);
+    }
 
-    if (clientState.iAmHosting) {
+    if (clientState.iAmHosting
+        && !clientState.restoredGame) {
         startGame();
     }
 
-    clientState.counter = 0;
-    waitForWakeUpTrigger(clientState);
-}
-
-export function hostRestoredGame(clientState) {
-    cy.get('[id="nameField"]').type(clientState.playerName);
-    cy.get('[id="nameSubmitButton"]').click();
-
-    // Wait for client to send session ID to server via websocket, so that server can associate socket to session
-    cy.wait(2000);
-
-    cy.get('[id="join"]').click();
-    cy.get('[id="gameIDField"]').type(clientState.gameID);
-    cy.get('[id="gameIDSubmitButton"]').click();
-
-    checkDOMContent(DOMSpecs, clientState);
-    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
-
-    checkTeamlessPlayerList(clientState.otherPlayers);
-
-    cy.wait(2000); // give the other players time to check the teamless player list
-
-    const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
-
-    for (let i = 0; i < allPlayers.length; i++) {
-        const player = allPlayers[i];
-        selectContextMenuItemForPlayer(player, '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', `changeToTeam${i % 2}`);
-    }
-
-    checkTeamList(clientState);
-
-    checkDOMContent(DOMSpecs, clientState);
-    clientState.counter = 0;
-    waitForWakeUpTrigger(clientState);
-}
-
-export function joinRestoredGame(clientState) {
-    cy.get('[id="nameField"]').type(clientState.playerName);
-    cy.get('[id="nameSubmitButton"]').click();
-
-    // Wait for client to send session ID to server via websocket, so that server can associate socket to session
-    cy.wait(2000);
-
-    cy.get('[id="join"]').click();
-    cy.get('[id="gameIDField"]').type(clientState.gameID);
-    cy.get('[id="gameIDSubmitButton"]').click();
-
-    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
-
-    checkDOMContent(DOMSpecs, clientState);
-    checkTeamlessPlayerList(clientState.otherPlayers);
-
-    checkTeamList(clientState, { timeout: 30000 });
-
-    checkDOMContent(DOMSpecs, clientState);
     clientState.counter = 0;
     waitForWakeUpTrigger(clientState);
 }
@@ -127,7 +87,7 @@ export function joinRestoredGame(clientState) {
 // Check if the button I just clicked was the start turn button. If yes, play my turn.
 // Goto 1.
 
-export function waitForWakeUpTrigger(clientState) {
+function waitForWakeUpTrigger(clientState) {
     cy.get('.testTriggerClass', { timeout: 120000 })
         .then(elements => {
             const triggerElement = elements[0];
@@ -266,8 +226,6 @@ function startHostingNewGame(playerName, gameID) {
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
     cy.get('[id=host]').click();
-
-    cy.contains('.teamlessPlayerLiClass', playerName);
 }
 
 function checkTeamlessPlayerList(otherPlayers) {
@@ -277,9 +235,6 @@ function checkTeamlessPlayerList(otherPlayers) {
 }
 
 function setGameParams() {
-    // Wait before clicking, to give other players time to verify player list
-    cy.wait(1000);
-
     cy.get('[id="submitGameParamsButton"]').click();
 }
 
@@ -339,8 +294,6 @@ export function joinGame(playerName, gameID, hostName) {
     cy.get('[id="join"]').click();
     cy.get('[id="gameIDField"]').type(gameID);
     cy.get('[id="gameIDSubmitButton"]').click();
-
-    cy.contains('.teamlessPlayerLiClass', playerName);
 }
 
 export function selectContextMenuItemForPlayer(player, playerElementSelector, contextMenuID, menuItemID) {

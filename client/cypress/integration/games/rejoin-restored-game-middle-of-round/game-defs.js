@@ -1,5 +1,6 @@
 import * as common from "../../common-test-functions";
 
+export const restoredGame = true;
 export const playerNames = ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2'];
 export const gameID = '1000';
 export const celebrityNames = [

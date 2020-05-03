@@ -19,6 +19,7 @@ describe(`Player ${index + 1}`, () => {
         clientState.turnIndexOffset = 0;
         clientState.turns = defs.turns;
         clientState.customActions = defs.customActions;
+        clientState.restoredGame = defs.restoredGame;
 
         common.playGame(clientState);
     });

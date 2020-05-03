@@ -19,12 +19,8 @@ describe(`Player ${index + 1}`, () => {
         clientState.turnIndexOffset = defs.turnIndexOffset;
         clientState.turns = defs.turns;
         clientState.customActions = defs.customActions;
+        clientState.restoredGame = defs.restoredGame;
 
-        if (clientState.iAmHosting) {
-            common.hostRestoredGame(clientState);
-        }
-        else {
-            common.joinRestoredGame(clientState);
-        }
+        common.playGame(clientState);
     });
 });
