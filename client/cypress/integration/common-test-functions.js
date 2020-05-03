@@ -1,5 +1,7 @@
 import { DOMSpecs } from "./dom-specs.js";
 
+let allCelebNames = null;
+
 export function openSiteAndPlayGame(gameSpec) {
     describe('Initialisation', () => {
         it('Checks environment variables are set', () => {
@@ -19,6 +21,9 @@ export function openSiteAndPlayGame(gameSpec) {
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
             clientState.restoredGame = gameSpec.restoredGame;
+            clientState.namesSeen = [];
+
+            allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
             playGame(clientState);
         });
@@ -48,6 +53,9 @@ export function playGame(clientState) {
     }
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID);
+        // give time for websocket to transmit game state before checking DOM content. Without this, it sometimes incorrectly thinks
+        // Allocate Teams button should not be visible.
+        cy.wait(500);
     }
     checkDOMContent(DOMSpecs, clientState);
 
@@ -132,13 +140,13 @@ function waitForWakeUpTrigger(clientState) {
             if (tookAction) {
                 waitForWakeUpTrigger(clientState);
             }
-            else if (triggerElement.innerText === 'You\'re done, bot!') {
+            else if (triggerElement.innerText === 'bot-game-over') {
+                checkFinalScoreForRound(clientState);
                 console.log('Finished!!');
             }
             else if (triggerElement.innerText === 'Start turn, bot!') {
                 cy.get('[id="startTurnButton"]').click();
-                const numPlayers = clientState.otherPlayers.length + 1;
-                getNames(clientState.counter, numPlayers, clientState, clientState.turnIndexOffset, clientState.turns);
+                getNames(clientState);
 
                 // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
                 // that the counter value is now wrong. And you can't increment it back, since that code
@@ -146,15 +154,28 @@ function waitForWakeUpTrigger(clientState) {
                 clientState.counter = clientState.counter + 1;
                 waitForWakeUpTrigger(clientState);
             }
-            else if (triggerElement.innerText === 'Start next round, bot!') {
-                cy.wait(2000); // Give player who finished the round time to click the scores div
-                cy.get('[id="startNextRoundButton"]').click();
+            else if (triggerElement.innerText === 'bot-ready-to-start-next-round') {
+                checkFinalScoreForRound(clientState);
+                if (clientState.iAmHosting) {
+                    cy.wait(5000); // Give player who finished the round time to check the scores div
+                    cy.get('[id="startNextRoundButton"]').click();
+                }
+                else {
+                    cy.get('.testTriggerClass').not(':contains("bot-ready-to-start-next-round")', { timeout: 10000 });
+                }
                 waitForWakeUpTrigger(clientState);
             }
         });
 }
 
-function getNames(counter, numPlayers, teamInfoObject, turnIndexOffset, turns) {
+function getNames(clientState) {
+    const counter = clientState.counter;
+    const numPlayers = clientState.otherPlayers.length + 1;
+    const teamInfoObject = clientState;
+    const turnIndexOffset = clientState.turnIndexOffset;
+    const turns = clientState.turns;
+    const namesSeen = clientState.namesSeen;
+
     cy.scrollTo(0, 0);
     // cy.wait(5000); // so I can follow it
     const numTeams = 2;
@@ -168,24 +189,64 @@ function getNames(counter, numPlayers, teamInfoObject, turnIndexOffset, turns) {
     // {force: true} disables scrolling, which is nice for videos but not
     // what we want in a real test. When doing {force: true}, we need the
     // should('be.visible') to make sure we at least wait for the button to appear.
+
     // options = {force: true};
     cy.get('[id="gotNameButton"]').should('be.visible');
     cy.get('[id="passButton"]').should('be.visible');
     cy.get('[id="endTurnButton"]').should('be.visible');
-    for (const move of turnToTake) {
-        cy.wait(500);
-        if (move === 'got-it') {
-            cy.get('[id="gotNameButton"]').click(options);
-        }
-        else if (move === 'pass') {
-            cy.get('[id="passButton"]').click(options);
-        }
-        else if (move === 'end-turn') {
-            cy.get('[id="endTurnButton"]').click();
-        }
-    }
 
-    cy.get('[id="scoresDiv"]').click(); // scroll here to look at scores (for video)
+    retrieveTestBotInfo()
+        .then(testBotInfo => {
+            expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
+
+            const namesSeenOnThisTurn = new Set();
+            const roundIndex = testBotInfo.roundIndex;
+
+            let namesSeenOnThisRound = namesSeen[roundIndex];
+            if (namesSeenOnThisRound == null) {
+                namesSeenOnThisRound = new Set();
+                namesSeen[roundIndex] = namesSeenOnThisRound;
+            }
+
+            // TODO
+            // - Test 'Make player next in team' menu item
+            for (const move of turnToTake) {
+
+                cy.wait(500);
+                if (move === 'got-it') {
+                    cy.get('[id="currentNameDiv"]')
+                        .then(elements => {
+                            let currentNameDiv = elements[0];
+                            const nameDivText = currentNameDiv.innerText;
+                            const prefixString = 'Name: ';
+                            assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
+
+                            const celebName = nameDivText.substring(prefixString.length);
+                            assert(allCelebNames.includes(celebName), 'Celeb name should be contained in celeb name list');
+
+                            assert(!namesSeenOnThisRound.has(celebName), 'Celeb name should not have been seen before on this round');
+                            assert(!namesSeenOnThisTurn.has(celebName), 'Celeb name should not have been seen before on this turn');
+                            namesSeenOnThisTurn.add(celebName);
+                        });
+
+                    cy.get('[id="gotNameButton"]').click(options);
+                }
+                else if (move === 'pass') {
+                    cy.get('[id="passButton"]').click(options);
+                }
+                else if (move === 'end-turn') {
+                    cy.get('[id="endTurnButton"]').click();
+                }
+            }
+
+            cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (for video)
+                .then(elements => {
+                    // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                    namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                    namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                });
+        });
+
 }
 
 export function isVisible(element) {
@@ -399,4 +460,25 @@ function groupBy(inputArray, groupingFunction) {
         {});
 
     return groupedArray;
+}
+
+function checkFinalScoreForRound(clientState) {
+    allCelebNames.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+    cy.get('.achievedNameLi.team0')
+        .then(elements => {
+            const team0Score = elements.length;
+
+            cy.get('.scoreRowClass').last().find('td').first().next() // first() contains the round index
+                .contains(team0Score.toString());
+            cy.get('.achievedNameLi.team1')
+                .then(elements => {
+                    const team1Score = elements.length;
+
+                    cy.get('.scoreRowClass').last().find('td').last()
+                        .contains(team1Score.toString());
+
+                    expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
+                });
+
+        });
 }

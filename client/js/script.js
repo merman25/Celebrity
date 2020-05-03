@@ -13,6 +13,7 @@ let firstSocketMessage = true;
 let gameID = null;
 let myPlayerID = null;
 let teamsAllocated = false;
+let roundIndex = null;
 
 /* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
@@ -35,7 +36,6 @@ function submitName() {
 	document.getElementById("divJoinOrHost").style.display = 'block';
 
 	const username = document.getElementById('nameField').value;
-	console.log('username', username);
 
 	fetch('username', { method: 'POST', body: 'username=' + username })
 		.catch(err => console.error(err));
@@ -543,7 +543,7 @@ function processGameStateObject(newGameStateObject) {
 		scoresHTML += "Score: " + score + "\n";
 		scoresHTML += "<ol>\n";
 		for (let j = 0; j < namesAchievedList.length; j++) {
-			scoresHTML += "<li>" + myDecode(namesAchievedList[j]) + "</li>\n";
+			scoresHTML += `<li class="achievedNameLi team${t}">${myDecode(namesAchievedList[j])}</li>\n`;
 		}
 		scoresHTML += "</ol>\n</div>\n";
 	}
@@ -596,13 +596,19 @@ function processGameStateObject(newGameStateObject) {
 		totalScoresHTML += "</tr>\n";
 
 		for (let row = 0; row < tableColumns[0].length; row++) {
-			totalScoresHTML += '<tr>\n';
+			totalScoresHTML += '<tr';
+			let trStyleString = '>';
+			if (row < tableColumns[0].length - 1) {
+				trStyleString = ' class="scoreRowClass">';
+			}
+			totalScoresHTML += trStyleString;
+
 			for (let col = 0; col < tableColumns.length; col++) {
-				let styleString = '>';
+				let tdStyleString = '>';
 				if (row == tableColumns[col].length - 1) {
-					styleString = ' class="totalClass">';
+					tdStyleString = ' class="totalClass">';
 				}
-				totalScoresHTML += '<td' + styleString + tableColumns[col][row] + "</td>";
+				totalScoresHTML += '<td' + tdStyleString + tableColumns[col][row] + "</td>";
 			}
 			totalScoresHTML += "</tr>\n";
 		}
@@ -612,12 +618,17 @@ function processGameStateObject(newGameStateObject) {
 
 	document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
 
-	setTestBotInfo({ 
+	const testBotInfo = {
 		gameStatus: gameStatus,
 		gameParamsSet: numNamesPerPlayer != null && numNamesPerPlayer > 0,
 		teamsAllocated: teamsAllocated,
-	 });
+		turnCount: gameStateObject.turnCount,
+	};
 
+	if (roundIndex != null
+		&& roundIndex !== '??')
+		testBotInfo.roundIndex = roundIndex;
+	setTestBotInfo(testBotInfo);
 }
 
 function iAmCurrentPlayer() {
@@ -726,7 +737,7 @@ function setGameStatus(newStatus) {
 		&& newStatus == "READY_TO_START_NEXT_TURN") {
 		document.getElementById("turnControlsDiv").style.display = 'none';
 		document.getElementById("currentNameDiv").innerHTML = "";
-		let roundIndex = gameStateObject.roundIndex;
+		roundIndex = gameStateObject.roundIndex;
 		if (roundIndex != null) {
 			roundIndex = parseInt(roundIndex) + 1;
 		}
@@ -741,9 +752,7 @@ function setGameStatus(newStatus) {
 		showHostDutiesElements();
 		const startNextRoundButton = document.getElementById("startNextRoundButton");
 		startNextRoundButton.style.display = 'block';
-		if (iAmHost()) {
-			addTestTrigger('Start next round, bot!');
-		}
+		addTestTrigger('bot-ready-to-start-next-round');
 	}
 	else {
 		const startNextRoundButton = document.getElementById("startNextRoundButton");
@@ -757,7 +766,7 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == "ENDED") {
 		updateGameInfo("Game Over!");
-		addTestTrigger('You\'re done, bot!');
+		addTestTrigger('bot-game-over');
 	}
 
 	gameStatus = newStatus;

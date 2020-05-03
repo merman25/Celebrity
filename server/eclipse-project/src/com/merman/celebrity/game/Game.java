@@ -50,6 +50,9 @@ public class Game {
 	private List<IGameEventListener>  eventListeners              = new ArrayList<>();
 	private boolean                   fireEvents                  = true;
 	
+	// Useful for E2E testing. Value is supplied to the testBots, so they can tell if they're taking their turn at the proper time.
+	private int                       turnCount;
+	
 	public Game(String aID, Player aHost) {
 		ID = aID;
 		host = aHost;
@@ -264,6 +267,7 @@ public class Game {
 	}
 
 	public synchronized void startTurn() {
+		turnCount++;
 		currentTurn = new Turn(this, roundDurationInSec);
 		currentTurn.start();
 		setStatus(GameStatus.PLAYING_A_TURN);
@@ -299,7 +303,7 @@ public class Game {
 		}
 		else {
 			setPassOnNameIndex(currentNameIndex);
-			setStatus(GameStatus.READY_TO_START_NEXT_TURN);
+			allowNextPlayerToStartNextTurn();
 		}
 
 		if ( GameManager.createFiles ) {
@@ -597,5 +601,9 @@ public class Game {
 
 	public int getNextTeamIndex() {
 		return nextTeamIndex;
+	}
+
+	public int getTurnCount() {
+		return turnCount;
 	}
 }

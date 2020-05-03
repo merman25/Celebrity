@@ -123,6 +123,7 @@ public class GameManager {
 					.map( player -> toJSON( player ) )
 					.collect( Collectors.toList() ) )
 			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
+			.put( "turnCount", aGame.getTurnCount() )
 			;
 			
 			if ( aGame.getCurrentPlayer() != null ) {

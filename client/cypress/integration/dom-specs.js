@@ -83,7 +83,7 @@ export const DOMSpecs = [
     {
         selector: '[id="teamsButton"]',
         visibleWhen: [{
-            predicate: (testBotInfo, clientState) => clientState.iAmHosting && testBotInfo.gameStatus === 'WAITING_FOR_PLAYERS',
+            predicate: (testBotInfo, clientState) => clientState.iAmHosting && testBotInfo.gameStatus != null && testBotInfo.gameStatus === 'WAITING_FOR_PLAYERS',
             invertible: true
         }],
     },
