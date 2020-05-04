@@ -6,7 +6,7 @@ const p = 'pass';
 const e = 'end-turn';
 
 
-const gameSpec = {
+export const gameSpec = {
     index: index,
     restoredGame: false,
     playerNames: ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2'],
@@ -48,4 +48,4 @@ const gameSpec = {
 
 }
 
-common.openSiteAndPlayGame(gameSpec);
+// common.openSiteAndPlayGame(gameSpec);

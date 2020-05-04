@@ -7,7 +7,7 @@ const e = 'end-turn';
 
 let doneCustomAction = false;
 
-const gameSpec = {
+export const gameSpec = {
     index: index,
 
     restoredGame: true,
@@ -71,25 +71,31 @@ const gameSpec = {
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveUp');
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
 
-            cy.get('.playerInTeamTDClass').first().contains(clientState.otherPlayers[2]);
-            cy.wait(2000); // give the others time to verify
+            if (!clientState.fastMode) {
+                cy.get('.playerInTeamTDClass').first().contains(clientState.otherPlayers[2]);
+                cy.wait(2000); // give the others time to verify
 
-            cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
-            cy.wait(4000); // give the others time to verify
-            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'removePlayerInTeamFromGame')
-            cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`);
-            cy.wait(4000); // give the others time to verify
+                cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
+                cy.wait(4000); // give the others time to verify
+                common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'removePlayerInTeamFromGame')
+                cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`);
+                cy.wait(4000); // give the others time to verify
 
-            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', 'changeToTeam1');
-            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
-            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`);
-            cy.wait(4000); // give the others time to verify
+                common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', 'changeToTeam1');
+                common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
+                cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`);
+                cy.wait(4000); // give the others time to verify
 
-            common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[0]} to start turn`);
-            cy.wait(4000); // give the others time to verify
-            common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`);
+                common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[0]} to start turn`);
+                cy.wait(4000); // give the others time to verify
+                common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`);
+            }
+            else {
+                // give the others time to verify
+                cy.wait(4000);
+            }
 
             common.checkTeamList(clientState);
 
@@ -101,14 +107,19 @@ const gameSpec = {
         function (clientState) {
             doneCustomAction = true;
 
-            cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
+            if (!clientState.fastMode) {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
 
-            cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1], { timeout: 10000 });
-            cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
-            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
+                cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1], { timeout: 10000 });
+                cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
+                cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
 
-            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
+            }
+            else {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.playerName}")`, { timeout: 10000 });
+            }
 
             common.checkTeamList(clientState);
         }],
@@ -119,15 +130,20 @@ const gameSpec = {
         function (clientState) {
             doneCustomAction = true;
 
-            cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
-            // refresh the page
-            cy.visit('http://192.168.1.17:8080/celebrity.html');
-            common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
-            cy.get('[id="teamList"]').not(`:contains("${clientState.playerName}")`, { timeout: 10000 });
-            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 10000 });
+            if (!clientState.fastMode) {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
+                // refresh the page
+                cy.visit('http://192.168.1.17:8080/celebrity.html');
+                common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+                cy.get('[id="teamList"]').not(`:contains("${clientState.playerName}")`, { timeout: 10000 });
+                cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 10000 });
 
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 10000 });
+            }
+            else {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
+            }
 
             common.checkTeamList(clientState);
         }],
@@ -138,17 +154,22 @@ const gameSpec = {
         function (clientState) {
             doneCustomAction = true;
 
-            cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 10000 });
-            cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[2], { timeout: 10000 });
-            cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
-            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
+            if (!clientState.fastMode) {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 10000 });
+                cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[2], { timeout: 10000 });
+                cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
+                cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 10000 });
 
-            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
-            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 10000 });
+                cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 10000 });
+            }
+            else {
+                cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 10000 });
+            }
 
             common.checkTeamList(clientState);
         }],
     ],
 }
 
-common.openSiteAndPlayGame(gameSpec);
+// common.openSiteAndPlayGame(gameSpec);

@@ -7,7 +7,7 @@ const e = 'end-turn';
 
 
 
-const gameSpec = {
+export const gameSpec = {
     index: index,
 
     restoredGame: true,
@@ -50,4 +50,4 @@ const gameSpec = {
     ],
 }
 
-common.openSiteAndPlayGame(gameSpec);
+// common.openSiteAndPlayGame(gameSpec);

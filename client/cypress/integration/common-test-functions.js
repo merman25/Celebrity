@@ -1,17 +1,32 @@
-import { DOMSpecs } from "./dom-specs.js";
+import { DOMSpecs } from "./dom-specs";
+import * as spec4Players from "./games/04-players"
+import * as specRestoredMiddle from "./games/rejoin-restored-game-middle-of-round"
+import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 
 let allCelebNames = null;
+let fastMode = false;
+if (Cypress.env('FAST_MODE')) {
+    fastMode = true;
+}
 
-export function openSiteAndPlayGame(gameSpec) {
-    describe('Initialisation', () => {
-        it('Checks environment variables are set', () => {
-            assert.typeOf(gameSpec.index, 'number', 'PLAYER_INDEX should be set to a number');
-        });
+const gameSpecs = [spec4Players.gameSpec, specRestoredMiddle.gameSpec, specRestoredEnd.gameSpec];
+
+describe('Initialisation', () => {
+    it('Checks environment variables are set', () => {
+        assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
     });
+});
 
+for (let i = 0; i < gameSpecs.length; i++) {
+    const gameSpec = gameSpecs[i];
     describe(`Player ${gameSpec.index + 1}`, () => {
-        it('Plays a game', () => {
+        it(`Plays spec ${i}`, () => {
             cy.visit('http://192.168.1.17:8080/celebrity.html');
+
+            if (gameSpec.index !== 0) {
+                cy.wait(10000);
+            }
+
 
             const clientState = retrievePlayerParameters(gameSpec.index, gameSpec.playerNames, gameSpec.celebrityNames);
             clientState.index = gameSpec.index;
@@ -22,6 +37,7 @@ export function openSiteAndPlayGame(gameSpec) {
                 clientState.customActions = gameSpec.customActions;
             clientState.restoredGame = gameSpec.restoredGame;
             clientState.namesSeen = [];
+            clientState.fastMode = fastMode;
 
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
@@ -70,12 +86,15 @@ export function playGame(clientState) {
     }
 
     checkDOMContent(DOMSpecs, clientState);
-    if (!clientState.restoredGame) {
+    if (!clientState.restoredGame
+        && !fastMode) {
         myAssert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
     }
 
-    // Give everyone time to check the DOM content before it changes
-    cy.wait(2000);
+    if (!fastMode) {
+        // Give everyone time to check the DOM content before it changes
+        cy.wait(2000);
+    }
 
     if (clientState.iAmHosting) {
         if (!clientState.restoredGame) {
@@ -99,7 +118,10 @@ export function playGame(clientState) {
         && !clientState.restoredGame) {
         requestNames();
     }
-    cy.get('[id="startGameButton"]').should('not.be.visible');
+
+    if (!fastMode) {
+        cy.get('[id="startGameButton"]').should('not.be.visible');
+    }
 
     if (!clientState.restoredGame) {
         submitNames(clientState.celebrityNames);
@@ -141,7 +163,9 @@ function waitForWakeUpTrigger(clientState) {
                 waitForWakeUpTrigger(clientState);
             }
             else if (triggerElement.innerText === 'bot-game-over') {
-                checkFinalScoreForRound(clientState);
+                if (!fastMode) {
+                    checkFinalScoreForRound(clientState);
+                }
                 console.log('Finished!!');
             }
             else if (triggerElement.innerText === 'Start turn, bot!') {
@@ -155,9 +179,13 @@ function waitForWakeUpTrigger(clientState) {
                 waitForWakeUpTrigger(clientState);
             }
             else if (triggerElement.innerText === 'bot-ready-to-start-next-round') {
-                checkFinalScoreForRound(clientState);
+                if (!fastMode) {
+                    checkFinalScoreForRound(clientState);
+                }
                 if (clientState.iAmHosting) {
-                    cy.wait(5000); // Give player who finished the round time to check the scores div
+                    if (!fastMode) {
+                        cy.wait(5000); // Give player who finished the round time to check the scores div
+                    }
                     cy.get('[id="startNextRoundButton"]').click();
                 }
                 else {
@@ -191,60 +219,77 @@ function getNames(clientState) {
     // should('be.visible') to make sure we at least wait for the button to appear.
 
     // options = {force: true};
-    cy.get('[id="gotNameButton"]').should('be.visible');
-    cy.get('[id="passButton"]').should('be.visible');
-    cy.get('[id="endTurnButton"]').should('be.visible');
+    if (!fastMode) {
+        cy.get('[id="gotNameButton"]').should('be.visible');
+        cy.get('[id="passButton"]').should('be.visible');
+        cy.get('[id="endTurnButton"]').should('be.visible');
+    }
 
-    retrieveTestBotInfo()
-        .then(testBotInfo => {
-            expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
+    if (!fastMode) {
 
-            const namesSeenOnThisTurn = new Set();
-            const roundIndex = testBotInfo.roundIndex;
+        retrieveTestBotInfo()
+            .then(testBotInfo => {
+                expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
 
-            let namesSeenOnThisRound = namesSeen[roundIndex];
-            if (namesSeenOnThisRound == null) {
-                namesSeenOnThisRound = new Set();
-                namesSeen[roundIndex] = namesSeenOnThisRound;
+                const namesSeenOnThisTurn = new Set();
+                const roundIndex = testBotInfo.roundIndex;
+
+                let namesSeenOnThisRound = namesSeen[roundIndex];
+                if (namesSeenOnThisRound == null) {
+                    namesSeenOnThisRound = new Set();
+                    namesSeen[roundIndex] = namesSeenOnThisRound;
+                }
+
+                for (const move of turnToTake) {
+
+                    cy.wait(500);
+                    if (move === 'got-it') {
+                        cy.get('[id="currentNameDiv"]')
+                            .then(elements => {
+                                let currentNameDiv = elements[0];
+                                const nameDivText = currentNameDiv.innerText;
+                                const prefixString = 'Name: ';
+                                assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
+
+                                const celebName = nameDivText.substring(prefixString.length);
+                                assert(allCelebNames.includes(celebName), 'Celeb name should be contained in celeb name list');
+
+                                assert(!namesSeenOnThisRound.has(celebName), 'Celeb name should not have been seen before on this round');
+                                assert(!namesSeenOnThisTurn.has(celebName), 'Celeb name should not have been seen before on this turn');
+                                namesSeenOnThisTurn.add(celebName);
+                            });
+
+                        cy.get('[id="gotNameButton"]').click(options);
+                    }
+                    else if (move === 'pass') {
+                        cy.get('[id="passButton"]').click(options);
+                    }
+                    else if (move === 'end-turn') {
+                        cy.get('[id="endTurnButton"]').click();
+                    }
+                }
+
+                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (for video)
+                    .then(elements => {
+                        // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                        namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                    });
+            });
+    }
+    else {
+        for (const move of turnToTake) {
+            if (move === 'got-it') {
+                cy.get('[id="gotNameButton"]').click(options);
             }
-
-            for (const move of turnToTake) {
-
-                cy.wait(500);
-                if (move === 'got-it') {
-                    cy.get('[id="currentNameDiv"]')
-                        .then(elements => {
-                            let currentNameDiv = elements[0];
-                            const nameDivText = currentNameDiv.innerText;
-                            const prefixString = 'Name: ';
-                            assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
-
-                            const celebName = nameDivText.substring(prefixString.length);
-                            assert(allCelebNames.includes(celebName), 'Celeb name should be contained in celeb name list');
-
-                            assert(!namesSeenOnThisRound.has(celebName), 'Celeb name should not have been seen before on this round');
-                            assert(!namesSeenOnThisTurn.has(celebName), 'Celeb name should not have been seen before on this turn');
-                            namesSeenOnThisTurn.add(celebName);
-                        });
-
-                    cy.get('[id="gotNameButton"]').click(options);
-                }
-                else if (move === 'pass') {
-                    cy.get('[id="passButton"]').click(options);
-                }
-                else if (move === 'end-turn') {
-                    cy.get('[id="endTurnButton"]').click();
-                }
+            else if (move === 'pass') {
+                cy.get('[id="passButton"]').click(options);
             }
-
-            cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (for video)
-                .then(elements => {
-                    // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                    namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                    namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                });
-        });
-
+            else if (move === 'end-turn') {
+                cy.get('[id="endTurnButton"]').click();
+            }
+        }
+    }
 }
 
 export function isVisible(element) {
@@ -365,8 +410,11 @@ function startGame() {
     // Wait before clicking, to give other players time to verify gameStatus
     cy.wait(1000);
     cy.get('[id="startGameButton"]').click();
-    cy.get('[id="startGameButton"]').should('not.be.visible');
-    cy.get('[id="startNextRoundButton"]').should('not.be.visible');
+
+    if (!fastMode) {
+        cy.get('[id="startGameButton"]').should('not.be.visible');
+        cy.get('[id="startNextRoundButton"]').should('not.be.visible');
+    }
 }
 
 export function joinGame(playerName, gameID, hostName) {
@@ -405,46 +453,48 @@ function retrieveTestBotInfo() {
 }
 
 function checkDOMContent(DOMSpecs, clientState) {
-    retrieveTestBotInfo()
-        .then(testBotInfo => {
-            DOMSpecs.forEach(spec => {
-                const selector = spec.selector;
-                if (spec.visibleWhen) {
-                    if (spec.visibleWhen.find(s => s.predicate(testBotInfo, clientState)))
-                        cy.get(selector).should('be.visible');
+    if (!fastMode) {
+        retrieveTestBotInfo()
+            .then(testBotInfo => {
+                DOMSpecs.forEach(spec => {
+                    const selector = spec.selector;
+                    if (spec.visibleWhen) {
+                        if (spec.visibleWhen.find(s => s.predicate(testBotInfo, clientState)))
+                            cy.get(selector).should('be.visible');
 
-                    if (spec.visibleWhen.find(s => s.invertible && !s.predicate(testBotInfo, clientState)))
-                        cy.get(selector).should('not.be.visible');
-                }
+                        if (spec.visibleWhen.find(s => s.invertible && !s.predicate(testBotInfo, clientState)))
+                            cy.get(selector).should('not.be.visible');
+                    }
 
-                if (spec.invisibleWhen) {
-                    if (spec.invisibleWhen.find(s => s.predicate(testBotInfo, clientState)))
-                        cy.get(selector).should('not.be.visible');
-                }
+                    if (spec.invisibleWhen) {
+                        if (spec.invisibleWhen.find(s => s.predicate(testBotInfo, clientState)))
+                            cy.get(selector).should('not.be.visible');
+                    }
 
-                if (spec.notExistWhen) {
-                    if (spec.notExistWhen.find(s => s.predicate(testBotInfo, clientState)))
-                        cy.get(selector).should('not.exist');
-                }
+                    if (spec.notExistWhen) {
+                        if (spec.notExistWhen.find(s => s.predicate(testBotInfo, clientState)))
+                            cy.get(selector).should('not.exist');
+                    }
 
-                if (spec.containsWhen) {
-                    const groupSpecsByTrueFalse = groupBy(spec.containsWhen, s => s.predicate(testBotInfo, clientState));
-                    if (groupSpecsByTrueFalse[true])
-                        groupSpecsByTrueFalse[true].forEach(s => {
-                            const text = s.text != null ? s.text : s.textFunction(testBotInfo, clientState);
-                            cy.get(selector).contains(text);
-                        });
-
-                    if (groupSpecsByTrueFalse[false])
-                        groupSpecsByTrueFalse[false].filter(s => s.invertible)
-                            .forEach(s => {
+                    if (spec.containsWhen) {
+                        const groupSpecsByTrueFalse = groupBy(spec.containsWhen, s => s.predicate(testBotInfo, clientState));
+                        if (groupSpecsByTrueFalse[true])
+                            groupSpecsByTrueFalse[true].forEach(s => {
                                 const text = s.text != null ? s.text : s.textFunction(testBotInfo, clientState);
-                                cy.get(selector).contains(text).should('not.exist');
+                                cy.get(selector).contains(text);
                             });
 
-                }
+                        if (groupSpecsByTrueFalse[false])
+                            groupSpecsByTrueFalse[false].filter(s => s.invertible)
+                                .forEach(s => {
+                                    const text = s.text != null ? s.text : s.textFunction(testBotInfo, clientState);
+                                    cy.get(selector).contains(text).should('not.exist');
+                                });
+
+                    }
+                });
             });
-        });
+    }
 }
 
 function groupBy(inputArray, groupingFunction) {
