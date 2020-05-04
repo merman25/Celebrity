@@ -1,5 +1,3 @@
-import * as common from "../common-test-functions";
-
 const index = Cypress.env('PLAYER_INDEX');
 const g = 'got-it';
 const p = 'pass';
@@ -7,6 +5,7 @@ const e = 'end-turn';
 
 
 export const gameSpec = {
+    description: 'Normal 4-player game with no problems',
     index: index,
     restoredGame: false,
     playerNames: ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2'],
@@ -21,6 +20,7 @@ export const gameSpec = {
 
     // 24 total
     turns: [
+        // Round 1
         [g, g, p, g, p, g, g, e], // 5
         [g, g, g, g, e], // 9
         [p, g, g, g, g, g, g, e], // 15
@@ -29,23 +29,23 @@ export const gameSpec = {
         [g, g, g, g, e], // 22
         [g, g], // 24
 
-        [g, g, g, g, e], // 9
-        [g, g, g, g, e], // 22
-        [g, g, p, g, p, g, g, e], // 5
-        [g, g, e], // 24
-        [g, g, g, p, e], // 18
-        [e], //18
-        [p, g, g, g, g, g, g], // 15
+        // Round 2
+        [g, g, g, g, e],
+        [g, g, g, g, e],
+        [g, g, p, g, p, g, g, e],
+        [g, g, e],
+        [g, g, g, p, e],
+        [e],
+        [p, g, g, g, g, g, g],
 
-        [g, g, p, g, p, g, g, e], // 5
-        [e], //18
-        [g, g, g, g, e], // 9
-        [g, g, e], // 24
-        [p, g, g, g, g, g, g, e], // 15
-        [g, g, g, g, e], // 22
-        [g, g, g], // 18
+        // Round 3
+        [g, g, p, g, p, g, g, e],
+        [e],
+        [g, g, g, g, e],
+        [g, g, e],
+        [p, g, g, g, g, g, g, e],
+        [g, g, g, g, e],
+        [g, g, g],
     ],
 
 }
-
-// common.openSiteAndPlayGame(gameSpec);

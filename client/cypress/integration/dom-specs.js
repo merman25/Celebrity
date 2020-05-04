@@ -4,7 +4,7 @@ This file specifies what should and should not be in the DOM at different times.
 The elements of the array DOMSpecs are objects with the properties described below. All predicates mentioned below are Javascript functions of type
 [testBotInfo, clientState] => boolean
 
-where testBotInfo is an object inserted by the client application script into the testBotInfoDiv (see script.js/setTestBotInfo()) and read by the testing code (see common-test-functions.js/retrieveTestBotInfo()), and clientState is an object maintained by the testing code keeping track of where we are in the game (clientState is also the argument to common-test-functions.js/waitForWakeUpTrigger()).
+where testBotInfo is an object inserted by the client application script into the testBotInfoDiv (see script.js/setTestBotInfo()) and read by the testing code (see celebrity-tests.js/retrieveTestBotInfo()), and clientState is an object maintained by the testing code keeping track of where we are in the game (clientState is also the argument to celebrity-tests.js/waitForWakeUpTrigger()).
 
 Properties of elements of DOMSpecs are below. Those marked with a question mark are optional.
 
@@ -17,10 +17,10 @@ Properties of elements of DOMSpecs are below. Those marked with a question mark 
 - ? notExistWhen:  An array of objects with the following properties:
     - predicate: A predicate defining one circumstance in which the element(s) defined by the selector should not exist.
 - ? containsWhen:  An array of objects with the following properties:
-    - predicate: A predicate defining one circumstance in which the element(s) defined by the selector should contain the text specified by the property 'text'.
+    - predicate: A predicate defining one circumstance in which the element(s) defined by the selector should contain the text specified by the property 'text' or by the property 'textFuction'.
     - ? text: The text that the element(s) should contain
     - ? textFunction: A function [testBotInfo, clientState] => string, returning the text that the element(s) should contain. Note that at least one
-    of text or text-function should be set.
+    of text or textFunction should be set.
     - ? invertible: A boolean. If true, it should also be checked that the element(s) doesn't/don't contain the text when the predicate is false.
 */
 

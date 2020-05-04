@@ -9,35 +9,45 @@ if (Cypress.env('FAST_MODE')) {
     fastMode = true;
 }
 
-const gameSpecs = [spec4Players.gameSpec, specRestoredMiddle.gameSpec, specRestoredEnd.gameSpec];
 
 describe('Initialisation', () => {
-    it('Checks environment variables are set', () => {
+    it('Checks mandatory environment variables are set', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
     });
 });
 
+const gameSpecs = [spec4Players.gameSpec, specRestoredMiddle.gameSpec, specRestoredEnd.gameSpec];
+
 for (let i = 0; i < gameSpecs.length; i++) {
     const gameSpec = gameSpecs[i];
     describe(`Player ${gameSpec.index + 1}`, () => {
-        it(`Plays spec ${i}`, () => {
+        it(`Plays spec ${i}: ${gameSpec.description}`, () => {
             cy.visit('http://192.168.1.17:8080/celebrity.html');
 
             if (gameSpec.index !== 0) {
+                // Since the player at index 0 is hard-coded to be the host, make sure they have time to join the game first.
                 cy.wait(10000);
             }
 
-
-            const clientState = retrievePlayerParameters(gameSpec.index, gameSpec.playerNames, gameSpec.celebrityNames);
-            clientState.index = gameSpec.index;
-            clientState.gameID = gameSpec.gameID;
-            clientState.turnIndexOffset = gameSpec.turnIndexOffset;
-            clientState.turns = gameSpec.turns;
+            const index = gameSpec.index;
+            const playerName = gameSpec.playerNames[index];
+            const clientState = {
+                index: index,
+                hostName: gameSpec.playerNames[0],
+                playerName: playerName,
+                otherPlayers: gameSpec.playerNames.filter(name => name !== playerName),
+                celebrityNames: gameSpec.celebrityNames[index],
+                iAmHosting: index === 0,
+                gameID: gameSpec.gameID,
+                turnIndexOffset: gameSpec.turnIndexOffset,
+                turns: gameSpec.turns,
+                restoredGame: gameSpec.restoredGame,
+                namesSeen: [],
+                fastMode: fastMode
+            }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
-            clientState.restoredGame = gameSpec.restoredGame;
-            clientState.namesSeen = [];
-            clientState.fastMode = fastMode;
+
 
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
@@ -46,22 +56,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
     });
 }
 
-export function retrievePlayerParameters(index, playerNames, celebrityNames) {
-    const hostName = playerNames[0];
-    const playerName = playerNames[index];
-    const otherPlayers = playerNames.filter(name => name !== playerName);
-    const celebrityList = celebrityNames[index];
-    const iAmHosting = index == 0;
-
-    return {
-        hostName: hostName,
-        playerName: playerName,
-        otherPlayers: otherPlayers,
-        celebrityNames: celebrityList,
-        iAmHosting: iAmHosting,
-    }
-}
-
+// Play the game through to the end
 export function playGame(clientState) {
     if (!clientState.iAmHosting
         || clientState.restoredGame) {
@@ -75,9 +70,11 @@ export function playGame(clientState) {
     }
     checkDOMContent(DOMSpecs, clientState);
 
+    // Check I and the other players are listed, ready to be put into teams
     cy.contains('.teamlessPlayerLiClass', clientState.playerName);
     checkTeamlessPlayerList(clientState.otherPlayers);
 
+    // Set the game parameters (num rounds, num names per player, etc)
     if (clientState.iAmHosting
         && !clientState.restoredGame) {
         // Give everyone time to check the DOM content before it changes
@@ -88,7 +85,11 @@ export function playGame(clientState) {
     checkDOMContent(DOMSpecs, clientState);
     if (!clientState.restoredGame
         && !fastMode) {
-        myAssert('[id="teamList"]', and(isVisible, not(hasContent)), { describeExpected: 'visible and empty' });
+        cy.get('[id="teamList"]')
+            .then(elements => {
+                const teamList = elements[0];
+                expect(teamList.innerText.trim(), 'Team list should be empty').to.equal('');
+            });
     }
 
     if (!fastMode) {
@@ -101,6 +102,7 @@ export function playGame(clientState) {
             allocateTeams();
         }
         else {
+            // Put the players back into teams using the menu items
             const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
 
             for (let i = 0; i < allPlayers.length; i++) {
@@ -112,6 +114,7 @@ export function playGame(clientState) {
     }
     checkDOMContent(DOMSpecs, clientState);
 
+    // Check all players are in teams, and find out my own team index and player index
     checkTeamList(clientState);
 
     if (clientState.iAmHosting
@@ -132,16 +135,14 @@ export function playGame(clientState) {
         startGame();
     }
 
-    clientState.counter = 0;
+    // The turnCounter keeps track of the number of times we've taken a turn, which tells us where
+    // in the turn list to look for the next turn.
+    clientState.turnCounter = 0;
     waitForWakeUpTrigger(clientState);
 }
 
-// wait for wake up trigger
-// when it appears, check game status. If game over, end.
-// If not, wait for clickable button and click it.
-// Check if the button I just clicked was the start turn button. If yes, play my turn.
-// Goto 1.
-
+// Wait until a hidden element in the DOM tells the testing bot it should do something, then do it.
+// Same method is called recursively until the end of the game.
 function waitForWakeUpTrigger(clientState) {
     cy.get('.testTriggerClass', { timeout: 120000 })
         .then(elements => {
@@ -149,6 +150,7 @@ function waitForWakeUpTrigger(clientState) {
 
             checkDOMContent(DOMSpecs, clientState);
 
+            // If custom actions need to be taken, take them.
             let tookAction = false;
             if (clientState.customActions) {
                 for (const [predicate, action] of clientState.customActions) {
@@ -163,32 +165,40 @@ function waitForWakeUpTrigger(clientState) {
                 waitForWakeUpTrigger(clientState);
             }
             else if (triggerElement.innerText === 'bot-game-over') {
+                // Finished game, stop here
                 if (!fastMode) {
                     checkFinalScoreForRound(clientState);
                 }
                 console.log('Finished!!');
             }
-            else if (triggerElement.innerText === 'Start turn, bot!') {
+            else if (triggerElement.innerText === 'bot-start-turn') {
+                // It's my turn, get the names I'm supposed to get on this turn
                 cy.get('[id="startTurnButton"]').click();
                 getNames(clientState);
 
                 // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
-                // that the counter value is now wrong. And you can't increment it back, since that code
+                // that the turnCounter value is now wrong. And you can't increment it back, since that code
                 // will be executed before the cy.get() in the new call to waitForWakeUpTrigger.
-                clientState.counter = clientState.counter + 1;
+                clientState.turnCounter = clientState.turnCounter + 1;
                 waitForWakeUpTrigger(clientState);
             }
             else if (triggerElement.innerText === 'bot-ready-to-start-next-round') {
+                // Ready to start a new round.
+                // Only the host needs to click something now, but all players will see the same trigger text.
+
                 if (!fastMode) {
                     checkFinalScoreForRound(clientState);
                 }
+
                 if (clientState.iAmHosting) {
+                    // Host clicks the start next round button
                     if (!fastMode) {
                         cy.wait(5000); // Give player who finished the round time to check the scores div
                     }
                     cy.get('[id="startNextRoundButton"]').click();
                 }
                 else {
+                    // Non-host just waits until the trigger text isn't there any more, to avoid endlessly re-entering this method
                     cy.get('.testTriggerClass').not(':contains("bot-ready-to-start-next-round")', { timeout: 10000 });
                 }
                 waitForWakeUpTrigger(clientState);
@@ -196,19 +206,22 @@ function waitForWakeUpTrigger(clientState) {
         });
 }
 
+// Get the names I'm supposed to get on this turn
 function getNames(clientState) {
-    const counter = clientState.counter;
+    const turnCounter = clientState.turnCounter;
     const numPlayers = clientState.otherPlayers.length + 1;
     const teamInfoObject = clientState;
     const turnIndexOffset = clientState.turnIndexOffset;
     const turns = clientState.turns;
     const namesSeen = clientState.namesSeen;
 
-    cy.scrollTo(0, 0);
-    // cy.wait(5000); // so I can follow it
+    cy.scrollTo(0, 0); // Looks nicer when watching (only useful if we use {force: true} when clicking the buttons)
+    // cy.wait(5000); // so I can follow it when watching
+
+    // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
     const numTeams = 2;
-    const turnIndex = turnIndexOffset + counter * numPlayers + numTeams * teamInfoObject.playerIndex + teamInfoObject.teamIndex;
-    console.log(`counter ${counter}, numPlayers ${numPlayers}, teamIndex ${teamInfoObject.teamIndex}, playerIndex ${teamInfoObject.playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
+    const turnIndex = turnIndexOffset + turnCounter * numPlayers + numTeams * teamInfoObject.playerIndex + teamInfoObject.teamIndex;
+    console.log(`turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamInfoObject.teamIndex}, playerIndex ${teamInfoObject.playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
     const turnToTake = turns[turnIndex];
 
@@ -219,14 +232,15 @@ function getNames(clientState) {
     // should('be.visible') to make sure we at least wait for the button to appear.
 
     // options = {force: true};
-    if (!fastMode) {
+    if (!fastMode || options.force) {
         cy.get('[id="gotNameButton"]').should('be.visible');
         cy.get('[id="passButton"]').should('be.visible');
         cy.get('[id="endTurnButton"]').should('be.visible');
     }
 
     if (!fastMode) {
-
+        // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
+        // We also check that the names we see are elements of the celebName list rather than other strings
         retrieveTestBotInfo()
             .then(testBotInfo => {
                 expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
@@ -269,7 +283,7 @@ function getNames(clientState) {
                     }
                 }
 
-                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (for video)
+                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
                         namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
@@ -278,6 +292,7 @@ function getNames(clientState) {
             });
     }
     else {
+        // In fast mode, just click the buttons, no 0.5s wait and no checking of names
         for (const move of turnToTake) {
             if (move === 'got-it') {
                 cy.get('[id="gotNameButton"]').click(options);
@@ -290,63 +305,6 @@ function getNames(clientState) {
             }
         }
     }
-}
-
-export function isVisible(element) {
-    /* According to https://stackoverflow.com/a/21696585,
-     * a more complete test is window.getComputedStyle(el) !== 'none';
-     * But this is also expected to be slower, and only necessary for 'position: fixed' elements.
-     *
-     * UPDATE: checking getComputedStyle is anyway incorrect by itself, because it doesn't check
-     * the style of parent elements
-    */
-    return /* window.getComputedStyle(element).display !== 'none'; */ element.offsetParent !== null;
-}
-export function hasContent(element) {
-    const content = element.innerHTML.trim();
-    return content !== '';
-}
-export function not(predicate) {
-    return x => !predicate(x);
-}
-export function and(...predicates) {
-    return function (x) {
-        for (let i = 0; i < predicates.length; i++) {
-            if (!predicates[i](x)) {
-                return false;
-            }
-        }
-        return true;
-    };
-}
-export function myAssert(selector, predicate, { unique = true, describeExpected = 'ok' } = {}) {
-    cy.get(selector)
-        .then(selectedElements => {
-            /* Presumed bug in Cypress, which I've decided is a nice feature.
-             * If the message arg passed to `expect` includes 'but' as a whole word,
-             * then when the message is printed in red or green in the Cypress plug-in's panel
-             * on the left of the browser, the text 'but' and all subsequent text is omitted.
-             *
-             * It's basically a way to delete the text which the plugin adds at the end, which always
-             * says either:
-             *  expected true to equal true
-             * for successful assertions, or:
-             *  expected true to equal false
-             * for unsuccessful ones.
-             *
-             * Might need to change the way I use this if I ever pass anything other than true to `to.equal`.
-            */
-            const magic = ' but this string is magic';
-            if (unique) {
-                expect(selectedElements.length, `selector ${selector} gives a unique element${magic}`).to.equal(1);
-            }
-            for (let i = 0; i < selectedElements.length; i++) {
-                const element = selectedElements[i];
-                const indexString = selectedElements.length == 1 ? '' : `${i + 1} of ${selectedElements.length} `;
-                const assertionText = `field ${selector} ${indexString}is ${describeExpected}${magic}`;
-                expect(predicate(element), assertionText).to.equal(true);
-            }
-        });
 }
 
 function startHostingNewGame(playerName, gameID) {
@@ -369,17 +327,22 @@ function setGameParams() {
 
 function allocateTeams() {
     cy.get('[id="teamsButton"]').click();
+
+    // Should still be visible after clicking - we're allowed to allocate again until Request Names is clicked
     cy.get('[id="teamsButton"]').should('be.visible');
 }
 
 export function checkTeamList(clientState, options = {}) {
+    // Check I'm in a team
     cy.get('[id="teamList"]').contains('Teams');
     cy.get('[id="teamList"]').contains(clientState.playerName, options);
 
+    // Check everyone else is in a team
     for (const player of clientState.otherPlayers) {
         cy.get('[id="teamList"]').contains(player);
     }
 
+    // Find out my team index and player index, so I know which turn to select from the turns array
     cy.get('.playerInTeamTDClass').contains(clientState.playerName)
         .then(elements => {
             const element = elements[0];
@@ -437,6 +400,7 @@ export function selectContextMenuItemForPlayer(player, playerElementSelector, co
 
 }
 
+// Retrieve the info object that the client puts into a hidden div to give us data about the current game
 function retrieveTestBotInfo() {
     return cy.get('[id="testBotInfoDiv"]')
         .then(elements => {
@@ -452,6 +416,7 @@ function retrieveTestBotInfo() {
         })
 }
 
+// Check that all constraints specified by DOMSpecs are satisfied
 function checkDOMContent(DOMSpecs, clientState) {
     if (!fastMode) {
         retrieveTestBotInfo()
@@ -497,6 +462,7 @@ function checkDOMContent(DOMSpecs, clientState) {
     }
 }
 
+// Util function to group the elements of an array by their output, when passed as an input to groupingFunction
 function groupBy(inputArray, groupingFunction) {
     const groupedArray = inputArray.reduce((groupMap, value) => {
         const mapKey = groupingFunction(value);

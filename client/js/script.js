@@ -195,7 +195,7 @@ function processGameStateObject(newGameStateObject) {
 		if (iAmPlaying) {
 			const startTurnButton = document.getElementById("startTurnButton");
 			startTurnButton.style.display = 'block';
-			addTestTrigger('Start turn, bot!');
+			addTestTrigger('bot-start-turn');
 			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 		}
 		else {
