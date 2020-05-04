@@ -51,25 +51,25 @@ function requestGameID() {
 }
 
 
-function hostNewGame() {
+async function hostNewGame() {
 	document.getElementById("divJoinOrHost").style.display = 'none';
 
 	document.getElementById("hostGameDiv").style.display = 'block';
 	document.getElementById("playGameDiv").style.display = 'block';
 
-	fetch('hostNewGame')
-		.then(result => result.json())
-		.then(result => {
-			gameID = result.gameID;
+	try {
+		const fetchResult = await fetch('hostNewGame');
+		const resultObject = await fetchResult.json();
+		gameID = resultObject.gameID;
 
-			document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
-			updateGameInfo('<p>Waiting for others to join...</p>');
+		document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
+		updateGameInfo('<p>Waiting for others to join...</p>');
 
-			if (!useSocket) {
-				updateGameStateForever(gameID);
-			}
-		})
-		.catch(err => console.error(err));
+		if (!useSocket) {
+			updateGameStateForever(gameID);
+		}
+	}
+	catch (err) { console.error(err); }
 }
 
 function tryToOpenSocket() {
@@ -149,31 +149,17 @@ function updateGameInfo(html) {
 	document.getElementById("gameInfoDiv").innerHTML = html;
 }
 
-function toAssocArr(inputText) {
-	let keyValArr = inputText.split("&");
-	let arr = {};
-	for (let i = 0; i < keyValArr.length; i++) {
-		let element = keyValArr[i];
-		let elementSplit = element.split("=");
-		if (elementSplit.length == 2) {
-			arr[elementSplit[0]] = elementSplit[1];
-		}
-	}
-
-	return arr;
-}
-
 function updateGameStateForever(gameID) {
 	setInterval(updateGameState, 500, gameID);
 }
 
-function updateGameState(gameID) {
-	fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID })
-		.then(result => result.json())
-		.then(result => {
-			processGameStateObject(result);
-		})
-		.catch(err => console.error(err));
+async function updateGameState(gameID) {
+	try {
+		const fetchResult = await fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID });
+		const result = await fetchResult.json();
+		processGameStateObject(result);
+	}
+	catch (err) { console.error(err) };
 
 }
 
@@ -672,39 +658,36 @@ function allocateTeams() {
 		.catch(err => console.error(err));
 }
 
-function askGameIDResponse() {
+async function askGameIDResponse() {
 	document.getElementById("divJoinOrHost").style.display = 'none';
 	const enteredGameID = document.getElementById('gameIDField').value;
 
-	fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID })
-		.then(result => result.json())
-		.then(result => {
-			const gameResponse = result.GameResponse;
-			if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
-				document.getElementById("joinGameForm").style.display = 'none';
-				document.getElementById("playGameDiv").style.display = 'block';
+	try {
+		const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID });
+		const result = await fetchResult.json();
+		const gameResponse = result.GameResponse;
+		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
+			document.getElementById("joinGameForm").style.display = 'none';
+			document.getElementById("playGameDiv").style.display = 'block';
 
-				gameID = result.GameID;
+			gameID = result.GameID;
 
-				document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
-				if (gameResponse === 'OK') {
-					updateGameInfo('<p>Waiting for others to join...</p>');
+			document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + gameID + '</h2>';
+			if (gameResponse === 'OK') {
+				updateGameInfo('<p>Waiting for others to join...</p>');
 
 
-					if (!useSocket) {
-						updateGameStateForever(gameID);
-					}
+				if (!useSocket) {
+					updateGameStateForever(gameID);
 				}
 			}
-			else {
-				document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
-			}
+		}
+		else {
+			document.getElementById("gameIDErrorDiv").innerHTML = "Unknown Game ID";
+		}
 
-		})
-		.catch(err => console.error(err));
-
-	// prevent form from being submitted using default mechanism
-	return false;
+	}
+	catch (err) { console.error(err) };
 }
 
 function requestNames() {
@@ -900,21 +883,21 @@ function startNextRound() {
 
 }
 
-function pass() {
+async function pass() {
 	document.getElementById("passButton").disabled = true;
-	fetch('pass', { method: 'POST', body: 'passNameIndex=' + currentNameIndex })
-		.then(result => result.json())
-		.then(result => {
-			document.getElementById("passButton").disabled = false;
-			const nameListString = result.nameList;
-			if (nameListString != null) {
-				nameList = nameListString.split(",");
-				updateCurrentNameDiv();
-			}
+	try {
+		const fetchResult = await fetch('pass', { method: 'POST', body: 'passNameIndex=' + currentNameIndex });
+		const result = await fetchResult.json();
 
-		})
-		.catch(err => console.error(err));
+		document.getElementById("passButton").disabled = false;
+		const nameListString = result.nameList;
+		if (nameListString != null) {
+			nameList = nameListString.split(",");
+			updateCurrentNameDiv();
+		}
 
+	}
+	catch (err) { console.error(err) };
 }
 
 function endTurn() {
