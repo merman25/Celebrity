@@ -14,6 +14,127 @@ const myGameState = {
 	teamsAllocated: false,
 };
 
+const DOMElementShowHideTriggers = [
+	{
+		trigger: '#nameSubmitted',
+		show: ['#divJoinOrHost'],
+		hide: ['#divChooseName']
+	},
+	{
+		trigger: '#willJoinGame',
+		show: ['#joinGameForm'],
+		hide: ['#join', '#host']
+	},
+	{
+		trigger: '#willHostGame',
+		show: ['#hostGameDiv', '#playGameDiv'],
+		hide: ['#divJoinOrHost']
+	},
+	{
+		trigger: '#myTurnNow',
+		show: ['#startTurnButton'],
+		hide: []
+	},
+	{
+		trigger: '#readyToStartGame',
+		show: ['#startGameButton'],
+		hide: []
+	},
+	{
+		trigger: '#gameParamsSubmitted',
+		show: [],
+		hide: ['#gameParamsForm']
+	},
+	{
+		trigger: '#teamsAllocated',
+		show: ['#requestNamesButton'],
+		hide: []
+	},
+	{
+		trigger: '#gameIDSubmitted',
+		show: [],
+		hide: ['#divJoinOrHost']
+	},
+	{
+		trigger: '#gameIDOKResponseReceived',
+		show: ['#playGameDiv'],
+		hide: ['#joinGameForm']
+	},
+	{
+		trigger: '#namesRequested',
+		show: [],
+		hide: ['#requestNamesButton', '#allocateTeamsDiv']
+	},
+	{
+		trigger: '#readyToStartNextTurn',
+		show: [],
+		hide: ['#turnControlsDiv']
+	},
+	{
+		trigger: '#readyToStartNextRound',
+		show: ['#startNextRoundButton'],
+		hide: []
+	},
+	{
+		trigger: '#nameListSubmitted',
+		show: [],
+		hide: ['#nameList']
+	},
+	{
+		trigger: '#showingHostDutiesElementsWhenIAmHost',
+		show: ['#hostGameDiv'],
+		hide: ['#gameParamsForm', '#allocateTeamsDiv']
+	},
+	{
+		trigger: '#showingHostDuties',
+		show: ['.performHostDutiesClass'],
+		hide: []
+	},
+	{
+		trigger: '#gameStarted',
+		show: [],
+		hide: ['#startGameButton']
+	},
+	{
+		trigger: '#turnStarted',
+		show: [],
+		hide: ['#startTurnButton']
+	},
+	{
+		trigger: '#turnEnded',
+		show: [],
+		hide: ['#turnControlsDiv']
+	},
+];
+
+// Function to be used on HTML DOM NodeLists, which are like arrays in some ways, but without
+// the usual array functions. They are returned by document.querySelectorAll().
+// https://www.w3schools.com/js/js_htmldom_nodelist.asp
+const nodeListToArray = function (nodeList) {
+	const arr = [];
+	nodeList.forEach(node => arr.push(node));
+	return arr;
+}
+
+const showOrHideDOMElements = function (triggerName, show = true) {
+	const positive = show;
+	// FP in Javascript isn't the most readable 😂
+	DOMElementShowHideTriggers.filter(e => e.trigger === triggerName)
+		.forEach(({ show, hide }) => {
+			show.map(selector => document.querySelectorAll(selector))
+				.map(nodeListToArray)
+				.reduce((xs, x) => xs.concat(x), [])
+				.forEach(element => element.style.display = positive ? 'block' : 'none');
+
+			hide.map(selector => document.querySelectorAll(selector))
+				.map(nodeListToArray)
+				.reduce((xs, x) => xs.concat(x), [])
+				.forEach(element => element.style.display = positive ? 'none' : 'block');
+		});
+}
+
+
+
 /* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
 */
@@ -31,8 +152,7 @@ function myDecode(string) {
 }
 
 function submitName() {
-	document.getElementById("divChooseName").style.display = 'none';
-	document.getElementById("divJoinOrHost").style.display = 'block';
+	showOrHideDOMElements('#nameSubmitted');
 
 	const username = document.getElementById('nameField').value;
 
@@ -43,18 +163,12 @@ function submitName() {
 }
 
 function requestGameID() {
-	document.getElementById("join").style.display = 'none';
-	document.getElementById("host").style.display = 'none';
-
-	document.getElementById("joinGameForm").style.display = 'block';
+	showOrHideDOMElements('#willJoinGame');
 }
 
 
 async function hostNewGame() {
-	document.getElementById("divJoinOrHost").style.display = 'none';
-
-	document.getElementById("hostGameDiv").style.display = 'block';
-	document.getElementById("playGameDiv").style.display = 'block';
+	showOrHideDOMElements('#willHostGame');
 
 	try {
 		const fetchResult = await fetch('hostNewGame');
@@ -174,15 +288,13 @@ function processGameStateObject(newGameStateObject) {
 	}
 
 	if (serverGameState.status == "READY_TO_START_NEXT_TURN") {
-
 		if (myGameState.iAmPlaying) {
-			const startTurnButton = document.getElementById("startTurnButton");
-			startTurnButton.style.display = 'block';
+			showOrHideDOMElements('#myTurnNow');
 			addTestTrigger('bot-start-turn');
 			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 		}
 		else {
-			document.getElementById("startTurnButton").style.display = 'none';
+			showOrHideDOMElements('#myTurnNow', false);
 
 			const currentPlayer = serverGameState.currentPlayer;
 			if (currentPlayer != null) {
@@ -196,7 +308,7 @@ function processGameStateObject(newGameStateObject) {
 		}
 	}
 	else {
-		document.getElementById("startTurnButton").style.display = 'none';
+		showOrHideDOMElements('#myTurnNow', false);
 	}
 
 
@@ -286,8 +398,12 @@ function processGameStateObject(newGameStateObject) {
 
 		if (numPlayersToWaitFor == null
 			|| numPlayersToWaitFor == "0") {
-			document.getElementById("startGameButton").style.display = 'block';
-			showHostDutiesElements();
+			showOrHideDOMElements('#readyToStartGame');
+
+			if (iAmHosting) {
+				showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
+			}
+			showOrHideDOMElements('#showingHostDuties');
 		}
 	}
 
@@ -617,7 +733,7 @@ function iAmHost() {
 }
 
 function submitGameParams() {
-	document.getElementById("gameParamsForm").style.display = 'none';
+	showOrHideDOMElements('#gameParamsSubmitted');
 
 	const numRounds = document.getElementById('numRoundsField').value;
 	const roundDuration = document.getElementById('roundDurationField').value;
@@ -628,13 +744,13 @@ function submitGameParams() {
 }
 
 function allocateTeams() {
-	document.getElementById("requestNamesButton").style.display = 'block';
+	showOrHideDOMElements('#teamsAllocated');
 	fetch('allocateTeams')
 		.catch(err => console.error(err));
 }
 
 async function askGameIDResponse() {
-	document.getElementById("divJoinOrHost").style.display = 'none';
+	showOrHideDOMElements('#gameIDSubmitted');
 	const enteredGameID = document.getElementById('gameIDField').value;
 
 	try {
@@ -642,8 +758,7 @@ async function askGameIDResponse() {
 		const result = await fetchResult.json();
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
-			document.getElementById("joinGameForm").style.display = 'none';
-			document.getElementById("playGameDiv").style.display = 'block';
+			showOrHideDOMElements('#gameIDOKResponseReceived');
 
 			myGameState.gameID = result.GameID;
 
@@ -666,9 +781,8 @@ async function askGameIDResponse() {
 }
 
 function requestNames() {
-	document.getElementById("requestNamesButton").style.display = 'none';
-	document.getElementById("allocateTeamsDiv").style.display = 'none';
-	hideHostDutiesElements();
+	showOrHideDOMElements('#namesRequested');
+	showOrHideDOMElements('#showingHostDuties', false);
 	fetch('sendNameRequest')
 		.catch(err => console.error(err));
 }
@@ -692,7 +806,7 @@ function setGameStatus(newStatus) {
 
 	if (myGameState.statusAtLastUpdate != "READY_TO_START_NEXT_TURN"
 		&& newStatus == "READY_TO_START_NEXT_TURN") {
-		document.getElementById("turnControlsDiv").style.display = 'none';
+		showOrHideDOMElements('#readyToStartNextTurn');
 		document.getElementById("currentNameDiv").innerHTML = "";
 		let userRoundIndex = serverGameState.roundIndex;
 		if (userRoundIndex != null) {
@@ -706,19 +820,22 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == "READY_TO_START_NEXT_ROUND") {
 		document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
-		showHostDutiesElements();
-		const startNextRoundButton = document.getElementById("startNextRoundButton");
-		startNextRoundButton.style.display = 'block';
+		if (iAmHosting) {
+			// If we've restored a game from backup, need to show the host controls
+			showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
+		}
+		showOrHideDOMElements('#showingHostDuties');
+		showOrHideDOMElements('#readyToStartNextRound');
+
 		addTestTrigger('bot-ready-to-start-next-round');
 	}
 	else {
-		const startNextRoundButton = document.getElementById("startNextRoundButton");
-		startNextRoundButton.style.display = 'none';
+		showOrHideDOMElements('#readyToStartNextRound', false);
 	}
 
 	if (newStatus != "READY_TO_START_NEXT_ROUND"
 		&& myGameState.statusAtLastUpdate == "READY_TO_START_NEXT_ROUND") {
-		hideHostDutiesElements();
+		showOrHideDOMElements('#showingHostDuties', false);
 	}
 
 	if (newStatus == "ENDED") {
@@ -765,7 +882,7 @@ function addNameRequestForm() {
 }
 
 function submitNameList() {
-	document.getElementById("nameList").style.display = 'none';
+	showOrHideDOMElements('#nameListSubmitted');
 
 	let requestBody = '';
 	for (let i = 1; i <= serverGameState.numNames; i++) {
@@ -784,36 +901,15 @@ function submitNameList() {
 
 }
 
-function hideHostDutiesElements() {
-	performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
-	for (let i = 0; i < performHostDutiesElements.length; i++) {
-		performHostDutiesElements[i].style.display = 'none';
-	}
-}
-
-function showHostDutiesElements() {
-	if (iAmHost()) {
-		// If we've restored a game from backup, need to show the host controls
-		document.getElementById('hostGameDiv').style.display = 'block';
-		document.getElementById('gameParamsForm').style.display = 'none';
-		document.getElementById('allocateTeamsDiv').style.display = 'none';
-	}
-	performHostDutiesElements = document.querySelectorAll(".performHostDutiesClass");
-	for (let i = 0; i < performHostDutiesElements.length; i++) {
-		performHostDutiesElements[i].style.display = 'block';
-	}
-}
-
 function startGame() {
-	document.getElementById("startGameButton").style.display = 'none';
+	showOrHideDOMElements('#gameStarted');
 	document.getElementById("gameStatusDiv").innerHTML = "";
 	fetch('startGame')
 		.catch(err => console.error(err));
 }
 
 function startTurn() {
-	const startTurnButton = document.getElementById("startTurnButton");
-	startTurnButton.style.display = 'none';
+	showOrHideDOMElements('#turnStarted');
 	clearTestTrigger();
 	fetch('startTurn')
 		.catch(err => console.error(err));
@@ -840,7 +936,8 @@ function gotName() {
 		updateCurrentNameDiv();
 	}
 	else {
-		document.getElementById("turnControlsDiv").style.display = 'none';
+		showOrHideDOMElements('#turnEnded');
+
 		finishRound();
 	}
 }
