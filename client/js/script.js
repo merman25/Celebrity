@@ -820,7 +820,7 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == "READY_TO_START_NEXT_ROUND") {
 		document.getElementById("gameStatusDiv").innerHTML = "Finished Round! See scores below";
-		if (iAmHosting) {
+		if (iAmHost()) {
 			// If we've restored a game from backup, need to show the host controls
 			showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
 		}
