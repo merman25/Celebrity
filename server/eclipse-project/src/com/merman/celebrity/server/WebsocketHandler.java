@@ -143,7 +143,7 @@ public class WebsocketHandler {
 				}
 			}
 			catch ( SocketException e ) {
-				System.out.format("Handler for session [%s] (%s) no longer listening: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
+				System.out.format("Handler for session [%s] (%s) no longer listening: %s\n", getSession(), getSession() == null ? null : getSession().getPlayer(), e.getMessage());
 			}
 			catch ( IOException e ) {
 				e.printStackTrace();
