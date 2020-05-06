@@ -18,6 +18,21 @@ const myGameState = {
 document.addEventListener('DOMContentLoaded', () => {} );
 */
 
+document.getElementById('nameSubmitButton').addEventListener('click', submitName);
+document.getElementById('join').addEventListener('click', requestGameID);
+document.getElementById('gameIDSubmitButton').addEventListener('click', askGameIDResponse);
+document.getElementById('host').addEventListener('click', hostNewGame);
+document.getElementById('submitGameParamsButton').addEventListener('click', submitGameParams);
+document.getElementById('teamsButton').addEventListener('click', allocateTeams);
+document.getElementById('requestNamesButton').addEventListener('click', requestNames);
+document.getElementById('startGameButton').addEventListener('click', startGame);
+document.getElementById('startNextRoundButton').addEventListener('click', startNextRound);
+document.getElementById('startTurnButton').addEventListener('click', startTurn);
+document.getElementById('gotNameButton').addEventListener('click', gotName);
+document.getElementById('passButton').addEventListener('click', pass);
+document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
+
+
 function htmlEscape(string) {
 	return string.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")
@@ -391,7 +406,7 @@ function processGameStateObject(newGameStateObject) {
 					}
 
 					document.getElementById("removePlayerInTeamFromGame").addEventListener("click", event => {
-						removeFromGame(playerIDOfPlayerInTeam);
+						sendRemoveFromGameRequest(playerIDOfPlayerInTeam);
 						hideAllContextMenus();
 					});
 

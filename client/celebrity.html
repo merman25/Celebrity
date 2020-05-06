@@ -37,24 +37,24 @@
     <p>Give yourself a name:</p>
     <form id="nameForm" onsubmit="return false;">
       <input id="nameField" name="username" type="text" autofocus>
-      <button id="nameSubmitButton" onclick="submitName()">OK</button>
+      <button id="nameSubmitButton">OK</button>
     </form>
   </div>
 
   <div id="divJoinOrHost" style="display:none">
     <hr>
-    <button id="join" onclick="requestGameID()">Join Existing Game</button>
+    <button id="join">Join Existing Game</button>
     <div id="joinGameForm" style="display:none">
       <form id="gameIDForm" onsubmit="return false;">
         <label for="gameIDField">Game ID</label>
         <input id="gameIDField" name="gameID" type="text">
-        <button id="gameIDSubmitButton" onclick="askGameIDResponse()">OK</button>
+        <button id="gameIDSubmitButton">OK</button>
       </form>
     </div>
     <div id="gameIDErrorDiv"></div>
     <br>
     <br>
-    <button id="host" onclick="hostNewGame()">Host New Game</button>
+    <button id="host">Host New Game</button>
   </div>
 
   <div id="gameIDDiv">
@@ -86,7 +86,7 @@
       </div>
       <div class="clear"></div>
       <div class="col-label">
-        <button id="submitGameParamsButton" onclick="submitGameParams()">Set</button>
+        <button id="submitGameParamsButton">Set</button>
       </div>
     </form>
 
@@ -96,23 +96,23 @@
       <hr>
     </div>
     <div id="allocateTeamsDiv">
-      <button id="teamsButton" onclick="allocateTeams()">Allocate Teams</button>
+      <button id="teamsButton">Allocate Teams</button>
       <br>
     </div>
-    <button id="requestNamesButton" onclick="requestNames()" style="display:none">Request Names</button>
-    <button id="startGameButton" onclick="startGame()" style="display:none">Start Game</button>
-    <button id="startNextRoundButton" class="buttonForBotToClick" onclick="startNextRound()" style="display:none">Start Next Round</button>
+    <button id="requestNamesButton" style="display:none">Request Names</button>
+    <button id="startGameButton" style="display:none">Start Game</button>
+    <button id="startNextRoundButton" class="buttonForBotToClick" style="display:none">Start Next Round</button>
   </div>
 
   <div id="playGameDiv" style="display:none">
     <hr>
-    <button id="startTurnButton" class="buttonForBotToClick" onclick="startTurn()" style="display:none">Start Turn</button>
+    <button id="startTurnButton" class="buttonForBotToClick" style="display:none">Start Turn</button>
     <div id="gameStatusDiv"></div>
     <div id="currentNameDiv"></div>
     <div id="turnControlsDiv" style="display:none; flex-direction: row;">
-      <button id="gotNameButton" class="turnControlButtonClass" onclick="gotName()">Got it!</button>
-      <button id="passButton" class="turnControlButtonClass" onclick="pass()">Pass</button>
-      <button id="endTurnButton" class="turnControlButtonClass" onclick="sendEndTurnRequest()">End turn</button>
+      <button id="gotNameButton" class="turnControlButtonClass">Got it!</button>
+      <button id="passButton" class="turnControlButtonClass">Pass</button>
+      <button id="endTurnButton" class="turnControlButtonClass">End turn</button>
     </div>
     <div id="gameParamsDiv"></div>
     <div id="playerList">
