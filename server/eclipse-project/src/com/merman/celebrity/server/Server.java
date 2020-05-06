@@ -27,6 +27,8 @@ public class Server {
 			"styles.css",
 			"js/preload.js",
 			"js/script.js",
+			"js/dom-manipulation.js",
+			"js/api-calls.js",
 			"icons/happy-emoji.svg",
 			"icons/sad-emoji.svg",
 			"icons/thinking-emoji.svg"

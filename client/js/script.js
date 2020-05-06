@@ -14,127 +14,6 @@ const myGameState = {
 	teamsAllocated: false,
 };
 
-const DOMElementShowHideTriggers = [
-	{
-		trigger: '#nameSubmitted',
-		show: ['#divJoinOrHost'],
-		hide: ['#divChooseName']
-	},
-	{
-		trigger: '#willJoinGame',
-		show: ['#joinGameForm'],
-		hide: ['#join', '#host']
-	},
-	{
-		trigger: '#willHostGame',
-		show: ['#hostGameDiv', '#playGameDiv'],
-		hide: ['#divJoinOrHost']
-	},
-	{
-		trigger: '#myTurnNow',
-		show: ['#startTurnButton'],
-		hide: []
-	},
-	{
-		trigger: '#readyToStartGame',
-		show: ['#startGameButton'],
-		hide: []
-	},
-	{
-		trigger: '#gameParamsSubmitted',
-		show: [],
-		hide: ['#gameParamsForm']
-	},
-	{
-		trigger: '#teamsAllocated',
-		show: ['#requestNamesButton'],
-		hide: []
-	},
-	{
-		trigger: '#gameIDSubmitted',
-		show: [],
-		hide: ['#divJoinOrHost']
-	},
-	{
-		trigger: '#gameIDOKResponseReceived',
-		show: ['#playGameDiv'],
-		hide: ['#joinGameForm']
-	},
-	{
-		trigger: '#namesRequested',
-		show: [],
-		hide: ['#requestNamesButton', '#allocateTeamsDiv']
-	},
-	{
-		trigger: '#readyToStartNextTurn',
-		show: [],
-		hide: ['#turnControlsDiv']
-	},
-	{
-		trigger: '#readyToStartNextRound',
-		show: ['#startNextRoundButton'],
-		hide: []
-	},
-	{
-		trigger: '#nameListSubmitted',
-		show: [],
-		hide: ['#nameList']
-	},
-	{
-		trigger: '#showingHostDutiesElementsWhenIAmHost',
-		show: ['#hostGameDiv'],
-		hide: ['#gameParamsForm', '#allocateTeamsDiv']
-	},
-	{
-		trigger: '#showingHostDuties',
-		show: ['.performHostDutiesClass'],
-		hide: []
-	},
-	{
-		trigger: '#gameStarted',
-		show: [],
-		hide: ['#startGameButton']
-	},
-	{
-		trigger: '#turnStarted',
-		show: [],
-		hide: ['#startTurnButton']
-	},
-	{
-		trigger: '#turnEnded',
-		show: [],
-		hide: ['#turnControlsDiv']
-	},
-];
-
-// Function to be used on HTML DOM NodeLists, which are like arrays in some ways, but without
-// the usual array functions. They are returned by document.querySelectorAll().
-// https://www.w3schools.com/js/js_htmldom_nodelist.asp
-const nodeListToArray = function (nodeList) {
-	const arr = [];
-	nodeList.forEach(node => arr.push(node));
-	return arr;
-}
-
-const showOrHideDOMElements = function (triggerName, show = true) {
-	const positive = show;
-	// FP in Javascript isn't the most readable 😂
-	DOMElementShowHideTriggers.filter(e => e.trigger === triggerName)
-		.forEach(({ show, hide }) => {
-			show.map(selector => document.querySelectorAll(selector))
-				.map(nodeListToArray)
-				.reduce((xs, x) => xs.concat(x), [])
-				.forEach(element => element.style.display = positive ? 'block' : 'none');
-
-			hide.map(selector => document.querySelectorAll(selector))
-				.map(nodeListToArray)
-				.reduce((xs, x) => xs.concat(x), [])
-				.forEach(element => element.style.display = positive ? 'none' : 'block');
-		});
-}
-
-
-
 /* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
 */
@@ -153,11 +32,8 @@ function myDecode(string) {
 
 function submitName() {
 	showOrHideDOMElements('#nameSubmitted');
-
 	const username = document.getElementById('nameField').value;
-
-	fetch('username', { method: 'POST', body: 'username=' + username })
-		.catch(err => console.error(err));
+	sendUsername(username);
 
 	tryToOpenSocket();
 }
@@ -166,13 +42,11 @@ function requestGameID() {
 	showOrHideDOMElements('#willJoinGame');
 }
 
-
 async function hostNewGame() {
 	showOrHideDOMElements('#willHostGame');
 
 	try {
-		const fetchResult = await fetch('hostNewGame');
-		const resultObject = await fetchResult.json();
+		const resultObject = await sendIWillHost();
 		myGameState.gameID = resultObject.gameID;
 
 		document.getElementById("gameIDDiv").innerHTML = '<hr><h2>Game ID: ' + myGameState.gameID + '</h2>';
@@ -268,8 +142,7 @@ function updateGameStateForever(gameID) {
 
 async function updateGameState(gameID) {
 	try {
-		const fetchResult = await fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID });
-		const result = await fetchResult.json();
+		const result = await retrieveGameStateByHTTP();
 		processGameStateObject(result);
 	}
 	catch (err) { console.error(err) };
@@ -360,7 +233,7 @@ function processGameStateObject(newGameStateObject) {
 
 					for (let j = 0; j < serverGameState.teams.length; j++) {
 						document.getElementById("changeToTeam" + j).addEventListener("click", event => {
-							putInTeam(playerID, j);
+							sendPutInTeamRequest(playerID, j);
 							hideAllContextMenus();
 						});
 					}
@@ -511,7 +384,7 @@ function processGameStateObject(newGameStateObject) {
 						let changePlayerToTeamLiElement = document.getElementById("changePlayerInTeamToTeam" + j);
 						if (changePlayerToTeamLiElement != null) {
 							changePlayerToTeamLiElement.addEventListener("click", event => {
-								putInTeam(playerIDOfPlayerInTeam, j);
+								sendPutInTeamRequest(playerIDOfPlayerInTeam, j);
 								hideAllContextMenus();
 							});
 						}
@@ -523,17 +396,17 @@ function processGameStateObject(newGameStateObject) {
 					});
 
 					document.getElementById("moveUp").addEventListener("click", event => {
-						moveInTeam(playerIDOfPlayerInTeam, false);
+						sendMoveInTeamRequest(playerIDOfPlayerInTeam, false);
 						hideAllContextMenus();
 					});
 
 					document.getElementById("moveDown").addEventListener("click", event => {
-						moveInTeam(playerIDOfPlayerInTeam, true);
+						sendMoveInTeamRequest(playerIDOfPlayerInTeam, true);
 						hideAllContextMenus();
 					});
 
 					document.getElementById("makePlayerNextInTeam").addEventListener("click", event => {
-						makePlayerNextInTeam(playerIDOfPlayerInTeam);
+						sendMakePlayerNextInTeamRequest(playerIDOfPlayerInTeam);
 						hideAllContextMenus();
 					});
 
@@ -739,14 +612,12 @@ function submitGameParams() {
 	const roundDuration = document.getElementById('roundDurationField').value;
 	const numNames = document.getElementById('numNamesField').value;
 
-	fetch('gameParams', { method: 'POST', body: `numRounds=${numRounds}&roundDuration=${roundDuration}&numNames=${numNames}` })
-		.catch(err => console.error(err));
+	sendGameParams(numRounds, roundDuration, numNames);
 }
 
 function allocateTeams() {
 	showOrHideDOMElements('#teamsAllocated');
-	fetch('allocateTeams')
-		.catch(err => console.error(err));
+	sendAllocateTeamsRequest();
 }
 
 async function askGameIDResponse() {
@@ -754,8 +625,7 @@ async function askGameIDResponse() {
 	const enteredGameID = document.getElementById('gameIDField').value;
 
 	try {
-		const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID });
-		const result = await fetchResult.json();
+		const result = await sendGameIDResponseRequest(enteredGameID);
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 			showOrHideDOMElements('#gameIDOKResponseReceived');
@@ -783,8 +653,7 @@ async function askGameIDResponse() {
 function requestNames() {
 	showOrHideDOMElements('#namesRequested');
 	showOrHideDOMElements('#showingHostDuties', false);
-	fetch('sendNameRequest')
-		.catch(err => console.error(err));
+	sendNameRequest();
 }
 
 function setGameStatus(newStatus) {
@@ -884,35 +753,26 @@ function addNameRequestForm() {
 function submitNameList() {
 	showOrHideDOMElements('#nameListSubmitted');
 
-	let requestBody = '';
+	let nameArr = [];
 	for (let i = 1; i <= serverGameState.numNames; i++) {
-		const paramName = 'name' + i;
+        const paramName = `name${i}`;
 		const nameToSubmit = document.getElementById(paramName).value;
-		if (requestBody.length > 0) {
-			requestBody += '&';
-		}
-		requestBody += paramName;
-		requestBody += '=';
-		requestBody += nameToSubmit;
+		nameArr.push(nameToSubmit);
 	}
 
-	fetch('nameList', { method: 'POST', body: requestBody })
-		.catch(err => console.error(err));
-
+	sendNameList(nameArr);
 }
 
 function startGame() {
 	showOrHideDOMElements('#gameStarted');
 	document.getElementById("gameStatusDiv").innerHTML = "";
-	fetch('startGame')
-		.catch(err => console.error(err));
+	sendStartGameRequest();
 }
 
 function startTurn() {
 	showOrHideDOMElements('#turnStarted');
 	clearTestTrigger();
-	fetch('startTurn')
-		.catch(err => console.error(err));
+	sendStartTurnRequest();
 }
 
 function updateCurrentNameDiv() {
@@ -928,16 +788,13 @@ function updateCurrentNameDiv() {
 function gotName() {
 	//    gameStateLogging = true;
 	myGameState.currentNameIndex++;
-	fetch('setCurrentNameIndex', { method: 'POST', body: 'newNameIndex=' + myGameState.currentNameIndex })
-		.catch(err => console.error(err));
-
+	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
 
 	if (myGameState.currentNameIndex < serverGameState.nameList.length) {
 		updateCurrentNameDiv();
 	}
 	else {
 		showOrHideDOMElements('#turnEnded');
-
 		finishRound();
 	}
 }
@@ -949,16 +806,13 @@ function finishRound() {
 
 function startNextRound() {
 	clearTestTrigger();
-	fetch('startNextRound')
-		.catch(err => console.error(err));
-
+	sendStartNextRoundRequest();
 }
 
 async function pass() {
 	document.getElementById("passButton").disabled = true;
 	try {
-		const fetchResult = await fetch('pass', { method: 'POST', body: 'passNameIndex=' + myGameState.currentNameIndex });
-		const result = await fetchResult.json();
+		const result = await sendPassRequest(myGameState.currentNameIndex);
 
 		document.getElementById("passButton").disabled = false;
 		const nameListString = result.nameList;
@@ -971,39 +825,11 @@ async function pass() {
 	catch (err) { console.error(err) };
 }
 
-function endTurn() {
-	fetch('endTurn')
-		.catch(err => console.error(err));
-
-}
 function hideAllContextMenus() {
 	let contextMenus = document.querySelectorAll(".contextMenuClass");
 	for (let i = 0; i < contextMenus.length; i++) {
 		contextMenus[i].style.display = 'none';
 	}
-}
-
-function putInTeam(playerID, teamIndex) {
-	fetch('putInTeam', { method: 'POST', body: 'playerID=' + playerID + '&teamIndex=' + teamIndex })
-		.catch(err => console.error(err));
-}
-
-function removeFromGame(playerID) {
-	fetch('removeFromGame', { method: 'POST', body: 'playerID=' + playerID })
-		.catch(err => console.error(err));
-
-}
-
-function moveInTeam(playerID, moveDownOrLater) {
-	const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
-	fetch(apiCall, { method: 'POST', body: 'playerID=' + playerID })
-		.catch(err => console.error(err));
-
-}
-
-function makePlayerNextInTeam(playerID) {
-	fetch('makeNextInTeam', { method: 'POST', body: 'playerID=' + playerID })
-		.catch(err => console.error(err));
 }
 
 function updateCountdownClock(secondsRemaining) {

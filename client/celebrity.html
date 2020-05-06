@@ -112,7 +112,7 @@
     <div id="turnControlsDiv" style="display:none; flex-direction: row;">
       <button id="gotNameButton" class="turnControlButtonClass" onclick="gotName()">Got it!</button>
       <button id="passButton" class="turnControlButtonClass" onclick="pass()">Pass</button>
-      <button id="endTurnButton" class="turnControlButtonClass" onclick="endTurn()">End turn</button>
+      <button id="endTurnButton" class="turnControlButtonClass" onclick="sendEndTurnRequest()">End turn</button>
     </div>
     <div id="gameParamsDiv"></div>
     <div id="playerList">
@@ -134,6 +134,8 @@
   <div id="testTriggerDiv" style="display:none"></div>
   <div id="testBotInfoDiv" style="display:none"></div>
 
+  <script src="js/api-calls.js"></script>
+  <script src="js/dom-manipulation.js"></script>
   <script src="js/script.js"></script>
 </body>
 
