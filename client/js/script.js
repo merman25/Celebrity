@@ -45,6 +45,27 @@ function myDecode(string) {
 	return htmlEscape(decodeURIComponent(string.replace(/\+/g, ' ')));
 }
 
+function removeChildren(elementOrID) {
+	const element = typeof(elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
+	while (element.firstChild)
+		element.removeChild(element.firstChild);
+}
+
+function appendChildren(elementOrID, ...children) {
+	const element = typeof(elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
+
+	children.forEach(c => { 
+		const child = typeof(c) === 'string' ? document.createElement(c) : c;
+		element.appendChild(child);
+	});
+}
+
+function setChildren(elementOrID, ...children) {
+	const element = typeof(elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
+	removeChildren(element);
+	appendChildren.apply(this, [element, ...children]);
+}
+
 function submitName() {
 	showOrHideDOMElements('#nameSubmitted');
 	const username = document.getElementById('nameField').value;
@@ -64,7 +85,9 @@ async function hostNewGame() {
 		const resultObject = await sendIWillHost();
 		myGameState.gameID = resultObject.gameID;
 
-		document.getElementById('gameIDDiv').innerHTML = `<hr><h2>Game ID: ${myGameState.gameID}</h2>`;
+		const gameIDHeading = document.createElement('h2');
+		gameIDHeading.textContent = `Game ID: ${myGameState.gameID}`;
+		setChildren('gameIDDiv', 'hr', gameIDHeading);
 		updateGameInfo('<p>Waiting for others to join...</p>');
 
 		if (!useSocket) {
@@ -209,7 +232,7 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 	if (readyToStartNextTurn) {
 		if (myGameState.iAmPlaying) {
 			addTestTrigger('bot-start-turn');
-			document.getElementById('gameStatusDiv').innerHTML = 'It\'s your turn!';
+			document.getElementById('gameStatusDiv').textContent = 'It\'s your turn!';
 		}
 		else {
 
@@ -217,10 +240,10 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 			if (currentPlayer != null) {
 				let currentPlayerName = myDecode(currentPlayer.name);
 
-				document.getElementById('gameStatusDiv').innerHTML = `Waiting for ${currentPlayerName} to start turn`;
+				document.getElementById('gameStatusDiv').textContent = `Waiting for ${currentPlayerName} to start turn`;
 			}
 			else {
-				document.getElementById('gameStatusDiv').innerHTML = 'I don\'t know whose turn it is any more :(';
+				document.getElementById('gameStatusDiv').textContent = 'I don\'t know whose turn it is any more :(';
 			}
 		}
 	}
@@ -299,10 +322,10 @@ function updateDOMForWaitingForNames(myGameState, serverGameState) {
 	if (serverGameState.status == 'WAITING_FOR_NAMES') {
 		let numPlayersToWaitFor = serverGameState.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
-			document.getElementById('gameStatusDiv').innerHTML = `Waiting for names from ${numPlayersToWaitFor} player(s)`;
+			document.getElementById('gameStatusDiv').textContent = `Waiting for names from ${numPlayersToWaitFor} player(s)`;
 		}
 		else {
-			document.getElementById('gameStatusDiv').innerHTML = '';
+			removeChildren('gameStatusDiv');
 		}
 
 		if (numPlayersToWaitFor == null
@@ -666,7 +689,10 @@ async function askGameIDResponse() {
 
 			myGameState.gameID = result.GameID;
 
-			document.getElementById('gameIDDiv').innerHTML = `<hr><h2>Game ID: ${myGameState.gameID}</h2>`;
+			const gameIDHeading = document.createElement('h2');
+			gameIDHeading.textContent = `Game ID: ${myGameState.gameID}`;
+			setChildren('gameIDDiv', 'hr', gameIDHeading);
+
 			if (gameResponse === 'OK') {
 				updateGameInfo('<p>Waiting for others to join...</p>');
 
@@ -677,7 +703,8 @@ async function askGameIDResponse() {
 			}
 		}
 		else {
-			document.getElementById('gameIDErrorDiv').innerHTML = 'Unknown Game ID';
+			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
+			showOrHideDOMElements('#gameIDSubmitted', false);
 		}
 
 	}
@@ -722,7 +749,7 @@ function setGameStatus(newStatus) {
 	}
 
 	if (newStatus == 'READY_TO_START_NEXT_ROUND') {
-		document.getElementById('gameStatusDiv').innerHTML = 'Finished Round! See scores below';
+		document.getElementById('gameStatusDiv').textContent = 'Finished Round! See scores below';
 		if (iAmHost()) {
 			// If we've restored a game from backup, need to show the host controls
 			showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
@@ -789,7 +816,7 @@ function submitNameList() {
 
 	let nameArr = [];
 	for (let i = 1; i <= serverGameState.numNames; i++) {
-        const paramName = `name${i}`;
+		const paramName = `name${i}`;
 		const nameToSubmit = document.getElementById(paramName).value;
 		nameArr.push(nameToSubmit);
 	}
@@ -812,10 +839,10 @@ function startTurn() {
 function updateCurrentNameDiv() {
 	if (myGameState.iAmPlaying) {
 		currentName = myDecode(serverGameState.nameList[myGameState.currentNameIndex]);
-		document.getElementById('currentNameDiv').innerHTML = `Name: ${currentName}`;
+		document.getElementById('currentNameDiv').textContent = `Name: ${currentName}`;
 	}
 	else {
-		document.getElementById('currentNameDiv').innerHTML = '';
+		removeChildren('currentNameDiv');
 	}
 }
 
@@ -834,8 +861,8 @@ function gotName() {
 }
 
 function finishRound() {
-	document.getElementById('gameStatusDiv').innerHTML = 'Finished Round!';
-	document.getElementById('currentNameDiv').innerHTML = '';
+	document.getElementById('gameStatusDiv').textContent = 'Finished Round!';
+	removeChildren('currentNameDiv');
 }
 
 function startNextRound() {
@@ -867,7 +894,7 @@ function hideAllContextMenus() {
 }
 
 function updateCountdownClock(secondsRemaining) {
-	document.getElementById('gameStatusDiv').innerHTML = `Seconds remaining: ${secondsRemaining}`;
+	document.getElementById('gameStatusDiv').textContent = `Seconds remaining: ${secondsRemaining}`;
 }
 
 function setTestBotInfo(testBotInfo) {
