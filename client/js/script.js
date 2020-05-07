@@ -169,20 +169,49 @@ function processGameStateObject(newGameStateObject) {
 
 	myGameState.myPlayerID = serverGameState.publicIDOfRecipient;
 	myGameState.iAmPlaying = iAmCurrentPlayer();
-	let iAmHosting = iAmHost();
+	myGameState.iAmHosting = iAmHost();
 
 	if (!myGameState.iAmPlaying) {
 		clearTestTrigger();
 	}
 
-	if (serverGameState.status == "READY_TO_START_NEXT_TURN") {
+	updateDOMForReadyToStartNextTurn(myGameState, serverGameState);
+	setGameStatus(serverGameState.status);
+
+	if (serverGameState.status == "PLAYING_A_TURN") {
+		updateCountdownClock(serverGameState.secondsRemaining);
+	}
+	updateTeamlessPlayerList(myGameState, serverGameState);
+	updateDOMForWaitingForNames(myGameState, serverGameState);
+	updateTeamTable(myGameState, serverGameState);
+	updateCurrentPlayerInfo(myGameState, serverGameState);
+	updateScoresForRound(myGameState, serverGameState);
+	updateTotalScores(myGameState, serverGameState);
+
+
+
+	const testBotInfo = {
+		gameStatus: serverGameState.status,
+		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
+		teamsAllocated: myGameState.teamsAllocated,
+		turnCount: serverGameState.turnCount,
+	};
+
+	if (serverGameState.roundIndex)
+		testBotInfo.roundIndex = serverGameState.roundIndex;
+	setTestBotInfo(testBotInfo);
+}
+
+function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
+	const readyToStartNextTurn = serverGameState.status == "READY_TO_START_NEXT_TURN";
+	showOrHideDOMElements('#myTurnNow', readyToStartNextTurn && myGameState.iAmPlaying);
+
+	if (readyToStartNextTurn) {
 		if (myGameState.iAmPlaying) {
-			showOrHideDOMElements('#myTurnNow');
 			addTestTrigger('bot-start-turn');
 			document.getElementById("gameStatusDiv").innerHTML = "It's your turn!";
 		}
 		else {
-			showOrHideDOMElements('#myTurnNow', false);
 
 			const currentPlayer = serverGameState.currentPlayer;
 			if (currentPlayer != null) {
@@ -195,25 +224,16 @@ function processGameStateObject(newGameStateObject) {
 			}
 		}
 	}
-	else {
-		showOrHideDOMElements('#myTurnNow', false);
-	}
+}
 
-
-	setGameStatus(serverGameState.status);
-
-	if (serverGameState.status == "PLAYING_A_TURN") {
-		updateCountdownClock(serverGameState.secondsRemaining);
-	}
-
-
+function updateTeamlessPlayerList(myGameState, serverGameState) {
 	let playerList = serverGameState.players;
 
 	if (playerList.length > 0) {
 		let htmlList = '<h3>Players</h3>\n<ul id="teamlessPlayerUl">\n';
 
 		let spanClassString = '';
-		if (iAmHosting) {
+		if (myGameState.iAmHosting) {
 			spanClassString = ' class="rightClickable"';
 		}
 		for (let i = 0; i < playerList.length; i++) {
@@ -222,7 +242,7 @@ function processGameStateObject(newGameStateObject) {
 		htmlList += '</ul>';
 		document.getElementById("playerList").innerHTML = htmlList;
 
-		if (iAmHosting
+		if (myGameState.iAmHosting
 			&& serverGameState.teams.length > 0) {
 			let teamlessPlayerLiElements = document.querySelectorAll(".teamlessPlayerLiClass");
 			for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
@@ -273,8 +293,9 @@ function processGameStateObject(newGameStateObject) {
 	else {
 		document.getElementById("playerList").innerHTML = "";
 	}
+}
 
-
+function updateDOMForWaitingForNames(myGameState, serverGameState) {
 	if (serverGameState.status == "WAITING_FOR_NAMES") {
 		let numPlayersToWaitFor = serverGameState.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
@@ -288,13 +309,16 @@ function processGameStateObject(newGameStateObject) {
 			|| numPlayersToWaitFor == "0") {
 			showOrHideDOMElements('#readyToStartGame');
 
-			if (iAmHosting) {
+			if (myGameState.iAmHosting) {
 				showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
 			}
 			showOrHideDOMElements('#showingHostDuties');
 		}
 	}
 
+}
+
+function updateTeamTable(myGameState, serverGameState) {
 	if (serverGameState.teams.length > 0) {
 		myGameState.teamsAllocated = true;
 		let tableColumns = [];
@@ -341,7 +365,7 @@ function processGameStateObject(newGameStateObject) {
 			}
 
 			let tdExtraClassString = '';
-			if (iAmHosting) {
+			if (myGameState.iAmHosting) {
 				tdExtraClassString = ' rightClickable';
 			}
 
@@ -365,7 +389,7 @@ function processGameStateObject(newGameStateObject) {
 
 		document.getElementById("teamList").innerHTML = htmlTeamList;
 
-		if (iAmHosting) {
+		if (myGameState.iAmHosting) {
 			let playerInTeamTDElements = document.querySelectorAll(".playerInTeamTDClass");
 			for (let i = 0; i < playerInTeamTDElements.length; i++) {
 				let playerInTeamTD = playerInTeamTDElements[i];
@@ -439,7 +463,9 @@ function processGameStateObject(newGameStateObject) {
 			}
 		}
 	}
+}
 
+function updateCurrentPlayerInfo(myGameState, serverGameState) {
 	const playerName = myDecode(serverGameState.yourName);
 	const playerTeamIndex = serverGameState.yourTeamIndex;
 	const nextTeamIndex = serverGameState.nextTeamIndex;
@@ -476,7 +502,7 @@ function processGameStateObject(newGameStateObject) {
 		}
 	}
 
-	if (iAmHosting) {
+	if (myGameState.iAmHosting) {
 		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
 	}
 	else if (serverGameState.host != null) {
@@ -490,7 +516,9 @@ function processGameStateObject(newGameStateObject) {
 			"Round duration (sec): " + serverGameState.duration + "<br>\n<hr>\n";
 	}
 	document.getElementById("gameParamsDiv").innerHTML = htmlParams;
+}
 
+function updateScoresForRound(myGameState, serverGameState) {
 	let namesAchievedObjectList = serverGameState.namesAchieved;
 	let atLeastOneNonZeroScore = false;
 	let scoresHTML = "<h2>Scores</h2>\n";
@@ -521,7 +549,9 @@ function processGameStateObject(newGameStateObject) {
 	}
 
 	document.getElementById("scoresDiv").innerHTML = scoresHTML;
+}
 
+function updateTotalScores(myGameState, serverGameState) {
 	let totalScoresObjectList = serverGameState.scores;
 	let atLeastOneRoundHasBeenRecorded = false;
 	let totalScoresHTML = "";
@@ -583,17 +613,6 @@ function processGameStateObject(newGameStateObject) {
 	}
 
 	document.getElementById("totalScoresDiv").innerHTML = totalScoresHTML;
-
-	const testBotInfo = {
-		gameStatus: serverGameState.status,
-		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
-		teamsAllocated: myGameState.teamsAllocated,
-		turnCount: serverGameState.turnCount,
-	};
-
-	if (serverGameState.roundIndex)
-		testBotInfo.roundIndex = serverGameState.roundIndex;
-	setTestBotInfo(testBotInfo);
 }
 
 function iAmCurrentPlayer() {
