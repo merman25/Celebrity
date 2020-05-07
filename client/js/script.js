@@ -457,7 +457,7 @@ function updateTeamTable(myGameState, serverGameState) {
 
 					contextMenu.addEventListener('mouseleave', event => {
 						hideAllContextMenus();
-					})
+					});
 
 				});
 			}
@@ -506,7 +506,7 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
 	}
 	else if (serverGameState.host != null) {
-		htmlParams += '<p>' + myDecode(serverGameState.host.name) + ' is hosting.</p>'
+		htmlParams += '<p>' + myDecode(serverGameState.host.name) + ' is hosting.</p>';
 	}
 
 	let numRounds = serverGameState.rounds;
