@@ -482,13 +482,13 @@ function checkFinalScoreForRound(clientState) {
         .then(elements => {
             const team0Score = elements.length;
 
-            cy.get('.scoreRowClass').last().find('td').first().next() // first() contains the round index
+            cy.get('.scoreRowClass').last().prev()
                 .contains(team0Score.toString());
             cy.get('.achievedNameLi.team1')
                 .then(elements => {
                     const team1Score = elements.length;
 
-                    cy.get('.scoreRowClass').last().find('td').last()
+                    cy.get('.scoreRowClass').last()
                         .contains(team1Score.toString());
 
                     expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
