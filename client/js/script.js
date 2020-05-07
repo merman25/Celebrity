@@ -345,34 +345,36 @@ function updateTeamTable(myGameState, serverGameState) {
 	if (serverGameState.teams.length > 0) {
 		myGameState.teamsAllocated = true;
 		const tableColumns = [];
-		const attributeStringsByColumn = [];
-
-		let tdExtraClassString = '';
-		if (myGameState.iAmHosting) {
-			tdExtraClassString = ' rightClickable';
-		}
+		const attributesByColumn = [];
 
 		serverGameState.teams.forEach((team, col) => {
 			const singleColumn = [];
-			const singleAttributeStringColumn = [];
+			const singleAttributeColumn = [];
 
 			tableColumns.push(singleColumn);
-			attributeStringsByColumn.push(singleAttributeStringColumn);
+			attributesByColumn.push(singleAttributeColumn);
 
 			singleColumn.push(team.name);
-			singleAttributeStringColumn.push('');
+			singleAttributeColumn.push(null);
 
 			team.playerList.forEach((player, row) => {
 				singleColumn.push(myDecode(player.name));
+				const attributes = {
+					classList: ['playerInTeamTDClass'],
+					playerID: player.publicID,
+					teamindex: col,
+					playerindex: row,
+				}
+				if (myGameState.iAmHosting)
+					attributes.classList.push('rightClickable');
 
-				const attributeString = ` class="playerInTeamTDClass${tdExtraClassString}" playerID="${player.publicID}" teamindex="${col}" playerindex="${row}"`
-				singleAttributeStringColumn.push(attributeString);
+				singleAttributeColumn.push(attributes);
 			});
 		});
 
 		const header = document.createElement('h2');
 		header.textContent = 'Teams';
-		const table = createTableByColumn(true, tableColumns, attributeStringsByColumn);
+		const table = createTableByColumn(true, tableColumns, attributesByColumn);
 
 		setChildren('teamList', header, table);
 
@@ -452,16 +454,28 @@ function updateTeamTable(myGameState, serverGameState) {
 	}
 }
 
-function createTableByColumn(firstRowIsHeader, tableColumns, attributeStringsByColumn) {
+function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn) {
 	const table = document.createElement('table');
+
+	const setAttributes = function (element, attributes) {
+		if (attributes) {
+			if (attributes.classList)
+				attributes.classList.forEach(c => element.classList.add(c));
+
+			Object.keys(attributes).filter(attr => attr !== 'classList')
+				.forEach(attr => element.setAttribute(attr, attributes[attr]));
+		}
+	}
+
 	if (firstRowIsHeader) {
 		const tr = document.createElement('tr');
-		// still have to use innerHTML for now, since my attributes are in string form
-		let trHTML = '';
 		tableColumns.forEach((column, colIndex) => {
-			trHTML += `<th${attributeStringsByColumn[colIndex][0]}>${column[0]}</th>`;
+			const th = document.createElement('th');
+			setAttributes(th, attributesByColumn[colIndex][0]);
+			th.textContent = column[0];
+
+			tr.appendChild(th);
 		});
-		tr.innerHTML = trHTML;
 		table.appendChild(tr);
 	}
 
@@ -474,21 +488,14 @@ function createTableByColumn(firstRowIsHeader, tableColumns, attributeStringsByC
 		}
 
 		const tr = document.createElement('tr');
-		let trHTML = '';
 		tableColumns.forEach((column, colIndex) => {
-			trHTML += '<td';
+			const td = document.createElement('td');
 			if (row < column.length) {
-				trHTML += attributeStringsByColumn[colIndex][row];
-				trHTML += '>';
-				trHTML += column[row];
-				trHTML += '</td>';
-
+				setAttributes(td, attributesByColumn[colIndex][row]);
+				td.textContent = column[row];
 			}
-			else {
-				trHTML += '></td>';
-			}
+			tr.appendChild(td);
 		});
-		tr.innerHTML = trHTML;
 
 		table.appendChild(tr);
 	}
@@ -584,47 +591,46 @@ function updateScoresForRound(myGameState, serverGameState) {
 
 function updateTotalScores(serverGameState) {
 	const tableColumns = [['Round']];
-	const attributeStringsByColumn = [['']];
-	const totalsRow = [];
+	const attributesByColumn = [[null]];
 	let atLeastOneRoundHasBeenRecorded = false;
 
 	serverGameState.scores.forEach((totalScoresObject, teamIndex) => {
 		let teamName = totalScoresObject.name;
 		let scoreList = totalScoresObject.scores;
 		const singleColumn = [];
-		const singleAttributeStringColumn = [];
+		const singleAttributeColumn = [];
 
 		tableColumns.push(singleColumn);
-		attributeStringsByColumn.push(singleAttributeStringColumn);
+		attributesByColumn.push(singleAttributeColumn);
 
 		singleColumn.push(teamName);
-		singleAttributeStringColumn.push('');
+		singleAttributeColumn.push(null);
 
 		let total = 0;
 		scoreList.forEach((score, row) => {
 			atLeastOneRoundHasBeenRecorded = true;
 			if (teamIndex === 0) {
 				tableColumns[0].push((row + 1).toString());
-				attributeStringsByColumn[0].push('');
+				attributesByColumn[0].push('');
 			}
 			singleColumn.push(score);
-			singleAttributeStringColumn.push(' class="scoreRowClass"');
+			singleAttributeColumn.push({ classList: ['scoreRowClass'] });
 
 			total += parseInt(score);
 		});
 
 		if (teamIndex === 0) {
 			tableColumns[0].push('Total');
-			attributeStringsByColumn[0].push(' class="totalClass"');
+			attributesByColumn[0].push({ classList: ['totalClass'] });
 		}
 		singleColumn.push(total.toString());
-		singleAttributeStringColumn.push(' class="totalClass"');
+		singleAttributeColumn.push({ classList: ['totalClass'] });
 	});
 
 	if (atLeastOneRoundHasBeenRecorded) {
 		const header = document.createElement('h2');
 		header.textContent = 'Total Scores';
-		const table = createTableByColumn(true, tableColumns, attributeStringsByColumn);
+		const table = createTableByColumn(true, tableColumns, attributesByColumn);
 
 		setChildren('totalScoresDiv', header, table);
 	}
