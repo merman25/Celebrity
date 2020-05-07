@@ -1,5 +1,5 @@
 function sendUsername(name) {
-    fetch('username', { method: 'POST', body: 'username=' + name })
+    fetch('username', { method: 'POST', body: `username=${name}` })
         .catch(err => console.error(err));
 }
 
@@ -11,7 +11,7 @@ async function sendIWillHost() {
 }
 
 async function retrieveGameStateByHTTP() {
-    const fetchResult = await fetch('requestGameState', { method: 'POST', body: 'gameID=' + gameID });
+    const fetchResult = await fetch('requestGameState', { method: 'POST', body: `gameID=${gameID}` });
     const result = await fetchResult.json();
 
     return result;
@@ -28,7 +28,7 @@ function sendAllocateTeamsRequest() {
 }
 
 async function sendGameIDResponseRequest(enteredGameID) {
-    const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: 'gameID=' + enteredGameID });
+    const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: `gameID=${enteredGameID}` });
     const result = await fetchResult.json();
 
     return result;
@@ -64,7 +64,7 @@ function sendStartTurnRequest() {
 }
 
 function sendUpdateCurrentNameIndex(newNameIndex) {
-    fetch('setCurrentNameIndex', { method: 'POST', body: 'newNameIndex=' + newNameIndex })
+    fetch('setCurrentNameIndex', { method: 'POST', body: `newNameIndex=${newNameIndex}` })
         .catch(err => console.error(err));
 }
 
@@ -74,7 +74,7 @@ function sendStartNextRoundRequest() {
 }
 
 async function sendPassRequest(passNameIndex) {
-    const fetchResult = await fetch('pass', { method: 'POST', body: 'passNameIndex=' + passNameIndex });
+    const fetchResult = await fetch('pass', { method: 'POST', body: `passNameIndex=${passNameIndex}` });
     const result = await fetchResult.json();
 
     return result;
@@ -86,22 +86,22 @@ function sendEndTurnRequest() {
 }
 
 function sendPutInTeamRequest(playerID, teamIndex) {
-    fetch('putInTeam', { method: 'POST', body: 'playerID=' + playerID + '&teamIndex=' + teamIndex })
+    fetch('putInTeam', { method: 'POST', body: `playerID=${playerID}&teamIndex=${teamIndex}` })
         .catch(err => console.error(err));
 }
 
 function sendRemoveFromGameRequest(playerID) {
-    fetch('removeFromGame', { method: 'POST', body: 'playerID=' + playerID })
+    fetch('removeFromGame', { method: 'POST', body: `playerID=${playerID}` })
         .catch(err => console.error(err));
 }
 
 function sendMoveInTeamRequest(playerID, moveDownOrLater) {
     const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
-    fetch(apiCall, { method: 'POST', body: 'playerID=' + playerID })
+    fetch(apiCall, { method: 'POST', body: `playerID=${playerID}` })
         .catch(err => console.error(err));
 }
 
 function sendMakePlayerNextInTeamRequest(playerID) {
-	fetch('makeNextInTeam', { method: 'POST', body: 'playerID=' + playerID })
+	fetch('makeNextInTeam', { method: 'POST', body: `playerID=${playerID}` })
 		.catch(err => console.error(err));
 }

@@ -64,7 +64,7 @@ async function hostNewGame() {
 		const resultObject = await sendIWillHost();
 		myGameState.gameID = resultObject.gameID;
 
-		document.getElementById('gameIDDiv').innerHTML = '<hr><h2>Game ID: ' + myGameState.gameID + '</h2>';
+		document.getElementById('gameIDDiv').innerHTML = `<hr><h2>Game ID: ${myGameState.gameID}</h2>`;
 		updateGameInfo('<p>Waiting for others to join...</p>');
 
 		if (!useSocket) {
@@ -80,7 +80,7 @@ function tryToOpenSocket() {
 			const currentURL = window.location.href;
 			const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
 				.replace(/:[0-9]+.*$/, '');
-			webSocket = new WebSocket('ws://' + currentHostName + ':8001/');
+			webSocket = new WebSocket(`ws://${currentHostName}:8001/`);
 			webSocket.onerror = evt => {
 				console.error('Error in websocket');
 				console.error(evt);
@@ -100,7 +100,7 @@ function tryToOpenSocket() {
 				if (sessionID == null) {
 					sessionID = 'UNKNOWN';
 				}
-				webSocket.send('session=' + sessionID);
+				webSocket.send(`session=${sessionID}`);
 
 			};
 
@@ -127,7 +127,7 @@ function tryToOpenSocket() {
 					updateCountdownClock(secondsRemaining);
 				}
 				else if (evt.data !== 'client-pong') {
-					console.log('message: ' + evt.data);
+					console.log(`message: ${evt.data}`);
 				}
 			};
 
@@ -217,7 +217,7 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 			if (currentPlayer != null) {
 				let currentPlayerName = myDecode(currentPlayer.name);
 
-				document.getElementById('gameStatusDiv').innerHTML = 'Waiting for ' + currentPlayerName + ' to start turn';
+				document.getElementById('gameStatusDiv').innerHTML = `Waiting for ${currentPlayerName} to start turn`;
 			}
 			else {
 				document.getElementById('gameStatusDiv').innerHTML = 'I don\'t know whose turn it is any more :(';
@@ -257,8 +257,8 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 					menuHTML += '<li class="separator"></li>';
 
 					for (let j = 0; j < serverGameState.teams.length; j++) {
-						menuHTML += '<li id="changeToTeam' + j + '" class="menuItem">';
-						menuHTML += 'Put in ' + serverGameState.teams[j].name;
+						menuHTML += `<li id="changeToTeam${j}" class="menuItem">`;
+						menuHTML += `Put in ${serverGameState.teams[j].name}`;
 						menuHTML += '</li>';
 					}
 
@@ -267,7 +267,7 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 					document.getElementById('teamlessPlayerContextMenuDiv').innerHTML = menuHTML;
 
 					for (let j = 0; j < serverGameState.teams.length; j++) {
-						document.getElementById('changeToTeam' + j).addEventListener('click', event => {
+						document.getElementById(`changeToTeam${j}`).addEventListener('click', event => {
 							sendPutInTeamRequest(playerID, j);
 							hideAllContextMenus();
 						});
@@ -280,8 +280,8 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 
 					let contextMenu = document.getElementById('contextMenuForTeamlessPlayer');
 					contextMenu.style.display = 'block';
-					contextMenu.style.left = (event.pageX - 10) + 'px';
-					contextMenu.style.top = (event.pageY - 10) + 'px';
+					contextMenu.style.left = `${(event.pageX - 10)}px`;
+					contextMenu.style.top = `${(event.pageY - 10)}px`;
 
 
 				});
@@ -299,7 +299,7 @@ function updateDOMForWaitingForNames(myGameState, serverGameState) {
 	if (serverGameState.status == 'WAITING_FOR_NAMES') {
 		let numPlayersToWaitFor = serverGameState.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
-			document.getElementById('gameStatusDiv').innerHTML = 'Waiting for names from ' + numPlayersToWaitFor + ' player(s)';
+			document.getElementById('gameStatusDiv').innerHTML = `Waiting for names from ${numPlayersToWaitFor} player(s)`;
 		}
 		else {
 			document.getElementById('gameStatusDiv').innerHTML = '';
@@ -371,10 +371,10 @@ function updateTeamTable(myGameState, serverGameState) {
 
 			htmlTeamList += '<tr>\n';
 			for (let col = 0; col < tableColumns.length; col++) {
-				htmlTeamList += '<td class="playerInTeamTDClass' + tdExtraClassString + '"';
+				htmlTeamList += `<td class="playerInTeamTDClass${tdExtraClassString}"`;
 				if (row < tableColumns[col].length) {
 					let playerID = playerIDs[col][row];
-					htmlTeamList += ' playerID="' + playerID + '" teamindex="' + col + '" playerindex="' + row + '">';
+					htmlTeamList += `playerID="${playerID}" teamindex="${col}" playerindex="${row}">`;
 					htmlTeamList += tableColumns[col][row];
 				}
 				else {
@@ -406,21 +406,21 @@ function updateTeamTable(myGameState, serverGameState) {
 
 					for (let j = 0; j < serverGameState.teams.length; j++) {
 						if (j !== teamIndex) {
-							menuHTML += '<li id="changePlayerInTeamToTeam' + j + '" class="menuItem">';
-							menuHTML += 'Put in ' + serverGameState.teams[j].name;
+							menuHTML += `<li id="changePlayerInTeamToTeam${j}" class="menuItem">`;
+							menuHTML += `Put in ${serverGameState.teams[j].name}`;
 							menuHTML += '</li>';
 						}
 					}
 					menuHTML += '<li id="moveUp" class="menuItem">Move up</li>';
 					menuHTML += '<li id="moveDown" class="menuItem">Move down</li>';
-					menuHTML += '<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ' + serverGameState.teams[teamIndex].name + '</li>';
+					menuHTML += `<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ${serverGameState.teams[teamIndex].name}</li>`;
 					menuHTML += '</ul>';
 
 					document.getElementById('playerInTeamContextMenuDiv').innerHTML = menuHTML;
 
 
 					for (let j = 0; j < serverGameState.teams.length; j++) {
-						let changePlayerToTeamLiElement = document.getElementById('changePlayerInTeamToTeam' + j);
+						let changePlayerToTeamLiElement = document.getElementById(`changePlayerInTeamToTeam${j}`);
 						if (changePlayerToTeamLiElement != null) {
 							changePlayerToTeamLiElement.addEventListener('click', event => {
 								sendPutInTeamRequest(playerIDOfPlayerInTeam, j);
@@ -452,8 +452,8 @@ function updateTeamTable(myGameState, serverGameState) {
 
 					let contextMenu = document.getElementById('playerInTeamContextMenu');
 					contextMenu.style.display = 'block';
-					contextMenu.style.left = (event.pageX - 10) + 'px';
-					contextMenu.style.top = (event.pageY - 10) + 'px';
+					contextMenu.style.left = `${(event.pageX - 10)}px`;
+					contextMenu.style.top = `${(event.pageY - 10)}px`;
 
 					contextMenu.addEventListener('mouseleave', event => {
 						hideAllContextMenus();
@@ -470,10 +470,10 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 	const playerTeamIndex = serverGameState.yourTeamIndex;
 	const nextTeamIndex = serverGameState.nextTeamIndex;
 
-	let htmlParams = '<p>You\'re playing as ' + playerName;
+	let htmlParams = `<p>You\'re playing as ${playerName}`;
 	if (playerTeamIndex >= 0
 		&& serverGameState.teams.length > playerTeamIndex) {
-		htmlParams += ' on ' + serverGameState.teams[playerTeamIndex].name;
+		htmlParams += ` on ${serverGameState.teams[playerTeamIndex].name}`;
 	}
 	htmlParams += '.</p>';
 
@@ -485,19 +485,19 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 		if (nextTeamIndex === playerTeamIndex) {
 			if (myGameState.myPlayerID !== serverGameState.currentPlayerID) {
 				if (serverGameState.status === 'PLAYING_A_TURN') {
-					htmlParams += '<p>You\'re guessing while ' + myDecode(serverGameState.currentPlayer.name) + ' plays, <b>pay attention!</b></p>';
+					htmlParams += `<p>You\'re guessing while ${myDecode(serverGameState.currentPlayer.name)} plays, <b>pay attention!</b></p>`;
 				}
 				else {
-					htmlParams += '<p>On the next turn, you\'ll be guessing while ' + myDecode(serverGameState.currentPlayer.name) + ' plays. <b>Pay attention!</b></p>';
+					htmlParams += `<p>On the next turn, you\'ll be guessing while ${myDecode(serverGameState.currentPlayer.name)} plays. <b>Pay attention!</b></p>`;
 				}
 			}
 		}
 		else if (playerTeamIndex >= 0) {
 			if (serverGameState.status === 'PLAYING_A_TURN') {
-				htmlParams += '<p>' + serverGameState.teams[nextTeamIndex].name + ' is playing now, you\'re not on that team. <b>Don\'t say anything!</b></p>';
+				htmlParams += `<p>${serverGameState.teams[nextTeamIndex].name} is playing now, you\'re not on that team. <b>Don\'t say anything!</b></p>`;
 			}
 			else {
-				htmlParams += '<p>' + serverGameState.teams[nextTeamIndex].name + ' will play on the next turn, you\'re not on that team. <b>Don\'t say anything!</b></p>';
+				htmlParams += `<p>${serverGameState.teams[nextTeamIndex].name} will play on the next turn, you\'re not on that team. <b>Don\'t say anything!</b></p>`;
 			}
 		}
 	}
@@ -506,14 +506,14 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
 	}
 	else if (serverGameState.host != null) {
-		htmlParams += '<p>' + myDecode(serverGameState.host.name) + ' is hosting.</p>';
+		htmlParams += `<p>${myDecode(serverGameState.host.name)} is hosting.</p>`;
 	}
 
 	let numRounds = serverGameState.rounds;
 	if (numRounds > 0) {
 		htmlParams += '<h2>Settings</h2>\n' +
-			'Rounds: ' + numRounds + '<br>\n' +
-			'Round duration (sec): ' + serverGameState.duration + '<br>\n<hr>\n';
+			`Rounds: ${numRounds}<br>\n` +
+			`Round duration (sec): ${serverGameState.duration}<br>\n<hr>\n`;
 	}
 	document.getElementById('gameParamsDiv').innerHTML = htmlParams;
 }
@@ -529,12 +529,12 @@ function updateScoresForRound(myGameState, serverGameState) {
 		let namesAchievedList = namesAchievedObject.namesAchieved;
 
 		scoresHTML += '<div style="padding-right: 4rem;">\n';
-		scoresHTML += '<h3>' + teamName + '</h3>\n';
+		scoresHTML += `<h3>${teamName}</h3>\n`;
 		let score = namesAchievedList.length;
 		if (score > 0) {
 			atLeastOneNonZeroScore = true;
 		}
-		scoresHTML += 'Score: ' + score + '\n';
+		scoresHTML += `Score: ${score}\n`;
 		scoresHTML += '<ol>\n';
 		for (let j = 0; j < namesAchievedList.length; j++) {
 			scoresHTML += `<li class="achievedNameLi team${t}">${myDecode(namesAchievedList[j])}</li>\n`;
@@ -587,7 +587,7 @@ function updateTotalScores(myGameState, serverGameState) {
 
 		totalScoresHTML += '<tr>\n';
 		for (let i = 0; i < tableHeaders.length; i++) {
-			totalScoresHTML += '<th>' + tableHeaders[i] + '</th>';
+			totalScoresHTML += `<th>${tableHeaders[i]}</th>`;
 		}
 		totalScoresHTML += '</tr>\n';
 
@@ -604,7 +604,7 @@ function updateTotalScores(myGameState, serverGameState) {
 				if (row == tableColumns[col].length - 1) {
 					tdStyleString = ' class="totalClass">';
 				}
-				totalScoresHTML += '<td' + tdStyleString + tableColumns[col][row] + '</td>';
+				totalScoresHTML += `<td${tdStyleString}${tableColumns[col][row]}</td>`;
 			}
 			totalScoresHTML += '</tr>\n';
 		}
@@ -666,7 +666,7 @@ async function askGameIDResponse() {
 
 			myGameState.gameID = result.GameID;
 
-			document.getElementById('gameIDDiv').innerHTML = '<hr><h2>Game ID: ' + myGameState.gameID + '</h2>';
+			document.getElementById('gameIDDiv').innerHTML = `<hr><h2>Game ID: ${myGameState.gameID}</h2>`;
 			if (gameResponse === 'OK') {
 				updateGameInfo('<p>Waiting for others to join...</p>');
 
@@ -768,11 +768,11 @@ function addNameRequestForm() {
 	let html = '<form id="nameListForm" method="post" onsubmit="return false;">\n';
 	for (let i = 1; i <= serverGameState.numNames; i++) {
 		html += '<div class="col-label">\n';
-		html += '<label for="name' + i + '">Name ' + i + '</label>\n';
+		html += `<label for="name${i}">Name ${i}</label>\n`;
 		html += '</div>\n';
 
 		html += '<div class="col-textfield">\n';
-		html += '<input id="name' + i + '" name="name' + i + '" type="text">\n';
+		html += `<input id="name${i}" name="name${i}" type="text">\n`;
 		html += '</div>\n';
 	}
 
@@ -812,7 +812,7 @@ function startTurn() {
 function updateCurrentNameDiv() {
 	if (myGameState.iAmPlaying) {
 		currentName = myDecode(serverGameState.nameList[myGameState.currentNameIndex]);
-		document.getElementById('currentNameDiv').innerHTML = 'Name: ' + currentName;
+		document.getElementById('currentNameDiv').innerHTML = `Name: ${currentName}`;
 	}
 	else {
 		document.getElementById('currentNameDiv').innerHTML = '';
@@ -867,7 +867,7 @@ function hideAllContextMenus() {
 }
 
 function updateCountdownClock(secondsRemaining) {
-	document.getElementById('gameStatusDiv').innerHTML = 'Seconds remaining: ' + secondsRemaining;
+	document.getElementById('gameStatusDiv').innerHTML = `Seconds remaining: ${secondsRemaining}`;
 }
 
 function setTestBotInfo(testBotInfo) {
