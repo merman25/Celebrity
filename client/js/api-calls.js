@@ -1,5 +1,6 @@
 function sendUsername(name) {
-    fetch('username', { method: 'POST', body: `username=${name}` })
+    const data = JSON.stringify({ username: name });
+    fetch('username', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
@@ -11,14 +12,16 @@ async function sendIWillHost() {
 }
 
 async function retrieveGameStateByHTTP() {
-    const fetchResult = await fetch('requestGameState', { method: 'POST', body: `gameID=${gameID}` });
+    const data = JSON.stringify({ gameID });
+    const fetchResult = await fetch('requestGameState', { method: 'POST', body: data });
     const result = await fetchResult.json();
 
     return result;
 }
 
 function sendGameParams(numRounds, roundDuration, numNames) {
-    fetch('gameParams', { method: 'POST', body: `numRounds=${numRounds}&roundDuration=${roundDuration}&numNames=${numNames}` })
+    const data = JSON.stringify({ numRounds, roundDuration, numNames });
+    fetch('gameParams', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
@@ -28,7 +31,8 @@ function sendAllocateTeamsRequest() {
 }
 
 async function sendGameIDResponseRequest(enteredGameID) {
-    const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: `gameID=${enteredGameID}` });
+    const data = JSON.stringify({ gameID: enteredGameID });
+    const fetchResult = await fetch('askGameIDResponse', { method: 'POST', body: data });
     const result = await fetchResult.json();
 
     return result;
@@ -40,16 +44,9 @@ function sendNameRequest() {
 }
 
 function sendNameList(nameArr) {
-    let requestBody = '';
-    nameArr.forEach((name, i) => {
-        if (requestBody.length > 0) requestBody += '&';
-        const paramName = `name${i + 1}`;
-        requestBody += paramName;
-        requestBody += '=';
-        requestBody += name;
-    });
+    const data = JSON.stringify({ nameList: nameArr });
 
-    fetch('nameList', { method: 'POST', body: requestBody })
+    fetch('nameList', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
@@ -64,7 +61,8 @@ function sendStartTurnRequest() {
 }
 
 function sendUpdateCurrentNameIndex(newNameIndex) {
-    fetch('setCurrentNameIndex', { method: 'POST', body: `newNameIndex=${newNameIndex}` })
+    const data = JSON.stringify({ newNameIndex });
+    fetch('setCurrentNameIndex', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
@@ -74,7 +72,8 @@ function sendStartNextRoundRequest() {
 }
 
 async function sendPassRequest(passNameIndex) {
-    const fetchResult = await fetch('pass', { method: 'POST', body: `passNameIndex=${passNameIndex}` });
+    const data = JSON.stringify({ passNameIndex });
+    const fetchResult = await fetch('pass', { method: 'POST', body: data });
     const result = await fetchResult.json();
 
     return result;
@@ -86,22 +85,26 @@ function sendEndTurnRequest() {
 }
 
 function sendPutInTeamRequest(playerID, teamIndex) {
-    fetch('putInTeam', { method: 'POST', body: `playerID=${playerID}&teamIndex=${teamIndex}` })
+    const data = JSON.stringify({ playerID, teamIndex });
+    fetch('putInTeam', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
 function sendRemoveFromGameRequest(playerID) {
-    fetch('removeFromGame', { method: 'POST', body: `playerID=${playerID}` })
+    const data = JSON.stringify({ playerID });
+    fetch('removeFromGame', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
 function sendMoveInTeamRequest(playerID, moveDownOrLater) {
+    const data = JSON.stringify({ playerID });
     const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
-    fetch(apiCall, { method: 'POST', body: `playerID=${playerID}` })
+    fetch(apiCall, { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
 
 function sendMakePlayerNextInTeamRequest(playerID) {
-	fetch('makeNextInTeam', { method: 'POST', body: `playerID=${playerID}` })
-		.catch(err => console.error(err));
+    const data = JSON.stringify({ playerID });
+    fetch('makeNextInTeam', { method: 'POST', body: data })
+        .catch(err => console.error(err));
 }

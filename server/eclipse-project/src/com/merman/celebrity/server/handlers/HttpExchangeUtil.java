@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.WeakHashMap;
 
+import org.json.JSONObject;
+
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
@@ -35,7 +37,7 @@ public class HttpExchangeUtil {
 		return requestBody;
 	}
 	
-	public static LinkedHashMap<String, String> getRequestBodyAsMap( HttpExchange aExchange ) {
+	public static LinkedHashMap<String, Object> getRequestBodyAsMap( HttpExchange aExchange ) {
 		String firstLine = "";
 		List<String> requestBody = getRequestBody(aExchange);
 		if ( ! requestBody.isEmpty() ) {
@@ -44,16 +46,14 @@ public class HttpExchangeUtil {
 		return toMap(firstLine);
 	}
 	
-	public static LinkedHashMap<String, String>	toMap( String aKeyValuePairStringSeparatedByAmpersand ) {
-		LinkedHashMap<String, String>		map		= new LinkedHashMap<>();
+	public static LinkedHashMap<String, Object>	toMap( String aJSONString ) {
+		LinkedHashMap<String, Object>		map		= new LinkedHashMap<>();
 
-		String[] splitOnAmpersand = aKeyValuePairStringSeparatedByAmpersand.split("&");
-		for (int i = 0; i < splitOnAmpersand.length; i++) {
-			String element = splitOnAmpersand[i];
-			int indexOfEquals = element.indexOf('=');
-			if ( indexOfEquals > 0
-					&& indexOfEquals < element.length() - 1 ) {
-				map.put(element.substring(0, indexOfEquals), element.substring(indexOfEquals + 1 ) );
+		if ( ! aJSONString.isEmpty() ) {
+			JSONObject jsonObject = new JSONObject(aJSONString);
+			String[] names = JSONObject.getNames(jsonObject);
+			for (String name : names) {
+				map.put(name, jsonObject.get(name));
 			}
 		}
 		

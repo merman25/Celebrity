@@ -19,13 +19,13 @@ public abstract class AHttpHandler2 implements IContextHandler {
 		if ( sessionID != null ) {
 			Session session = SessionManager.getSession(sessionID);
 			if ( session != null ) {
-				Map<String,String> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
+				Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 				_handle( session, requestBodyAsMap, aHttpExchange );
 			}
 		}
 	}
 
-	protected abstract void _handle(Session aSession, Map<String, String> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException;
+	protected abstract void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException;
 	
 	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
 		aExchange.sendResponseHeaders(aCode, aResponse.getBytes().length);

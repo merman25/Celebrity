@@ -32,19 +32,6 @@ document.getElementById('gotNameButton').addEventListener('click', gotName);
 document.getElementById('passButton').addEventListener('click', pass);
 document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
 
-
-function htmlEscape(string) {
-	return string.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/\"/g, '&quot;')
-		.replace(/\'/g, '&#39');
-}
-
-function myDecode(string) {
-	return htmlEscape(decodeURIComponent(string.replace(/\+/g, ' ')));
-}
-
 function removeChildren(elementOrID) {
 	const element = typeof (elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
 	while (element.firstChild)
@@ -240,7 +227,7 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 
 			const currentPlayer = serverGameState.currentPlayer;
 			if (currentPlayer != null) {
-				let currentPlayerName = myDecode(currentPlayer.name);
+				let currentPlayerName = currentPlayer.name;
 
 				document.getElementById('gameStatusDiv').textContent = `Waiting for ${currentPlayerName} to start turn`;
 			}
@@ -360,7 +347,7 @@ function updateTeamTable(myGameState, serverGameState) {
 			singleAttributeColumn.push(null);
 
 			team.playerList.forEach((player, row) => {
-				singleColumn.push(myDecode(player.name));
+				singleColumn.push(player.name);
 				const attributes = {
 					classList: ['playerInTeamTDClass'],
 					playerID: player.publicID,
@@ -514,7 +501,7 @@ function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn)
 }
 
 function updateCurrentPlayerInfo(myGameState, serverGameState) {
-	const playerName = myDecode(serverGameState.yourName);
+	const playerName = serverGameState.yourName;
 	const playerTeamIndex = serverGameState.yourTeamIndex;
 	const nextTeamIndex = serverGameState.nextTeamIndex;
 
@@ -841,7 +828,7 @@ function startTurn() {
 
 function updateCurrentNameDiv() {
 	if (myGameState.iAmPlaying) {
-		currentName = myDecode(serverGameState.nameList[myGameState.currentNameIndex]);
+		currentName = serverGameState.nameList[myGameState.currentNameIndex];
 		document.getElementById('currentNameDiv').textContent = `Name: ${currentName}`;
 	}
 	else {

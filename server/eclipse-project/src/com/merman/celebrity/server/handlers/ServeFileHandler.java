@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.function.Function;
 
 import com.merman.celebrity.server.HTTPResponseConstants;
@@ -25,13 +24,6 @@ public class ServeFileHandler extends AHttpHandler {
 	@Override
 	protected void _handle(HttpExchange aExchange) throws IOException {
 		Headers requestHeaders = aExchange.getRequestHeaders();
-		List<String> contentTypeList = requestHeaders.get( "Content-type" );
-		if ( contentTypeList != null
-				&& contentTypeList.contains( "application/x-www-form-urlencoded" ) ) {
-			
-			FormHandlerRegistry.handleExchange( aExchange );
-			return;
-		}
 		
 //		dumpRequest(aExchange);
 		

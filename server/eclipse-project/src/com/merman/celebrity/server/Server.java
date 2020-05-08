@@ -15,8 +15,6 @@ import org.json.JSONObject;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.server.handlers.AnnotatedMethodBasedHttpHandler;
-import com.merman.celebrity.server.handlers.FormHandler;
-import com.merman.celebrity.server.handlers.FormHandlerRegistry;
 import com.merman.celebrity.server.handlers.ServeFileHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -78,24 +76,8 @@ public class Server {
 
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
-			if ( handler.getRequestType() == RequestType.GET_OR_POST ) {
-				System.out.println("adding context " + handler.getContextName());
-				server.createContext("/" + handler.getContextName(), handler);
-			}
-			else if ( handler.getRequestType() == RequestType.FORM ) {
-				System.out.println("adding form handler " + handler.getContextName());
-				FormHandlerRegistry.addHandler(new FormHandler(handler.getContextName(), handler) {
-
-					@Override
-					public boolean hasResponded() {
-						return true;
-					}
-
-				});
-			}
-			else {
-				System.err.println("Unknown request type: " + handler.getRequestType());
-			}
+			System.out.println("adding context " + handler.getContextName());
+			server.createContext("/" + handler.getContextName(), handler);
 		}
 		
 //		server.createContext( "/", new TestHandler("") );

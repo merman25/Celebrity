@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.merman.celebrity.server.HTTPResponseConstants;
-import com.merman.celebrity.server.RequestType;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
@@ -24,7 +24,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 	private final String name;
 	private final Method method;
 	private final List<MyMethodArg> methodArgs;
-	private final RequestType requestType;
 	
 	private static class MyMethodArg {
 		private String name;
@@ -55,7 +54,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 		
 		name = requestName;
 		method = aMethod;
-		requestType = httpRequestAnnotation.requestType();
 		methodArgs = new ArrayList<>();
 		
 		Parameter[] parameters = method.getParameters();
@@ -86,40 +84,39 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 	}
 
 	@Override
-	protected void _handle(Session aSession, Map<String, String> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException {
+	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException {
 		Object[] argValues = new Object[methodArgs.size() + 1];
 		argValues[0] = aSession;
 		for (int i = 0; i < methodArgs.size(); i++) {
 			MyMethodArg methodArg = methodArgs.get(i);
 			String argName = methodArg.name;
 			Class<?> parameterType = methodArg.clazz;
-			String valueString = aRequestBodyAsMap.get(argName);
+			Object value = aRequestBodyAsMap.get(argName);
 
 			try {
 				Object parameterValue;
 				if ( methodArg.clazz == List.class ) {
+					JSONArray			jsonArray				= (JSONArray) value;
 					List<String>		parameterValueList		= new ArrayList<>();
-					String parameterNameRoot = argName.replaceFirst("(?i)List$", "" );
-					for ( int listIndex=1;; listIndex++ ) {
-						String parameterValueListElement = aRequestBodyAsMap.get( parameterNameRoot + listIndex );
-						if ( parameterValueListElement == null ) {
-							break;
-						}
-						
-						parameterValueList.add(parameterValueListElement);
-					}
-					
+					jsonArray.forEach(element -> parameterValueList.add((String) element));
 					parameterValue = parameterValueList;
 				}
+				else if (value instanceof String
+						&& methodArg.clazz != String.class ) {
+					parameterValue = ParameterParserRegistry.parseParameter((String) value, parameterType);
+				}
+				else if (value != null) {
+					parameterValue = value;
+				}
 				else {
-					if ( valueString == null ) {
-						throw new IOException("Request " + getContextName() + " missing required parameter: " + argName);
-					}
-					parameterValue = ParameterParserRegistry.parseParameter(valueString, parameterType);
+					throw new IOException("Request " + getContextName() + " missing required parameter: " + argName);
 				}
 				argValues[i+1] = parameterValue;
 			} catch (ParseException e) {
-				throw new IOException(String.format("Cannot parse parameter %s [%s] as %s", argName, valueString, parameterType.getSimpleName()), e);
+				throw new IOException(String.format("Cannot parse parameter %s [%s] as %s", argName, value, parameterType.getSimpleName()), e);
+			}
+			catch (RuntimeException e) {
+				e.printStackTrace();
 			}
 		}
 		
@@ -189,10 +186,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
 		}
 		
 		return handlerList;
-	}
-
-	public RequestType getRequestType() {
-		return requestType;
 	}
 
 	public String getName() {

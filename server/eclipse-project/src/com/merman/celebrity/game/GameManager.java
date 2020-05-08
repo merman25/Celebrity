@@ -2,8 +2,6 @@ package com.merman.celebrity.game;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -185,11 +183,6 @@ public class GameManager {
 		for (int playerIndex = 0; playerIndex < numOtherPlayers; playerIndex++) {
 			Player player = PlayerManager.createPlayer();
 			String randomName = createRandomName();
-			try {
-				randomName = URLEncoder.encode( randomName, "UTF-8" );
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
 			player.setName( randomName );
 			
 			game.addPlayer(player);
@@ -236,11 +229,6 @@ public class GameManager {
 		List<String>		randomNameList		= new ArrayList<String>();
 		for (int i = 0; i < aNumNames; i++) {
 			String randomName = createRandomName();
-			try {
-				randomName = URLEncoder.encode( randomName, "UTF-8" );
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
 			randomNameList.add( randomName );
 		}
 		return randomNameList;
