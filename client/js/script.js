@@ -253,68 +253,68 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 	let playerList = serverGameState.players;
 
 	if (playerList.length > 0) {
-		let htmlList = '<h3>Players</h3>\n<ul id="teamlessPlayerUl">\n';
+		const heading = createDOMElement('h3', 'Players');
+		const ul = document.createElement('ul');
 
-		let spanClassString = '';
-		if (myGameState.iAmHosting) {
-			spanClassString = ' class="rightClickable"';
-		}
-		for (let i = 0; i < playerList.length; i++) {
-			htmlList += `<li class="teamlessPlayerLiClass"><span playerID="${playerList[i].publicID}"${spanClassString}>${myDecode(playerList[i].name)}</span></li>\n`;
-		}
-		htmlList += '</ul>';
-		document.getElementById('playerList').innerHTML = htmlList;
+		playerList.forEach(player => {
+			const li = createDOMElement('li', '', { classList: ['teamlessPlayerLiClass'] });
+			const span = createDOMElement('span', player.name, {
+				playerID: player.publicID,
+				classList: myGameState.iAmHosting ? ['rightClickable'] : []
+			});
+			li.appendChild(span);
+			ul.appendChild(li);
+		});
+		setChildren('playerList', heading, ul);
 
 		if (myGameState.iAmHosting
 			&& serverGameState.teams.length > 0) {
-			let teamlessPlayerLiElements = document.querySelectorAll('.teamlessPlayerLiClass');
-			for (let i = 0; i < teamlessPlayerLiElements.length; i++) {
-				let teamlessPlayerLi = teamlessPlayerLiElements[i];
-
-				teamlessPlayerLi.addEventListener('contextmenu', event => {
-					let playerID = event.target.getAttribute('playerID');
-					event.preventDefault();
-
-					let menuHTML = '<ul id="contextMenuForTeamlessPlayer" class="contextMenuClass">';
-					menuHTML += '<li class="menuItem" id="removeTeamlessPlayerFromGame">Remove From Game</li>';
-					menuHTML += '<li class="separator"></li>';
-
-					for (let j = 0; j < serverGameState.teams.length; j++) {
-						menuHTML += `<li id="changeToTeam${j}" class="menuItem">`;
-						menuHTML += `Put in ${serverGameState.teams[j].name}`;
-						menuHTML += '</li>';
-					}
-
-					menuHTML += '</ul>';
-
-					document.getElementById('teamlessPlayerContextMenuDiv').innerHTML = menuHTML;
-
-					for (let j = 0; j < serverGameState.teams.length; j++) {
-						document.getElementById(`changeToTeam${j}`).addEventListener('click', event => {
-							sendPutInTeamRequest(playerID, j);
-							hideAllContextMenus();
-						});
-					}
-
-					document.getElementById('removeTeamlessPlayerFromGame').addEventListener('click', event => {
-						removeFromGame(playerID);
-						hideAllContextMenus();
-					});
-
-					let contextMenu = document.getElementById('contextMenuForTeamlessPlayer');
-					contextMenu.style.display = 'block';
-					contextMenu.style.left = `${(event.pageX - 10)}px`;
-					contextMenu.style.top = `${(event.pageY - 10)}px`;
-
-
-				});
-			}
-
-
+			addTeamlessPlayerContextMenu();
 		}
 	}
 	else {
-		document.getElementById('playerList').innerHTML = '';
+		removeChildren('playerList');
+	}
+}
+
+function addTeamlessPlayerContextMenu() {
+	let teamlessPlayerLiElements = document.querySelectorAll('.teamlessPlayerLiClass');
+	for (const teamlessPlayerLi of teamlessPlayerLiElements) {
+
+		teamlessPlayerLi.addEventListener('contextmenu', event => {
+			const playerID = event.target.getAttribute('playerID');
+			event.preventDefault();
+
+			const ul = createDOMElement('ul', '', { id: 'contextMenuForTeamlessPlayer', classList: ['contextMenuClass'] });
+			const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removeTeamlessPlayerFromGame', classList: ['menuItem'] });
+			removePlayerLi.addEventListener('click', event => {
+				sendRemoveFromGameRequest(playerID);
+				hideAllContextMenus();
+			})
+			ul.appendChild(removePlayerLi);
+
+			const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
+			ul.appendChild(separatorLi);
+			serverGameState.teams.forEach((team, teamIndex) => {
+				const changeToTeamLi = createDOMElement('li', `Put in ${team.name}`, { id: `changeToTeam${teamIndex}`, classList: ['menuItem'] });
+				changeToTeamLi.addEventListener('click', event => {
+					sendPutInTeamRequest(playerID, teamIndex);
+					hideAllContextMenus();
+				});
+				ul.appendChild(changeToTeamLi);
+			});
+
+			ul.addEventListener('mouseleave', event => {
+				hideAllContextMenus();
+			});
+			setChildren('teamlessPlayerContextMenuDiv', ul);
+
+
+
+			ul.style.left = `${(event.pageX - 10)}px`;
+			ul.style.top = `${(event.pageY - 10)}px`;
+			ul.style.display = 'block';
+		});
 	}
 }
 
@@ -379,101 +379,102 @@ function updateTeamTable(myGameState, serverGameState) {
 		setChildren('teamList', header, table);
 
 		if (myGameState.iAmHosting) {
-			let playerInTeamTDElements = document.querySelectorAll('.playerInTeamTDClass');
-			for (let i = 0; i < playerInTeamTDElements.length; i++) {
-				let playerInTeamTD = playerInTeamTDElements[i];
-
-				playerInTeamTD.addEventListener('contextmenu', event => {
-					event.preventDefault();
-					let playerIDOfPlayerInTeam = event.target.getAttribute('playerID');
-					let teamIndex = parseInt(event.target.getAttribute('teamIndex'));
-
-
-					let menuHTML = '<ul id="playerInTeamContextMenu" class="contextMenuClass">';
-					menuHTML += '<li class="menuItem" id="removePlayerInTeamFromGame">Remove From Game</li>';
-					menuHTML += '<li class="separator"></li>';
-
-					for (let j = 0; j < serverGameState.teams.length; j++) {
-						if (j !== teamIndex) {
-							menuHTML += `<li id="changePlayerInTeamToTeam${j}" class="menuItem">`;
-							menuHTML += `Put in ${serverGameState.teams[j].name}`;
-							menuHTML += '</li>';
-						}
-					}
-					menuHTML += '<li id="moveUp" class="menuItem">Move up</li>';
-					menuHTML += '<li id="moveDown" class="menuItem">Move down</li>';
-					menuHTML += `<li id="makePlayerNextInTeam" class="menuItem">Make this player next in ${serverGameState.teams[teamIndex].name}</li>`;
-					menuHTML += '</ul>';
-
-					document.getElementById('playerInTeamContextMenuDiv').innerHTML = menuHTML;
-
-
-					for (let j = 0; j < serverGameState.teams.length; j++) {
-						let changePlayerToTeamLiElement = document.getElementById(`changePlayerInTeamToTeam${j}`);
-						if (changePlayerToTeamLiElement != null) {
-							changePlayerToTeamLiElement.addEventListener('click', event => {
-								sendPutInTeamRequest(playerIDOfPlayerInTeam, j);
-								hideAllContextMenus();
-							});
-						}
-					}
-
-					document.getElementById('removePlayerInTeamFromGame').addEventListener('click', event => {
-						sendRemoveFromGameRequest(playerIDOfPlayerInTeam);
-						hideAllContextMenus();
-					});
-
-					document.getElementById('moveUp').addEventListener('click', event => {
-						sendMoveInTeamRequest(playerIDOfPlayerInTeam, false);
-						hideAllContextMenus();
-					});
-
-					document.getElementById('moveDown').addEventListener('click', event => {
-						sendMoveInTeamRequest(playerIDOfPlayerInTeam, true);
-						hideAllContextMenus();
-					});
-
-					document.getElementById('makePlayerNextInTeam').addEventListener('click', event => {
-						sendMakePlayerNextInTeamRequest(playerIDOfPlayerInTeam);
-						hideAllContextMenus();
-					});
-
-
-					let contextMenu = document.getElementById('playerInTeamContextMenu');
-					contextMenu.style.display = 'block';
-					contextMenu.style.left = `${(event.pageX - 10)}px`;
-					contextMenu.style.top = `${(event.pageY - 10)}px`;
-
-					contextMenu.addEventListener('mouseleave', event => {
-						hideAllContextMenus();
-					});
-
-				});
-			}
+			addPlayerInTeamContextMenu();
 		}
 	}
+}
+
+function addPlayerInTeamContextMenu() {
+	let playerInTeamTDElements = document.querySelectorAll('.playerInTeamTDClass');
+	for (const playerInTeamTD of playerInTeamTDElements) {
+
+		playerInTeamTD.addEventListener('contextmenu', event => {
+			event.preventDefault();
+			const playerID = event.target.getAttribute('playerID');
+			const teamIndex = parseInt(event.target.getAttribute('teamIndex'));
+
+			const ul = createDOMElement('ul', '', { id: 'playerInTeamContextMenu', classList: ['contextMenuClass'] });
+
+			const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removePlayerInTeamFromGame', classList: ['menuItem'] });
+			removePlayerLi.addEventListener('click', event => {
+				sendRemoveFromGameRequest(playerID);
+				hideAllContextMenus();
+			});
+			ul.appendChild(removePlayerLi);
+
+			const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
+			ul.appendChild(separatorLi);
+
+			serverGameState.teams.forEach((team, otherTeamIndex) => {
+				if (otherTeamIndex !== teamIndex) {
+					const li = createDOMElement('li', `Put in ${team.name}`, { id: `changePlayerInTeamToTeam${otherTeamIndex}`, classList: ['menuItem'] });
+					li.addEventListener('click', event => {
+						sendPutInTeamRequest(playerID, otherTeamIndex);
+						hideAllContextMenus();
+					});
+					ul.appendChild(li);
+				}
+			});
+
+			const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
+			const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
+			const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
+
+			moveUpLi.addEventListener('click', event => {
+				sendMoveInTeamRequest(playerID, false);
+				hideAllContextMenus();
+			});
+
+			moveDownLi.addEventListener('click', event => {
+				sendMoveInTeamRequest(playerID, true);
+				hideAllContextMenus();
+			});
+			makePlayerNextInTeamLi.addEventListener('click', event => {
+				sendMakePlayerNextInTeamRequest(playerID);
+				hideAllContextMenus();
+			});
+
+			appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi);
+
+			setChildren('playerInTeamContextMenuDiv', ul);
+
+			ul.style.left = `${(event.pageX - 10)}px`;
+			ul.style.top = `${(event.pageY - 10)}px`;
+			ul.style.display = 'block';
+
+			ul.addEventListener('mouseleave', event => {
+				hideAllContextMenus();
+			});
+		});
+	}
+}
+
+function setAttributes(element, attributes) {
+	if (attributes) {
+		if (attributes.classList)
+			attributes.classList.forEach(c => element.classList.add(c));
+
+		Object.keys(attributes).filter(attr => attr !== 'classList')
+			.forEach(attr => element.setAttribute(attr, attributes[attr]));
+	}
+}
+
+
+function createDOMElement(elementType, textContent = '', attributes = null) {
+	const element = document.createElement(elementType);
+	setAttributes(element, attributes);
+	element.textContent = textContent;
+	return element;
 }
 
 function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn) {
 	const table = document.createElement('table');
 
-	const setAttributes = function (element, attributes) {
-		if (attributes) {
-			if (attributes.classList)
-				attributes.classList.forEach(c => element.classList.add(c));
-
-			Object.keys(attributes).filter(attr => attr !== 'classList')
-				.forEach(attr => element.setAttribute(attr, attributes[attr]));
-		}
-	}
 
 	if (firstRowIsHeader) {
 		const tr = document.createElement('tr');
 		tableColumns.forEach((column, colIndex) => {
-			const th = document.createElement('th');
-			setAttributes(th, attributesByColumn[colIndex][0]);
-			th.textContent = column[0];
-
+			const th = createDOMElement('th', column[0], attributesByColumn[colIndex][0]);
 			tr.appendChild(th);
 		});
 		table.appendChild(tr);
