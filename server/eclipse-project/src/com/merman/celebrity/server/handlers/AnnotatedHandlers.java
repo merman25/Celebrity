@@ -160,12 +160,12 @@ public class AnnotatedHandlers {
 	}
 	
 	@HTTPRequest(requestName = "pass", argNames = {"passNameIndex"})
-	public static Map<String, String> pass(Session session, Integer passNameIndex) {
+	public static Map<String, Object> pass(Session session, Integer passNameIndex) {
 		Game game = session.getPlayer().getGame();
 		game.setPassOnNameIndex(passNameIndex);
 		
-		Map<String, String>	responseMap = new HashMap<>();
-		responseMap.put("nameList", String.join(",", game.getShuffledNameList()));
+		Map<String, Object>	responseMap = new HashMap<>();
+		responseMap.put("nameList", game.getShuffledNameList());
 		return responseMap;
 	}
 	

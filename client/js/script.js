@@ -579,7 +579,7 @@ function updateTotalScores(serverGameState) {
 	const attributesByColumn = [[null]];
 	let atLeastOneRoundHasBeenRecorded = false;
 
-	serverGameState.scores.forEach(({name, scores}, teamIndex) => {
+	serverGameState.scores.forEach(({ name, scores }, teamIndex) => {
 		const singleColumn = [];
 		const singleAttributeColumn = [];
 
@@ -621,12 +621,12 @@ function updateTotalScores(serverGameState) {
 
 function iAmCurrentPlayer() {
 	return serverGameState.currentPlayer
-			&& serverGameState.currentPlayer.publicID === serverGameState.publicIDOfRecipient;
+		&& serverGameState.currentPlayer.publicID === serverGameState.publicIDOfRecipient;
 }
 
 function iAmHost() {
 	return serverGameState.host
-			&& serverGameState.host.publicID === serverGameState.publicIDOfRecipient;
+		&& serverGameState.host.publicID === serverGameState.publicIDOfRecipient;
 }
 
 function submitGameParams() {
@@ -757,7 +757,7 @@ function clearTestTrigger() {
 }
 
 function addNameRequestForm() {
-	const form = createDOMElement('form', '', {id: 'nameListForm'});
+	const form = createDOMElement('form', '', { id: 'nameListForm' });
 	form.onsubmit = () => false;
 	for (let i = 1; i <= serverGameState.numNames; i++) {
 		const labelDiv = createDOMElement('div', '', { classList: ['col-label'] });
@@ -842,12 +842,8 @@ async function pass() {
 		const result = await sendPassRequest(myGameState.currentNameIndex);
 
 		document.getElementById('passButton').disabled = false;
-		const nameListString = result.nameList;
-		if (nameListString != null) {
-			serverGameState.nameList = nameListString.split(',');
-			updateCurrentNameDiv();
-		}
-
+		serverGameState.nameList = result.nameList;
+		updateCurrentNameDiv();
 	}
 	catch (err) { console.error(err) };
 }
