@@ -1,7 +1,6 @@
 let webSocket = null;
 let useSocket = true;
 let firstSocketMessage = true;
-let gameStateLogging = false;
 
 let serverGameState = {};
 
@@ -200,8 +199,6 @@ function processGameStateObject(newGameStateObject) {
 	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
 
-
-
 	const testBotInfo = {
 		gameStatus: serverGameState.status,
 		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
@@ -239,7 +236,7 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 }
 
 function updateTeamlessPlayerList(myGameState, serverGameState) {
-	let playerList = serverGameState.players;
+	const playerList = serverGameState.players;
 
 	if (playerList.length > 0) {
 		const heading = createDOMElement('h3', 'Players');
@@ -267,7 +264,7 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 }
 
 function addTeamlessPlayerContextMenu() {
-	let teamlessPlayerLiElements = document.querySelectorAll('.teamlessPlayerLiClass');
+	const teamlessPlayerLiElements = document.querySelectorAll('.teamlessPlayerLiClass');
 	for (const teamlessPlayerLi of teamlessPlayerLiElements) {
 
 		teamlessPlayerLi.addEventListener('contextmenu', event => {
@@ -309,7 +306,7 @@ function addTeamlessPlayerContextMenu() {
 
 function updateDOMForWaitingForNames(myGameState, serverGameState) {
 	if (serverGameState.status == 'WAITING_FOR_NAMES') {
-		let numPlayersToWaitFor = serverGameState.numPlayersToWaitFor;
+		const numPlayersToWaitFor = serverGameState.numPlayersToWaitFor;
 		if (numPlayersToWaitFor != null) {
 			document.getElementById('gameStatusDiv').textContent = `Waiting for names from ${numPlayersToWaitFor} player(s)`;
 		}
@@ -361,8 +358,7 @@ function updateTeamTable(myGameState, serverGameState) {
 			});
 		});
 
-		const header = document.createElement('h2');
-		header.textContent = 'Teams';
+		const header = createDOMElement('h2', 'Teams');
 		const table = createTableByColumn(true, tableColumns, attributesByColumn);
 
 		setChildren('teamList', header, table);
@@ -374,7 +370,7 @@ function updateTeamTable(myGameState, serverGameState) {
 }
 
 function addPlayerInTeamContextMenu() {
-	let playerInTeamTDElements = document.querySelectorAll('.playerInTeamTDClass');
+	const playerInTeamTDElements = document.querySelectorAll('.playerInTeamTDClass');
 	for (const playerInTeamTD of playerInTeamTDElements) {
 
 		playerInTeamTD.addEventListener('contextmenu', event => {
@@ -466,7 +462,6 @@ function createDOMElement(elementType, textContent = '', attributes = null, styl
 function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn) {
 	const table = document.createElement('table');
 
-
 	if (firstRowIsHeader) {
 		const tr = document.createElement('tr');
 		tableColumns.forEach((column, colIndex) => {
@@ -478,7 +473,7 @@ function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn)
 
 	const startIndex = firstRowIsHeader ? 1 : 0;
 	for (let row = startIndex; ; row++) {
-		let stillHaveRowsInAtLeastOneColumn = tableColumns.find(column => row < column.length);
+		const stillHaveRowsInAtLeastOneColumn = tableColumns.find(column => row < column.length);
 
 		if (!stillHaveRowsInAtLeastOneColumn) {
 			break;
@@ -555,7 +550,7 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 }
 
 function updateScoresForRound(serverGameState) {
-	if (serverGameState.namesAchieved.filter(({ namesAchieved }) => namesAchieved.length > 0).length > 0) {
+	if (serverGameState.namesAchieved.find(({ namesAchieved }) => namesAchieved.length > 0)) {
 		const div = createDOMElement('div', '', null, { display: 'flex', 'flex-direction': 'row' });
 		serverGameState.namesAchieved.forEach(({ name, namesAchieved }, teamIndex) => {
 			const subDiv = createDOMElement('div', '', null, { 'padding-right': '4rem' });
@@ -584,20 +579,18 @@ function updateTotalScores(serverGameState) {
 	const attributesByColumn = [[null]];
 	let atLeastOneRoundHasBeenRecorded = false;
 
-	serverGameState.scores.forEach((totalScoresObject, teamIndex) => {
-		let teamName = totalScoresObject.name;
-		let scoreList = totalScoresObject.scores;
+	serverGameState.scores.forEach(({name, scores}, teamIndex) => {
 		const singleColumn = [];
 		const singleAttributeColumn = [];
 
 		tableColumns.push(singleColumn);
 		attributesByColumn.push(singleAttributeColumn);
 
-		singleColumn.push(teamName);
+		singleColumn.push(name);
 		singleAttributeColumn.push(null);
 
 		let total = 0;
-		scoreList.forEach((score, row) => {
+		scores.forEach((score, row) => {
 			atLeastOneRoundHasBeenRecorded = true;
 			if (teamIndex === 0) {
 				tableColumns[0].push((row + 1).toString());
@@ -627,27 +620,13 @@ function updateTotalScores(serverGameState) {
 }
 
 function iAmCurrentPlayer() {
-	let currentPlayer = serverGameState.currentPlayer;
-
-	if (currentPlayer != null
-		&& currentPlayer.publicID == serverGameState.publicIDOfRecipient) {
-		return true;
-	}
-	else {
-		return false;
-	}
+	return serverGameState.currentPlayer
+			&& serverGameState.currentPlayer.publicID === serverGameState.publicIDOfRecipient;
 }
 
 function iAmHost() {
-	let host = serverGameState.host;
-
-	if (host != null
-		&& host.publicID == serverGameState.publicIDOfRecipient) {
-		return true;
-	}
-	else {
-		return false;
-	}
+	return serverGameState.host
+			&& serverGameState.host.publicID === serverGameState.publicIDOfRecipient;
 }
 
 function submitGameParams() {
@@ -677,13 +656,11 @@ async function askGameIDResponse() {
 
 			myGameState.gameID = result.GameID;
 
-			const gameIDHeading = document.createElement('h2');
-			gameIDHeading.textContent = `Game ID: ${myGameState.gameID}`;
+			const gameIDHeading = createDOMElement('h2', `Game ID: ${myGameState.gameID}`);
 			setChildren('gameIDDiv', 'hr', gameIDHeading);
 
 			if (gameResponse === 'OK') {
 				updateGameInfo('Waiting for others to join...');
-
 
 				if (!useSocket) {
 					updateGameStateForever(myGameState.gameID);
@@ -725,7 +702,7 @@ function setGameStatus(newStatus) {
 	if (myGameState.statusAtLastUpdate != 'READY_TO_START_NEXT_TURN'
 		&& newStatus == 'READY_TO_START_NEXT_TURN') {
 		showOrHideDOMElements('#readyToStartNextTurn');
-		document.getElementById('currentNameDiv').textContent = '';
+		removeChildren('currentNameDiv');
 		let userRoundIndex = serverGameState.roundIndex;
 		if (userRoundIndex != null) {
 			userRoundIndex = parseInt(userRoundIndex) + 1;
@@ -816,7 +793,7 @@ function submitNameList() {
 
 function startGame() {
 	showOrHideDOMElements('#gameStarted');
-	document.getElementById('gameStatusDiv').textContent = '';
+	removeChildren('gameStatusDiv');
 	sendStartGameRequest();
 }
 
@@ -837,7 +814,6 @@ function updateCurrentNameDiv() {
 }
 
 function gotName() {
-	//    gameStateLogging = true;
 	myGameState.currentNameIndex++;
 	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
 
