@@ -55,8 +55,10 @@ function appendChildren(elementOrID, ...children) {
 	const element = typeof (elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
 
 	children.forEach(c => {
-		const child = typeof (c) === 'string' ? document.createElement(c) : c;
-		element.appendChild(child);
+		if (c) {
+			const child = typeof (c) === 'string' ? document.createElement(c) : c;
+			element.appendChild(child);
+		}
 	});
 }
 
@@ -88,7 +90,7 @@ async function hostNewGame() {
 		const gameIDHeading = document.createElement('h2');
 		gameIDHeading.textContent = `Game ID: ${myGameState.gameID}`;
 		setChildren('gameIDDiv', 'hr', gameIDHeading);
-		updateGameInfo('<p>Waiting for others to join...</p>');
+		updateGameInfo('Waiting for others to join...');
 
 		if (!useSocket) {
 			updateGameStateForever(myGameState.gameID);
@@ -170,8 +172,8 @@ function tryToOpenSocket() {
 
 }
 
-function updateGameInfo(html) {
-	document.getElementById('gameInfoDiv').innerHTML = html;
+function updateGameInfo(text) {
+	document.getElementById('gameInfoDiv').textContent = text;
 }
 
 function updateGameStateForever(gameID) {
@@ -208,7 +210,7 @@ function processGameStateObject(newGameStateObject) {
 	updateDOMForWaitingForNames(myGameState, serverGameState);
 	updateTeamTable(myGameState, serverGameState);
 	updateCurrentPlayerInfo(myGameState, serverGameState);
-	updateScoresForRound(myGameState, serverGameState);
+	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
 
 
@@ -459,10 +461,17 @@ function setAttributes(element, attributes) {
 	}
 }
 
+function setStyle(element, style) {
+	if (style) {
+		Object.keys(style).forEach(attr => element.style[attr] = style[attr]);
+	}
+}
 
-function createDOMElement(elementType, textContent = '', attributes = null) {
+
+function createDOMElement(elementType, textContent = '', attributes = null, style = null) {
 	const element = document.createElement(elementType);
 	setAttributes(element, attributes);
+	setStyle(element, style);
 	element.textContent = textContent;
 	return element;
 }
@@ -509,13 +518,7 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 	const playerTeamIndex = serverGameState.yourTeamIndex;
 	const nextTeamIndex = serverGameState.nextTeamIndex;
 
-	let htmlParams = `<p>You\'re playing as ${playerName}`;
-	if (playerTeamIndex >= 0
-		&& serverGameState.teams.length > playerTeamIndex) {
-		htmlParams += ` on ${serverGameState.teams[playerTeamIndex].name}`;
-	}
-	htmlParams += '.</p>';
-
+	let reminderParagraph = null;
 	if ((serverGameState.status === 'PLAYING_A_TURN'
 		|| serverGameState.status === 'READY_TO_START_NEXT_TURN'
 		|| serverGameState.status === 'READY_TO_START_NEXT_ROUND')
@@ -524,70 +527,69 @@ function updateCurrentPlayerInfo(myGameState, serverGameState) {
 		if (nextTeamIndex === playerTeamIndex) {
 			if (myGameState.myPlayerID !== serverGameState.currentPlayerID) {
 				if (serverGameState.status === 'PLAYING_A_TURN') {
-					htmlParams += `<p>You\'re guessing while ${myDecode(serverGameState.currentPlayer.name)} plays, <b>pay attention!</b></p>`;
+					reminderParagraph = createDOMElement('p', `You\'re guessing while ${serverGameState.currentPlayer.name} plays, `);
+					reminderParagraph.appendChild(createDOMElement('b', 'pay attention!'));
 				}
 				else {
-					htmlParams += `<p>On the next turn, you\'ll be guessing while ${myDecode(serverGameState.currentPlayer.name)} plays. <b>Pay attention!</b></p>`;
+					reminderParagraph = createDOMElement('p', `On the next turn, you\'ll be guessing while ${serverGameState.currentPlayer.name} plays. `);
+					reminderParagraph.appendChild(createDOMElement('b', 'Pay attention!'));
 				}
 			}
 		}
 		else if (playerTeamIndex >= 0) {
 			if (serverGameState.status === 'PLAYING_A_TURN') {
-				htmlParams += `<p>${serverGameState.teams[nextTeamIndex].name} is playing now, you\'re not on that team. <b>Don\'t say anything!</b></p>`;
+				reminderParagraph = createDOMElement('p', `${serverGameState.teams[nextTeamIndex].name} is playing now, you\'re not on that team. `);
+				reminderParagraph.appendChild(createDOMElement('b', 'Don\'t say anything!'));
 			}
 			else {
-				htmlParams += `<p>${serverGameState.teams[nextTeamIndex].name} will play on the next turn, you\'re not on that team. <b>Don\'t say anything!</b></p>`;
+				reminderParagraph = createDOMElement('p', `${serverGameState.teams[nextTeamIndex].name} will play on the next turn, you\'re not on that team. `);
+				reminderParagraph.appendChild(createDOMElement('b', 'Don\'t say anything!'));
 			}
 		}
 	}
 
-	if (myGameState.iAmHosting) {
-		htmlParams += '<p>You\'re the host. Remember, with great power comes great responsibility.</p>';
-	}
-	else if (serverGameState.host != null) {
-		htmlParams += `<p>${myDecode(serverGameState.host.name)} is hosting.</p>`;
+	const teamString = (playerTeamIndex >= 0 && serverGameState.teams.length > playerTeamIndex) ? `on ${serverGameState.teams[playerTeamIndex].name}` : '';
+	setChildren('gameParamsDiv',
+		createDOMElement('p', `You\'re playing as ${playerName} ${teamString}`),
+		reminderParagraph,
+		createDOMElement('p', myGameState.iAmHosting ? 'You\'re the host. Remember, with great power comes great responsibility.' : `${serverGameState.host.name} is hosting.`),
+	);
+	if (serverGameState.rounds > 0) {
+		appendChildren('gameParamsDiv',
+			createDOMElement('h2', 'Settings'),
+			createDOMElement('text', `Rounds: ${serverGameState.rounds}`),
+			createDOMElement('br'),
+			createDOMElement('text', `Round duration (sec): ${serverGameState.duration}`),
+			createDOMElement('br'),
+			createDOMElement('hr'),
+		);
 	}
 
-	let numRounds = serverGameState.rounds;
-	if (numRounds > 0) {
-		htmlParams += '<h2>Settings</h2>\n' +
-			`Rounds: ${numRounds}<br>\n` +
-			`Round duration (sec): ${serverGameState.duration}<br>\n<hr>\n`;
-	}
-	document.getElementById('gameParamsDiv').innerHTML = htmlParams;
 }
 
-function updateScoresForRound(myGameState, serverGameState) {
-	let namesAchievedObjectList = serverGameState.namesAchieved;
-	let atLeastOneNonZeroScore = false;
-	let scoresHTML = '<h2>Scores</h2>\n';
-	scoresHTML += '<div style="display: flex; flex-direction: row;">\n';
-	for (let t = 0; t < namesAchievedObjectList.length; t++) {
-		let namesAchievedObject = namesAchievedObjectList[t];
-		let teamName = namesAchievedObject.name;
-		let namesAchievedList = namesAchievedObject.namesAchieved;
+function updateScoresForRound(serverGameState) {
+	if (serverGameState.namesAchieved.filter(({ namesAchieved }) => namesAchieved.length > 0).length > 0) {
+		const div = createDOMElement('div', '', null, { display: 'flex', 'flex-direction': 'row' });
+		serverGameState.namesAchieved.forEach(({ name, namesAchieved }, teamIndex) => {
+			const subDiv = createDOMElement('div', '', null, { 'padding-right': '4rem' });
+			appendChildren(subDiv,
+				createDOMElement('h3', name),
+				createDOMElement('text', `Score: ${namesAchieved.length}`),
+			);
+			const ol = createDOMElement('ol');
+			subDiv.appendChild(ol);
+			namesAchieved.forEach(name => ol.appendChild(createDOMElement('li', name, { classList: ['achievedNameLi', `team${teamIndex}`] })));
+			div.appendChild(subDiv);
+		});
 
-		scoresHTML += '<div style="padding-right: 4rem;">\n';
-		scoresHTML += `<h3>${teamName}</h3>\n`;
-		let score = namesAchievedList.length;
-		if (score > 0) {
-			atLeastOneNonZeroScore = true;
-		}
-		scoresHTML += `Score: ${score}\n`;
-		scoresHTML += '<ol>\n';
-		for (let j = 0; j < namesAchievedList.length; j++) {
-			scoresHTML += `<li class="achievedNameLi team${t}">${myDecode(namesAchievedList[j])}</li>\n`;
-		}
-		scoresHTML += '</ol>\n</div>\n';
+		setChildren('scoresDiv',
+			createDOMElement('h2', 'Scores'),
+			div
+		);
 	}
-	scoresHTML += '</div>';
-
-
-	if (!atLeastOneNonZeroScore) {
-		scoresHTML = '';
+	else {
+		removeChildren('scoresDiv');
 	}
-
-	document.getElementById('scoresDiv').innerHTML = scoresHTML;
 }
 
 function updateTotalScores(serverGameState) {
@@ -693,7 +695,7 @@ async function askGameIDResponse() {
 			setChildren('gameIDDiv', 'hr', gameIDHeading);
 
 			if (gameResponse === 'OK') {
-				updateGameInfo('<p>Waiting for others to join...</p>');
+				updateGameInfo('Waiting for others to join...');
 
 
 				if (!useSocket) {
@@ -736,7 +738,7 @@ function setGameStatus(newStatus) {
 	if (myGameState.statusAtLastUpdate != 'READY_TO_START_NEXT_TURN'
 		&& newStatus == 'READY_TO_START_NEXT_TURN') {
 		showOrHideDOMElements('#readyToStartNextTurn');
-		document.getElementById('currentNameDiv').innerHTML = '';
+		document.getElementById('currentNameDiv').textContent = '';
 		let userRoundIndex = serverGameState.roundIndex;
 		if (userRoundIndex != null) {
 			userRoundIndex = parseInt(userRoundIndex) + 1;
@@ -777,7 +779,7 @@ function setGameStatus(newStatus) {
 
 function addTestTrigger(text) {
 	const testTriggerDiv = document.getElementById('testTriggerDiv');
-	testTriggerDiv.innerText = text;
+	testTriggerDiv.textContent = text;
 
 	if (!testTriggerDiv.classList.contains('testTriggerClass')) {
 		testTriggerDiv.classList.add('testTriggerClass');
@@ -786,28 +788,30 @@ function addTestTrigger(text) {
 
 function clearTestTrigger() {
 	const testTriggerDiv = document.getElementById('testTriggerDiv');
-	testTriggerDiv.innerText = '';
+	testTriggerDiv.textContent = '';
 	testTriggerDiv.classList.remove('testTriggerClass');
 }
 
 function addNameRequestForm() {
-	let html = '<form id="nameListForm" method="post" onsubmit="return false;">\n';
+	const form = createDOMElement('form', '', {id: 'nameListForm'});
+	form.onsubmit = () => false;
 	for (let i = 1; i <= serverGameState.numNames; i++) {
-		html += '<div class="col-label">\n';
-		html += `<label for="name${i}">Name ${i}</label>\n`;
-		html += '</div>\n';
+		const labelDiv = createDOMElement('div', '', { classList: ['col-label'] });
+		labelDiv.appendChild(createDOMElement('label', `Name ${i}`, { for: `name${i}` }));
 
-		html += '<div class="col-textfield">\n';
-		html += `<input id="name${i}" name="name${i}" type="text">\n`;
-		html += '</div>\n';
+		const inputDiv = createDOMElement('div', '', { classList: ['col-textfield'] });
+		inputDiv.appendChild(createDOMElement('input', '', { name: `name${i}`, id: `name${i}`, type: 'text' }));
+		appendChildren(form, labelDiv, inputDiv);
 	}
+	const button = createDOMElement('button', 'Put in Hat', { id: 'submitNamesButton' });
+	button.onclick = submitNameList;
 
-	html += '<div class="clear"></div>';
-	html += '<button id="submitNamesButton" onclick="submitNameList()">Put in Hat</button>\n';
-	html += '</form>\n';
+	appendChildren(form,
+		createDOMElement('div', '', { classList: ['clear'] }),
+		button
+	);
 
-	document.getElementById('nameList').innerHTML = html;
-
+	setChildren('nameList', form);
 }
 
 function submitNameList() {
@@ -825,7 +829,7 @@ function submitNameList() {
 
 function startGame() {
 	showOrHideDOMElements('#gameStarted');
-	document.getElementById('gameStatusDiv').innerHTML = '';
+	document.getElementById('gameStatusDiv').textContent = '';
 	sendStartGameRequest();
 }
 
@@ -899,9 +903,9 @@ function updateCountdownClock(secondsRemaining) {
 function setTestBotInfo(testBotInfo) {
 	const testBotInfoDiv = document.getElementById('testBotInfoDiv');
 	if (testBotInfo != null) {
-		testBotInfoDiv.innerText = JSON.stringify(testBotInfo);
+		testBotInfoDiv.textContent = JSON.stringify(testBotInfo);
 	}
 	else {
-		testBotInfoDiv.innerText = '';
+		testBotInfoDiv.textContent = '';
 	}
 }
