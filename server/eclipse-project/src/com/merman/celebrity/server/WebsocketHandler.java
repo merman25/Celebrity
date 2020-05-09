@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Scanner;
@@ -109,7 +110,7 @@ public class WebsocketHandler {
 										message = bytesToHex(decodedMessage) + " (encoded as " + bytesToHex(encodedMessage) + ")";
 									}
 									else {
-										message = new String( decodedMessage, "UTF-8" );
+										message = new String( decodedMessage, StandardCharsets.UTF_8 );
 									}
 
 									if ( getSession() == null
@@ -187,7 +188,7 @@ public class WebsocketHandler {
 		}
 		
 		synchronized void sendMessage( byte aMessageStartByte, String aMessage ) throws IOException {
-			byte[] messageBytes = aMessage.getBytes("UTF-8");
+			byte[] messageBytes = aMessage.getBytes(StandardCharsets.UTF_8);
 			byte[] lengthArray = toLengthArray(messageBytes.length);
 
 			byte[] frame = new byte[messageBytes.length + lengthArray.length + 1];
@@ -358,7 +359,7 @@ public class WebsocketHandler {
 
 		try {
 			// Don't close this scanner, doing so will close ths socket
-			Scanner scanner = new Scanner(inputStream, "UTF-8");
+			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
 			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
 			Matcher get = Pattern.compile("^GET").matcher(data);
 			if (get.find()) {
@@ -369,8 +370,8 @@ public class WebsocketHandler {
 						+ "Connection: Upgrade\r\n"
 						+ "Upgrade: websocket\r\n"
 						+ "Sec-WebSocket-Accept: "
-						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes("UTF-8")))
-						+ "\r\n\r\n").getBytes("UTF-8");
+						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
+						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
 				handshakeCompleted = true;
 			}
