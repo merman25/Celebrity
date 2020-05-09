@@ -69,22 +69,24 @@ public class HttpExchangeUtil {
 	public static LinkedHashMap<String, String> getCookie(HttpExchange aExchange) {
 		LinkedHashMap<String, String>		cookie		= new LinkedHashMap<>();
 		List<String> cookieElementList = aExchange.getRequestHeaders().get("Cookie");
-		for ( String cookieElement : cookieElementList ) {
-			
-			/* When testing with Cypress, it was the first time there were 2 cookies
-			 * set instead of just 1 (the session, and also something set by Cypress).
-			 * 
-			 * For some reason, it came out as a list containing a string which was
-			 * a semi-colon-separated list of cookies, instead of having each name-value
-			 * pair as an element of the list. Something wrong there, but anyway we can
-			 * still parse it.
-			 */
-			List<String> cookieElementElementList = Arrays.asList( cookieElement.split(";") );
-			for ( String cookieElementElement: cookieElementElementList ) {
-				int indexOfEquals = cookieElementElement.indexOf('=');
-				if ( indexOfEquals >= 0
-						&& indexOfEquals < cookieElementElement.length() - 1 ) {
-					cookie.put(cookieElementElement.substring(0, indexOfEquals), cookieElementElement.substring(indexOfEquals + 1));
+		if (cookieElementList != null) {
+			for ( String cookieElement : cookieElementList ) {
+
+				/* When testing with Cypress, it was the first time there were 2 cookies
+				 * set instead of just 1 (the session, and also something set by Cypress).
+				 * 
+				 * For some reason, it came out as a list containing a string which was
+				 * a semi-colon-separated list of cookies, instead of having each name-value
+				 * pair as an element of the list. Something wrong there, but anyway we can
+				 * still parse it.
+				 */
+				List<String> cookieElementElementList = Arrays.asList( cookieElement.split(";") );
+				for ( String cookieElementElement: cookieElementElementList ) {
+					int indexOfEquals = cookieElementElement.indexOf('=');
+					if ( indexOfEquals >= 0
+							&& indexOfEquals < cookieElementElement.length() - 1 ) {
+						cookie.put(cookieElementElement.substring(0, indexOfEquals), cookieElementElement.substring(indexOfEquals + 1));
+					}
 				}
 			}
 		}

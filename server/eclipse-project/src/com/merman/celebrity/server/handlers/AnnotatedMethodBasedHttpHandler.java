@@ -20,7 +20,7 @@ import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
 import com.sun.net.httpserver.HttpExchange;
 
-public class AnnotatedMethodBasedHttpHandler extends AHttpHandler2 {
+public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	private final String name;
 	private final Method method;
 	private final List<MyMethodArg> methodArgs;

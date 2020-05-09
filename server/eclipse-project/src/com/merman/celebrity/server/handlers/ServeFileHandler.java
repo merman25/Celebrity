@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Map;
 import java.util.function.Function;
 
 import com.merman.celebrity.server.HTTPResponseConstants;
@@ -22,7 +23,7 @@ public class ServeFileHandler extends AHttpHandler {
 	}
 
 	@Override
-	protected void _handle(HttpExchange aExchange) throws IOException {
+	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aExchange) throws IOException {
 		Headers requestHeaders = aExchange.getRequestHeaders();
 		
 //		dumpRequest(aExchange);
@@ -51,7 +52,7 @@ public class ServeFileHandler extends AHttpHandler {
 	}
 
 	@Override
-	public String getHandlerName() {
+	public String getContextName() {
 		return "serve file " + relativePath;
 	}
 	
