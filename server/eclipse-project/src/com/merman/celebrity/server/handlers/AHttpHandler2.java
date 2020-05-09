@@ -36,7 +36,7 @@ public abstract class AHttpHandler2 implements IContextHandler {
 	
 	protected void dumpRequest(HttpExchange aExchange) {
 		Headers requestHeaders = aExchange.getRequestHeaders();
-//		System.out.println( "Received request: " + getHandlerName() );
+		System.out.println( "Received request: " + getContextName() );
 		for ( Entry<String, List<String>> l_mapEntry : requestHeaders.entrySet() ) {
 			System.out.format("%s:\t%s\n", l_mapEntry.getKey(), String.join( ",", l_mapEntry.getValue() ));
 		}
@@ -45,6 +45,4 @@ public abstract class AHttpHandler2 implements IContextHandler {
 		System.out.println( String.join("\n", HttpExchangeUtil.getRequestBody(aExchange) ) );
 		System.out.println( "End request body\n\n" );
 	}
-
-
 }

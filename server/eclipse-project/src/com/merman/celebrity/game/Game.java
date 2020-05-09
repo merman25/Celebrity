@@ -213,8 +213,6 @@ public class Game {
 			}
 			updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
 		}
-//			Player player = team.getPlayerList().get(nextPlayerIndex);
-//			currentPlayer = player;
 	}
 	
 	private Player updateCurrentPlayerFromIndicesAfterChangeToTeamStructure() {
@@ -426,32 +424,6 @@ public class Game {
 			}
 			team.removePlayer(player);
 			updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
-			
-//			if ( currentPlayer == player ) {
-//				Integer playerIndex = mapTeamsToNextPlayerIndices.get(team);
-//				if ( playerIndex == team.getPlayerList().size() ) {
-//					if ( playerIndex == 0 ) {
-//						// team has run out of players. Set index to -1, so that when it has players again, it'll start at the beginning
-//						playerIndex = -1;
-//					}
-//					else {
-//						playerIndex = 0;
-//					}
-//					mapTeamsToNextPlayerIndices.put(team, playerIndex);
-//				}
-//
-//				if ( ! team.getPlayerList().isEmpty() ) {
-//					currentPlayer = team.getPlayerList().get(playerIndex);
-//				}
-//				else if ( nextTeamIndex >= 0 ) {
-//					/* if nextTeamIndex is -1, we haven't started the 1st round yet.
-//					 * If we're already removing players at this point, either we're in one of the unit tests,
-//					 * or there's trouble. Either way, wait until play properly starts before we start the
-//					 * teams taking turns.
-//					 */
-//					incrementPlayer();
-//				}
-//			}
 		}
 	}
 

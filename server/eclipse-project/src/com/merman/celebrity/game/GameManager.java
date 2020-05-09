@@ -265,7 +265,6 @@ public class GameManager {
 		String gameID = aJsonObject.getString("gameID");
 		Game game = new Game(gameID, null);
 		game.setStatus(GameStatus.valueOf(aJsonObject.getString("status")));
-//		game.setStatus(GameStatus.WAITING_FOR_PLAYERS);
 		
 		JSONArray teamsArray = aJsonObject.getJSONArray("teams");
 		for ( Object object : teamsArray ) {

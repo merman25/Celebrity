@@ -80,8 +80,6 @@ public class Server {
 			server.createContext("/" + handler.getContextName(), handler);
 		}
 		
-//		server.createContext( "/", new TestHandler("") );
-
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();
 		
