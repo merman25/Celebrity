@@ -1,9 +1,8 @@
 package com.merman.celebrity.server.handlers;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,36 +13,55 @@ import org.json.JSONObject;
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
-	private static WeakHashMap<HttpExchange, List<String>> requestBodyCache		= new WeakHashMap<>();
+	private static WeakHashMap<HttpExchange, String> requestBodyCache		= new WeakHashMap<>();
 	
-	public static synchronized List<String> getRequestBody(HttpExchange aExchange) {
-		List<String> requestBody = requestBodyCache.get(aExchange);
+	public static synchronized String getRequestBody(HttpExchange aExchange) {
+		String requestBody = requestBodyCache.get(aExchange);
 		if ( requestBody == null ) {
-			requestBody		= new ArrayList<>();
-
-			try ( BufferedReader in = new BufferedReader( new InputStreamReader(aExchange.getRequestBody()))) {
-				String line;
-				while ( ( line = in.readLine() ) != null ) {
-					requestBody.add( line );
+			int bufferSize = 1024 * 1024;
+			List<String> contentLengthList = aExchange.getRequestHeaders().get("Content-Length");
+			if ( contentLengthList != null
+					&& ! contentLengthList.isEmpty() ) {
+				String reportedContentLengthString = contentLengthList.get(0);
+				try {
+					int reportedContentLength = Integer.parseInt(reportedContentLengthString);
+					if (reportedContentLength > 0) {
+						bufferSize = reportedContentLength;
+					}
 				}
+				catch (NumberFormatException e) {
+					e.printStackTrace();
+				}
+			}
+			try {
+				InputStream inputStream = aExchange.getRequestBody();
+				int totalBytesRead = 0;
+				byte[] buffer = new byte[bufferSize];
+				for (int bytesRead = 0;
+						( bytesRead = inputStream.read(buffer, totalBytesRead, buffer.length - totalBytesRead ) ) != -1; ) {
+					totalBytesRead += bytesRead;
+					if (totalBytesRead == buffer.length) {
+						byte[] newBuffer = new byte[2 * buffer.length];
+						System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+						buffer = newBuffer;
+					}
+				}
+				requestBody = new String(buffer, 0, totalBytesRead, StandardCharsets.UTF_8);
+
 			}
 			catch ( IOException e ) {
 				e.printStackTrace();
 			}
-			
+
 			requestBodyCache.put(aExchange, requestBody);
 		}
-		
+
 		return requestBody;
 	}
 	
 	public static LinkedHashMap<String, Object> getRequestBodyAsMap( HttpExchange aExchange ) {
-		String firstLine = "";
-		List<String> requestBody = getRequestBody(aExchange);
-		if ( ! requestBody.isEmpty() ) {
-			firstLine = requestBody.get(0);
-		}
-		return toMap(firstLine);
+		String requestBody = getRequestBody(aExchange);
+		return toMap(requestBody);
 	}
 	
 	public static LinkedHashMap<String, Object>	toMap( String aJSONString ) {
