@@ -131,6 +131,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				
 				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.No_Content, -1);
 				aHttpExchange.getResponseBody().close();
+				HttpExchangeUtil.logBytesSent(aHttpExchange, 0);
 				
 //				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.OK, -1);
 //				aHttpExchange.getResponseBody().close();

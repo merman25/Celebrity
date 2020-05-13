@@ -8,7 +8,6 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -61,6 +60,7 @@ public class WebsocketHandler {
 				performHandshake();
 				InputStream inputStream = socket.getInputStream();
 				for ( int nextByte; listen && ( nextByte = inputStream.read() ) != -1; ) {
+					long bytesReceived = 1;
 					int firstByteOfMessage = nextByte;
 					if ( firstByteOfMessage == MESSAGE_START_BYTE_AS_INT
 							|| firstByteOfMessage == PONG_BYTE
@@ -68,6 +68,8 @@ public class WebsocketHandler {
 
 						byte[] lengthByteArray = new byte[9];
 						nextByte = inputStream.read();
+						bytesReceived++;
+						
 						byte lengthMagnitudeIndicator = (byte) ( nextByte - LENGTH_BYTE_SUBTRACTION_CONSTANT );
 						lengthByteArray[0] = lengthMagnitudeIndicator;
 						if ( lengthMagnitudeIndicator < 0 ) {
@@ -76,9 +78,11 @@ public class WebsocketHandler {
 						else {
 							if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
 								inputStream.read(lengthByteArray, 1, 2);
+								bytesReceived += 2;
 							}
 							else if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_64_BIT_INDICATOR ) {
 								inputStream.read(lengthByteArray, 1, 8);
+								bytesReceived += 8;
 							}
 
 							long messageLength = toLength(lengthByteArray);
@@ -88,6 +92,7 @@ public class WebsocketHandler {
 							}
 							else {
 								byte[] key = { (byte) inputStream.read(), (byte) inputStream.read(), (byte) inputStream.read(), (byte) inputStream.read() };
+								bytesReceived += 4;
 								
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
@@ -104,6 +109,8 @@ public class WebsocketHandler {
 									// read everything into byte array.
 									// FIXME loop without a body! Should prob add some timeouts here if poss
 									for ( int totalBytesRead = 0; ( totalBytesRead += inputStream.read(encodedMessage, totalBytesRead, encodedMessage.length - totalBytesRead ) ) < encodedMessage.length; );
+									bytesReceived += encodedMessage.length;
+									
 									byte[] decodedMessage = decode(key, encodedMessage);
 									String message;
 									if ( firstByteOfMessage == CLOSE_CONNECTION_BYTE ) {
@@ -141,6 +148,8 @@ public class WebsocketHandler {
 						stopSoon();
 						System.out.println("Unexpected byte: " + bytesToHex(nextByte));
 					}
+					
+					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, (m, n) -> m+n);
 				}
 			}
 			catch ( SocketException e ) {
@@ -197,6 +206,7 @@ public class WebsocketHandler {
 			System.arraycopy(messageBytes, 0, frame, lengthArray.length + 1, messageBytes.length);
 
 			socket.getOutputStream().write(frame);
+			CelebrityMain.bytesSent.accumulateAndGet(frame.length, (m, n) -> m+n);
 		}
 	}
 	
@@ -209,6 +219,7 @@ public class WebsocketHandler {
 				try {
 //					System.out.println("Pinging " + getSession().getPlayer());
 					outputStreamRunnable.sendMessage((byte) PING_BYTE, "");
+					CelebrityMain.bytesSent.incrementAndGet();
 				}
 				catch ( SocketException e ) {
 					System.out.format("Handler for session [%s] (%s) can no longer write: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
@@ -358,12 +369,27 @@ public class WebsocketHandler {
 		OutputStream outputStream = socket.getOutputStream();
 
 		try {
+			int totalBytesRead = 0;
+			byte[] buffer = new byte[1024];
+			for (int bytesRead = 0;
+					( bytesRead = inputStream.read(buffer, totalBytesRead, buffer.length - totalBytesRead ) ) != -1; ) {
+				totalBytesRead += bytesRead;
+				if (totalBytesRead == buffer.length) {
+					byte[] newBuffer = new byte[2 * buffer.length];
+					System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+					buffer = newBuffer;
+				}
+			}
+			CelebrityMain.bytesReceived.accumulateAndGet(totalBytesRead, (m, n) -> m+n);
+			
+			String requestString = new String(buffer, 0, totalBytesRead, StandardCharsets.UTF_8);
+
 			// Don't close this scanner, doing so will close ths socket
-			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
-			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
-			Matcher get = Pattern.compile("^GET").matcher(data);
+//			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
+//			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
+			Matcher get = Pattern.compile("^GET").matcher(requestString);
 			if (get.find()) {
-				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
+				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(requestString);
 				match.find();
 				byte[] response;
 				response = ("HTTP/1.1 101 Switching Protocols\r\n"
@@ -373,6 +399,8 @@ public class WebsocketHandler {
 						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
 						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
+				
+				CelebrityMain.bytesSent.accumulateAndGet(response.length, (m, n) -> m+n);
 				handshakeCompleted = true;
 			}
 		}

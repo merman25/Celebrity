@@ -19,9 +19,12 @@ import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.cleanup.CleanupHelper;
+import com.merman.celebrity.server.cleanup.ExpiryTime;
+import com.merman.celebrity.server.cleanup.ICanExpire;
 import com.merman.celebrity.util.SharedRandom;
 
-public class Game {
+public class Game implements ICanExpire {
 	private String                    ID;
 	private Player                    host;
 	private List<Team>                teamList                    = new ArrayList<>();
@@ -49,6 +52,9 @@ public class Game {
 
 	private List<IGameEventListener>  eventListeners              = new ArrayList<>();
 	private boolean                   fireEvents                  = true;
+	
+	private boolean                   expired;
+	private ExpiryTime                expiryTime 				  = new ExpiryTime(CleanupHelper.defaultExpiryDurationInS);
 	
 	// Useful for E2E testing. Value is supplied to the testBots, so they can tell if they're taking their turn at the proper time.
 	private int                       turnCount;
@@ -535,6 +541,7 @@ public class Game {
 	}
 	
 	public synchronized void fireGameEvent(GameEvent aGameEvent) {
+		resetExpiryTime();
 		if ( isFireEvents() ) {
 			for ( IGameEventListener listener: eventListeners ) {
 				try {
@@ -577,5 +584,28 @@ public class Game {
 
 	public int getTurnCount() {
 		return turnCount;
+	}
+
+	@Override
+	public boolean isExpired() {
+		if (!expired) {
+			boolean allPlayersHaveExpired = ! getAllReferencedPlayers().stream()
+												.filter(player -> ! player.isExpired())
+												.findAny()
+												.isPresent();
+			expired = allPlayersHaveExpired
+						&& ( getStatus() == GameStatus.ENDED
+								|| expiryTime.isExpired() );
+		}
+		return expired;
+	}
+	
+	public void resetExpiryTime() {
+		expiryTime.resetExpiryTime();
+	}
+
+	@Override
+	public String toString() {
+		return getID();
 	}
 }

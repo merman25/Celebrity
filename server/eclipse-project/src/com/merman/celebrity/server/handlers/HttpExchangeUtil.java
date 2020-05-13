@@ -6,10 +6,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.WeakHashMap;
 
 import org.json.JSONObject;
 
+import com.merman.celebrity.server.CelebrityMain;
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
@@ -109,5 +111,34 @@ public class HttpExchangeUtil {
 			}
 		}
 		return cookie;
+	}
+	
+	public static void logBytesReceived(HttpExchange aExchange) {
+		int headerBytesReceived = 0;
+		for ( Entry<String, List<String>> l_mapEntry : aExchange.getRequestHeaders().entrySet() ) {
+			headerBytesReceived += l_mapEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
+			List<String> l_headerValue = l_mapEntry.getValue();
+			for (String string : l_headerValue) {
+				headerBytesReceived += string.getBytes(StandardCharsets.UTF_8).length;
+			}
+		}
+
+		String requestBody = getRequestBody(aExchange);
+		int bodyBytesReceived = requestBody.getBytes(StandardCharsets.UTF_8).length;
+		
+		CelebrityMain.bytesReceived.accumulateAndGet(headerBytesReceived + bodyBytesReceived, (m, n) -> m+n);
+	}
+	
+	public static void logBytesSent(HttpExchange aExchange, int aBodyLength) {
+		long headerBytesSent = 0;
+		for ( Entry<String, List<String>> l_mapEntry : aExchange.getResponseHeaders().entrySet() ) {
+			headerBytesSent += l_mapEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
+			List<String> l_headerValue = l_mapEntry.getValue();
+			for (String string : l_headerValue) {
+				headerBytesSent += string.getBytes(StandardCharsets.UTF_8).length;
+			}
+		}
+
+		CelebrityMain.bytesSent.accumulateAndGet(headerBytesSent + aBodyLength, (m, n) -> m+n);
 	}
 }

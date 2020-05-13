@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.merman.celebrity.game.GameManager;
+import com.merman.celebrity.server.analytics.ServerAnalyticsLogger;
 import com.merman.celebrity.util.SharedRandom;
 
 public class CelebrityMain {
+	public static AtomicLong bytesReceived = new AtomicLong();
+	public static AtomicLong bytesSent = new AtomicLong();
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -47,8 +51,9 @@ public class CelebrityMain {
 		GameManager.deleteExisting = GameManager.deleteExisting && ( gameFileList == null || gameFileList.isEmpty() || gameFileList.stream().noneMatch(file -> file.exists()) );
 
 		
-		new Server(gameFileList).start();
-		
+		Server server = new Server(gameFileList);
+		server.start();
+		new ServerAnalyticsLogger(server).start();
 	}
 
 	private static void processArg(String aArgName, String aArgValue) {

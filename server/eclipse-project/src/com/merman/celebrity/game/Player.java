@@ -1,11 +1,18 @@
 package com.merman.celebrity.game;
 
-public class Player {
+import com.merman.celebrity.server.cleanup.CleanupHelper;
+import com.merman.celebrity.server.cleanup.ExpiryTime;
+import com.merman.celebrity.server.cleanup.ICanExpire;
+
+public class Player implements ICanExpire {
 	private String name;
 	private Game game;
 	private String sessionID;
 	private int publicUniqueID;
 	
+	private boolean                   expired;
+	private ExpiryTime                expiryTime 				  = new ExpiryTime(CleanupHelper.defaultExpiryDurationInS);
+
 	Player() {
 	}
 
@@ -44,5 +51,16 @@ public class Player {
 
 	synchronized void setPublicUniqueID(int aPublicUniqueID) {
 		publicUniqueID = aPublicUniqueID;
+	}
+
+	@Override
+	public boolean isExpired() {
+		if (!expired)
+			expired = expiryTime.isExpired();
+		return expired;
+	}
+	
+	public void resetExpiryTime() {
+		expiryTime.resetExpiryTime();
 	}
 }

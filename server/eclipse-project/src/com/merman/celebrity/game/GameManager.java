@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,6 +18,8 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.cleanup.CleanupHelper;
+import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.util.SharedRandom;
 
 public class GameManager {
@@ -26,6 +29,31 @@ public class GameManager {
 	
 	public static boolean deleteExisting;
 	public static boolean createFiles;
+	
+	private static class MyExpiredGameRemover
+	implements IExpiredEntityRemover<Game> {
+		@Override
+		public void remove(Game aGame) {
+			synchronized (GameManager.class) {
+				gamesMap.remove(aGame.getID());
+				if (aGame.getHost() != null)
+					mapHostsToGames.remove(aGame.getHost());
+			}
+		}
+	}
+	
+	private static class MyGameIterable
+	implements Iterable<Game> {
+
+		@Override
+		public Iterator<Game> iterator() {
+			return new ArrayList(gamesMap.values()).iterator();
+		}
+	}
+	
+	static {
+		CleanupHelper.registerForRegularCleanup(new MyGameIterable(), new MyExpiredGameRemover());
+	}
 	
 	public static synchronized Game createGame( Player aHost ) {
 		String gameID = generateGameID();
@@ -334,5 +362,9 @@ public class GameManager {
 		game.incrementPlayer();
 		
 		gamesMap.put(gameID, game);
+	}
+	
+	public static synchronized int getNumGames() {
+		return gamesMap.size();
 	}
 }

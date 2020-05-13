@@ -86,10 +86,13 @@ public class ServeFileHandler extends AHttpHandler {
 		}
 				
 		
-		aExchange.sendResponseHeaders(HTTPResponseConstants.OK, response.getBytes().length);
+		int bodyLength = response.getBytes().length;
+		aExchange.sendResponseHeaders(HTTPResponseConstants.OK, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
 		os.write(response.getBytes());
 		os.close();
+		
+		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);
 	}
 
 }

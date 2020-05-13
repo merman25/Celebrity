@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.sun.net.httpserver.Headers;
@@ -16,10 +17,19 @@ public abstract class AHttpHandler implements IContextHandler {
 	@Override
 	public void handle(HttpExchange aHttpExchange) throws IOException {
 		try {
+			HttpExchangeUtil.logBytesReceived(aHttpExchange);
 			String sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
 			Session session = null;
 			if ( sessionID != null ) {
 				session = SessionManager.getSession(sessionID);
+				
+				if (session != null) {
+					session.resetExpiryTime();
+					Player player = session.getPlayer();
+					if (player != null)
+						player.resetExpiryTime();
+				}
+
 			}
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );
@@ -32,12 +42,15 @@ public abstract class AHttpHandler implements IContextHandler {
 	protected abstract void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException;
 	
 	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
-		aExchange.sendResponseHeaders(aCode, aResponse.getBytes().length);
+		int bodyLength = aResponse.getBytes().length;
+		aExchange.sendResponseHeaders(aCode, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
 		os.write(aResponse.getBytes());
 		os.close();
+		
+		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);
 	}
-	
+
 	protected void dumpRequest(HttpExchange aExchange) {
 		Headers requestHeaders = aExchange.getRequestHeaders();
 		System.out.println( "Received request: " + getContextName() );

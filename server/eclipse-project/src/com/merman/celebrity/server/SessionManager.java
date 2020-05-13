@@ -1,12 +1,50 @@
 package com.merman.celebrity.server;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+
+import com.merman.celebrity.server.cleanup.CleanupHelper;
+import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 
 public class SessionManager {
 	private static Map<String, Session>					sessionsMap		= new HashMap<>();
 	private static Map<Session, WebsocketHandler>		socketsMap		= new HashMap<>();
+	
+	private static class MyExpiredSessionRemover
+	implements IExpiredEntityRemover<Session> {
+		@Override
+		public void remove(Session aSession) {
+			synchronized (SessionManager.class) {
+				sessionsMap.remove(aSession.getSessionID());
+				WebsocketHandler websocketHandler = socketsMap.get(aSession);
+				if (websocketHandler != null) {
+					socketsMap.remove(aSession);
+					try {
+						websocketHandler.stop();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	
+	private static class MySessionIterable
+	implements Iterable<Session> {
+
+		@Override
+		public Iterator<Session> iterator() {
+			return new ArrayList(sessionsMap.values()).iterator();
+		}
+	}
+	
+	static {
+		CleanupHelper.registerForRegularCleanup(new MySessionIterable(), new MyExpiredSessionRemover());
+	}
 	
 	public static Session createSession() {
 		String sessionID = UUID.randomUUID().toString();
@@ -26,5 +64,9 @@ public class SessionManager {
 	
 	public static WebsocketHandler getWebsocketHandler(Session aSession) {
 		return socketsMap.get(aSession);
+	}
+	
+	public static int getNumSessions() {
+		return sessionsMap.size();
 	}
 }
