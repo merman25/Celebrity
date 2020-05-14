@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -369,27 +370,12 @@ public class WebsocketHandler {
 		OutputStream outputStream = socket.getOutputStream();
 
 		try {
-			int totalBytesRead = 0;
-			byte[] buffer = new byte[1024];
-			for (int bytesRead = 0;
-					( bytesRead = inputStream.read(buffer, totalBytesRead, buffer.length - totalBytesRead ) ) != -1; ) {
-				totalBytesRead += bytesRead;
-				if (totalBytesRead == buffer.length) {
-					byte[] newBuffer = new byte[2 * buffer.length];
-					System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-					buffer = newBuffer;
-				}
-			}
-			CelebrityMain.bytesReceived.accumulateAndGet(totalBytesRead, (m, n) -> m+n);
-			
-			String requestString = new String(buffer, 0, totalBytesRead, StandardCharsets.UTF_8);
-
 			// Don't close this scanner, doing so will close ths socket
-//			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
-//			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
-			Matcher get = Pattern.compile("^GET").matcher(requestString);
+			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
+			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
+			Matcher get = Pattern.compile("^GET").matcher(data);
 			if (get.find()) {
-				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(requestString);
+				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
 				match.find();
 				byte[] response;
 				response = ("HTTP/1.1 101 Switching Protocols\r\n"
@@ -399,8 +385,6 @@ public class WebsocketHandler {
 						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
 						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
-				
-				CelebrityMain.bytesSent.accumulateAndGet(response.length, (m, n) -> m+n);
 				handshakeCompleted = true;
 			}
 		}
