@@ -37,12 +37,8 @@ document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRe
 
 if (getCookie('restore') === 'true') {
 	tryToOpenSocket();
-	showOrHideDOMElements('#nameSubmitted');
-	showOrHideDOMElements('#willJoinGame');
-	showOrHideDOMElements('#gameIDSubmitted');
-	showOrHideDOMElements('#gameIDOKResponseReceived');
-
 }
+
 setDOMElementVisibility(myGameState, serverGameState);
 
 function removeChildren(elementOrID) {
@@ -73,7 +69,6 @@ function submitName() {
 	sendUsername(username);
 	myGameState.myName = username;
 
-	showOrHideDOMElements('#nameSubmitted');
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	tryToOpenSocket();
@@ -81,13 +76,11 @@ function submitName() {
 
 function requestGameID() {
 	myGameState.willJoin = true;
-	showOrHideDOMElements('#willJoinGame');
 	setDOMElementVisibility(myGameState, serverGameState);
 }
 
 async function hostNewGame() {
 	myGameState.willHost = true;
-	showOrHideDOMElements('#willHostGame');
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	try {
@@ -201,7 +194,6 @@ function processGameStateObject(newGameStateObject) {
 
 function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 	const readyToStartNextTurn = serverGameState.status == 'READY_TO_START_NEXT_TURN';
-	showOrHideDOMElements('#myTurnNow', readyToStartNextTurn && myGameState.iAmPlaying);
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	if (readyToStartNextTurn) {
@@ -305,13 +297,7 @@ function updateDOMForWaitingForNames(myGameState, serverGameState) {
 
 		if (numPlayersToWaitFor == null
 			|| numPlayersToWaitFor == '0') {
-			showOrHideDOMElements('#readyToStartGame');
 			setDOMElementVisibility(myGameState, serverGameState);
-
-			if (myGameState.iAmHosting) {
-				showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
-			}
-			showOrHideDOMElements('#showingHostDuties');
 		}
 	}
 
@@ -621,7 +607,6 @@ function iAmHost() {
 
 function submitGameParams() {
 	myGameState.gameParamsSubmitted = true;
-	showOrHideDOMElements('#gameParamsSubmitted');
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	const numRounds = document.getElementById('numRoundsField').value;
@@ -632,13 +617,11 @@ function submitGameParams() {
 }
 
 function allocateTeams() {
-	showOrHideDOMElements('#teamsAllocated');
 	setDOMElementVisibility(myGameState, serverGameState);
 	sendAllocateTeamsRequest();
 }
 
 async function askGameIDResponse() {
-	showOrHideDOMElements('#gameIDSubmitted');
 	setDOMElementVisibility(myGameState, serverGameState);
 	const enteredGameID = document.getElementById('gameIDField').value;
 
@@ -646,7 +629,6 @@ async function askGameIDResponse() {
 		const result = await sendGameIDResponseRequest(enteredGameID);
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
-			showOrHideDOMElements('#gameIDOKResponseReceived');
 			setDOMElementVisibility(myGameState, serverGameState);
 
 			if (gameResponse === 'OK') {
@@ -655,7 +637,6 @@ async function askGameIDResponse() {
 		}
 		else {
 			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
-			showOrHideDOMElements('#gameIDSubmitted', false);
 		}
 
 	}
@@ -664,8 +645,6 @@ async function askGameIDResponse() {
 
 function requestNames() {
 	myGameState.namesRequested = true;
-	showOrHideDOMElements('#namesRequested');
-	showOrHideDOMElements('#showingHostDuties', false);
 	setDOMElementVisibility(myGameState, serverGameState);
 	sendNameRequest();
 }
@@ -689,7 +668,6 @@ function setGameStatus(newStatus) {
 
 	if (myGameState.statusAtLastUpdate != 'READY_TO_START_NEXT_TURN'
 		&& newStatus == 'READY_TO_START_NEXT_TURN') {
-		showOrHideDOMElements('#readyToStartNextTurn');
 		setDOMElementVisibility(myGameState, serverGameState);
 		removeChildren('currentNameDiv');
 		let userRoundIndex = serverGameState.roundIndex;
@@ -704,24 +682,16 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == 'READY_TO_START_NEXT_ROUND') {
 		document.getElementById('gameStatusDiv').textContent = 'Finished Round! See scores below';
-		if (iAmHost()) {
-			// If we've restored a game from backup, need to show the host controls
-			showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
-		}
-		showOrHideDOMElements('#showingHostDuties');
-		showOrHideDOMElements('#readyToStartNextRound');
 		setDOMElementVisibility(myGameState, serverGameState);
 
 		addTestTrigger('bot-ready-to-start-next-round');
 	}
 	else {
-		showOrHideDOMElements('#readyToStartNextRound', false);
 		setDOMElementVisibility(myGameState, serverGameState);
 	}
 
 	if (newStatus != 'READY_TO_START_NEXT_ROUND'
 		&& myGameState.statusAtLastUpdate == 'READY_TO_START_NEXT_ROUND') {
-		showOrHideDOMElements('#showingHostDuties', false);
 		setDOMElementVisibility(myGameState, serverGameState);
 	}
 
@@ -773,7 +743,6 @@ function addNameRequestForm() {
 function submitNameList() {
 	myGameState.namesSubmitted = true;
 
-	showOrHideDOMElements('#nameListSubmitted');
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	let nameArr = [];
@@ -787,14 +756,12 @@ function submitNameList() {
 }
 
 function startGame() {
-	showOrHideDOMElements('#gameStarted');
 	setDOMElementVisibility(myGameState, serverGameState);
 	removeChildren('gameStatusDiv');
 	sendStartGameRequest();
 }
 
 function startTurn() {
-	showOrHideDOMElements('#turnStarted');
 	setDOMElementVisibility(myGameState, serverGameState);
 	clearTestTrigger();
 	sendStartTurnRequest();
@@ -818,7 +785,6 @@ function gotName() {
 		updateCurrentNameDiv();
 	}
 	else {
-		showOrHideDOMElements('#turnEnded');
 		setDOMElementVisibility(myGameState, serverGameState);
 		finishRound();
 	}

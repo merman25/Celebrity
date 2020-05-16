@@ -71,10 +71,6 @@ th, td {
     border-width: 2px;
 }
 
-.performHostDutiesClass {
-    display: block;
-}
-
 .turnControlButtonClass {
     margin-right: 2rem;
     background-repeat: no-repeat;
