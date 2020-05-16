@@ -8,11 +8,13 @@ import java.nio.file.Files;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
-import com.sun.net.httpserver.Headers;
+import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.sun.net.httpserver.HttpExchange;
 
 public class ServeFileHandler extends AHttpHandler {
@@ -24,31 +26,50 @@ public class ServeFileHandler extends AHttpHandler {
 
 	@Override
 	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aExchange) throws IOException {
-		Headers requestHeaders = aExchange.getRequestHeaders();
-		
-//		dumpRequest(aExchange);
-		
-		Function<String, String>		addCookieSetter		= response -> {
-			int indexOfMarker = response.indexOf("<div id=\"dummy\"></div>");
-			if ( indexOfMarker >= 0 ) {
-				StringBuilder builder = new StringBuilder();
+//		Session session = SessionManager.createSession();
+//		aExchange.getResponseHeaders().set("Set-Cookie", String.format("session=%s; Max-Age=%s", session.getSessionID(), CleanupHelper.defaultExpiryDurationInS));
+
+		if (Server.MAIN_FILE_NAME.equals(relativePath)) {
+			if ( aSession == null
+					|| aSession.getPlayer() == null
+					|| aSession.getPlayer().getGame() == null
+					|| aSession.getPlayer().getGame().getStatus() == GameStatus.ENDED ) {
 				Session session = SessionManager.createSession();
-				builder.append(response.substring(0, indexOfMarker) );
-				builder.append("<script>\n");
-				builder.append("clearCookie(\"session\");\n");
-				builder.append("var session=\"" + session.getSessionID() + "\"\n");
-				builder.append("setCookie(\"session\", session, 1);\n" );
-				builder.append("</script>\n");
-				builder.append(response.substring(indexOfMarker));
-				
-				return builder.toString();
+				aExchange.getResponseHeaders().set("Set-Cookie", String.format("session=%s; Max-Age=%s", session.getSessionID(), CleanupHelper.defaultExpiryDurationInS));
 			}
 			else {
-				return response;
+				WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(aSession);
+				if (websocketHandler != null) {
+					websocketHandler.stop();
+				}
+				aExchange.getResponseHeaders().add("Set-Cookie", String.format( "%s=%s; Max-Age=10", HttpExchangeUtil.COOKIE_RESTORE_KEY, HttpExchangeUtil.COOKIE_RESTORE_VALUE) );
 			}
-		};
+		}
 		
-		serveFileContent(relativePath, aExchange, addCookieSetter);
+		
+		
+//		Function<String, String>		addCookieSetter		= response -> {
+//			int indexOfMarker = response.indexOf("<div id=\"dummy\"></div>");
+//			if ( indexOfMarker >= 0 ) {
+//				StringBuilder builder = new StringBuilder();
+//				Session session = SessionManager.createSession();
+//				builder.append(response.substring(0, indexOfMarker) );
+//				builder.append("<script>\n");
+//				builder.append("clearCookie(\"session\");\n");
+//				builder.append("var session=\"" + session.getSessionID() + "\"\n");
+//				builder.append("setCookie(\"session\", session, 1);\n" );
+//				builder.append("</script>\n");
+//				builder.append(response.substring(indexOfMarker));
+//
+//				return builder.toString();
+//			}
+//			else {
+//				return response;
+//			}
+//		};
+//
+//		serveFileContent(relativePath, aExchange, addCookieSetter);
+		serveFileContent(relativePath, aExchange, null);
 	}
 
 	@Override

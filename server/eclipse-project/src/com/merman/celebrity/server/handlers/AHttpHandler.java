@@ -17,6 +17,8 @@ public abstract class AHttpHandler implements IContextHandler {
 	@Override
 	public void handle(HttpExchange aHttpExchange) throws IOException {
 		try {
+//			dumpRequest(aHttpExchange);
+			
 			HttpExchangeUtil.logBytesReceived(aHttpExchange);
 			String sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
 			Session session = null;
@@ -54,6 +56,8 @@ public abstract class AHttpHandler implements IContextHandler {
 	protected void dumpRequest(HttpExchange aExchange) {
 		Headers requestHeaders = aExchange.getRequestHeaders();
 		System.out.println( "Received request: " + getContextName() );
+		System.out.format("Request URI: %s\n", aExchange.getRequestURI() );
+		System.out.format("Path: %s\n", aExchange.getHttpContext().getPath() );
 		for ( Entry<String, List<String>> l_mapEntry : requestHeaders.entrySet() ) {
 			System.out.format("%s:\t%s\n", l_mapEntry.getKey(), String.join( ",", l_mapEntry.getValue() ));
 		}

@@ -174,7 +174,8 @@ export const gameSpec = {
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 20000 });
 
                 // refresh the page, to simulate losing connection, then re-join the game
-                cy.visit('http://192.168.1.17:8080/celebrity.html');
+                cy.clearCookies();
+                cy.visit('http://192.168.1.17:8000/celebrity.html');
                 common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
 
                 // Check I'm not in the team list

@@ -20,8 +20,9 @@ import com.sun.net.httpserver.HttpServer;
 
 public class Server {
 	public static final Path CLIENT_FILE_DIRECTORY = new File( "../../client" ).toPath();
+	public static final String MAIN_FILE_NAME = "celebrity.html";
 	private static final List<String> FILE_TO_ADD_WHITELIST = Arrays.asList(
-			"celebrity.html",
+			MAIN_FILE_NAME,
 			"styles.css",
 			"js/preload.js",
 			"js/script.js",
@@ -32,7 +33,7 @@ public class Server {
 			"icons/thinking-emoji.svg"
     );
 	
-	private int portNumber = 8080;
+	private int portNumber = 8000;
 //	private int portNumber = 80;
 
 	private List<File> gameFileList;
@@ -82,6 +83,7 @@ public class Server {
 		
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();
+		System.out.println("Serving HTTP requests on port " + portNumber);
 		
 		IncomingWebsocketListener websocketListener = new IncomingWebsocketListener(8001);
 		websocketListener.start();

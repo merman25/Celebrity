@@ -114,6 +114,7 @@ public class GameManager {
 		// TODO should synchronize on aGame?
 		
 		JSONObject jsonObject = new JSONObject()
+                .put( "gameID", aGame.getID() )
 				.put( "status", aGame.getStatus() )
                 .put( "teams", aGame.getTeamList().stream()
          			   .map( team -> new JSONObject()
@@ -162,7 +163,6 @@ public class GameManager {
 		}
 		else {
 			jsonObject
-			  .put( "gameID", aGame.getID() )
 	          .put( "currentNameIndex", aGame.getCurrentNameIndex() )
 	          .put( "nameList", aGame.getShuffledNameList() )
 	          ;

@@ -1,14 +1,18 @@
 let webSocket = null;
-let useSocket = true;
 let firstSocketMessage = true;
 
 let serverGameState = {};
 
 const myGameState = {
+	myName: null,
+	willHost: false,
+	willJoin: false,
+	gameParamsSubmitted: false,
+	namesRequested: false,
+	namesSubmitted: false,
 	statusAtLastUpdate: 'WAITING_FOR_PLAYERS',
 	currentNameIndex: 0,
 	iAmPlaying: false,
-	gameID: null,
 	myPlayerID: null,
 	teamsAllocated: false,
 };
@@ -30,6 +34,16 @@ document.getElementById('startTurnButton').addEventListener('click', startTurn);
 document.getElementById('gotNameButton').addEventListener('click', gotName);
 document.getElementById('passButton').addEventListener('click', pass);
 document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
+
+if (getCookie('restore') === 'true') {
+	tryToOpenSocket();
+	showOrHideDOMElements('#nameSubmitted');
+	showOrHideDOMElements('#willJoinGame');
+	showOrHideDOMElements('#gameIDSubmitted');
+	showOrHideDOMElements('#gameIDOKResponseReceived');
+
+}
+setDOMElementVisibility(myGameState, serverGameState);
 
 function removeChildren(elementOrID) {
 	const element = typeof (elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
@@ -55,103 +69,83 @@ function setChildren(elementOrID, ...children) {
 }
 
 function submitName() {
-	showOrHideDOMElements('#nameSubmitted');
 	const username = document.getElementById('nameField').value;
 	sendUsername(username);
+	myGameState.myName = username;
+
+	showOrHideDOMElements('#nameSubmitted');
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	tryToOpenSocket();
 }
 
 function requestGameID() {
+	myGameState.willJoin = true;
 	showOrHideDOMElements('#willJoinGame');
+	setDOMElementVisibility(myGameState, serverGameState);
 }
 
 async function hostNewGame() {
+	myGameState.willHost = true;
 	showOrHideDOMElements('#willHostGame');
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	try {
 		const resultObject = await sendIWillHost();
-		myGameState.gameID = resultObject.gameID;
-
-		const gameIDHeading = document.createElement('h2');
-		gameIDHeading.textContent = `Game ID: ${myGameState.gameID}`;
-		setChildren('gameIDDiv', 'hr', gameIDHeading);
 		updateGameInfo('Waiting for others to join...');
-
-		if (!useSocket) {
-			updateGameStateForever(myGameState.gameID);
-		}
 	}
 	catch (err) { console.error(err); }
 }
 
 function tryToOpenSocket() {
 	try {
-		if (useSocket) {
-			const currentURL = window.location.href;
-			const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
-				.replace(/:[0-9]+.*$/, '');
-			webSocket = new WebSocket(`ws://${currentHostName}:8001/`);
-			webSocket.onerror = evt => {
-				console.error('Error in websocket');
-				console.error(evt);
-				useSocket = false;
-			};
-			webSocket.onclose = evt => {
-				console.log('websocket closed');
-				console.log(evt);
-				useSocket = false;
-				if (myGameState.gameID != null) {
-					updateGameStateForever(myGameState.gameID);
-				}
-			};
-			webSocket.onopen = event => {
-				console.log('websocket opened');
-				const sessionID = getCookie('session');
-				if (sessionID == null) {
-					sessionID = 'UNKNOWN';
-				}
-				webSocket.send(`session=${sessionID}`);
+		const currentURL = window.location.href;
+		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
+			.replace(/:[0-9]+.*$/, '');
+		if (webSocket)
+			webSocket.close();
 
-			};
+		webSocket = new WebSocket(`ws://${currentHostName}:8001/`);
+		webSocket.onerror = evt => {
+			console.error('Error in websocket');
+			console.error(evt);
+		};
+		webSocket.onclose = evt => {
+			console.log('websocket closed');
+			console.log(evt);
+		};
+		webSocket.onopen = event => {
+			console.log('websocket opened');
+			if (getCookie('restore') !== 'true')
+				webSocket.send('initial-test');
+		};
 
-			webSocket.onmessage = evt => {
-				const message = evt.data;
-				if (firstSocketMessage) {
-					firstSocketMessage = false;
-					if (message == 'gotcha') {
-						useSocket = true;
-						console.log('websocket is providing data');
-					}
+		webSocket.onmessage = evt => {
+			const message = evt.data;
+			if (firstSocketMessage) {
+				firstSocketMessage = false;
+				if (message == 'gotcha') {
+					console.log('websocket is providing data');
+				}
+			}
 
-				}
-				else if (message.indexOf('GameState=') === 0) {
-					const gameStateString = message.substring('GameState='.length, message.length);
-					const gameObj = JSON.parse(gameStateString);
-					processGameStateObject(gameObj);
-				}
-				else if (message.indexOf('MillisRemaining=') === 0) {
-					const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
-					const millisRemaining = parseInt(millisRemainingString);
-					const secondsRemaining = Math.ceil(millisRemaining / 1000);
+			if (message.indexOf('GameState=') === 0) {
+				console.log('received game state');
+				const gameStateString = message.substring('GameState='.length, message.length);
+				const gameObj = JSON.parse(gameStateString);
+				processGameStateObject(gameObj);
+			}
+			else if (message.indexOf('MillisRemaining=') === 0) {
+				const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
+				const millisRemaining = parseInt(millisRemainingString);
+				const secondsRemaining = Math.ceil(millisRemaining / 1000);
 
-					updateCountdownClock(secondsRemaining);
-				}
-				else if (evt.data !== 'client-pong') {
-					console.log(`message: ${evt.data}`);
-				}
-			};
-
-			const pinger = setInterval(() => {
-				if (useSocket) {
-					// console.log('sending client ping');
-					webSocket.send('client-ping');
-				}
-				else {
-					clearInterval(pinger);
-				}
-			}, 10000);
-		}
+				updateCountdownClock(secondsRemaining);
+			}
+			else {
+				console.log(`message: ${evt.data}`);
+			}
+		};
 	} catch (err) {
 		console.error(err);
 	}
@@ -162,29 +156,21 @@ function updateGameInfo(text) {
 	document.getElementById('gameInfoDiv').textContent = text;
 }
 
-function updateGameStateForever(gameID) {
-	setInterval(updateGameState, 500, gameID);
-}
-
-async function updateGameState(gameID) {
-	try {
-		const result = await retrieveGameStateByHTTP();
-		processGameStateObject(result);
-	}
-	catch (err) { console.error(err) };
-
-}
-
 function processGameStateObject(newGameStateObject) {
 	serverGameState = newGameStateObject;
 
 	myGameState.myPlayerID = serverGameState.publicIDOfRecipient;
 	myGameState.iAmPlaying = iAmCurrentPlayer();
 	myGameState.iAmHosting = iAmHost();
+	myGameState.myName = serverGameState.yourName;
 
 	if (!myGameState.iAmPlaying) {
 		clearTestTrigger();
 	}
+
+	const gameIDHeading = createDOMElement('h2', `Game ID: ${serverGameState.gameID}`);
+	setChildren('gameIDDiv', 'hr', gameIDHeading);
+
 
 	updateDOMForReadyToStartNextTurn(myGameState, serverGameState);
 	setGameStatus(serverGameState.status);
@@ -206,6 +192,8 @@ function processGameStateObject(newGameStateObject) {
 		turnCount: serverGameState.turnCount,
 	};
 
+	setDOMElementVisibility(myGameState, serverGameState);
+
 	if (serverGameState.roundIndex)
 		testBotInfo.roundIndex = serverGameState.roundIndex;
 	setTestBotInfo(testBotInfo);
@@ -214,6 +202,7 @@ function processGameStateObject(newGameStateObject) {
 function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 	const readyToStartNextTurn = serverGameState.status == 'READY_TO_START_NEXT_TURN';
 	showOrHideDOMElements('#myTurnNow', readyToStartNextTurn && myGameState.iAmPlaying);
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	if (readyToStartNextTurn) {
 		if (myGameState.iAmPlaying) {
@@ -317,6 +306,7 @@ function updateDOMForWaitingForNames(myGameState, serverGameState) {
 		if (numPlayersToWaitFor == null
 			|| numPlayersToWaitFor == '0') {
 			showOrHideDOMElements('#readyToStartGame');
+			setDOMElementVisibility(myGameState, serverGameState);
 
 			if (myGameState.iAmHosting) {
 				showOrHideDOMElements('#showingHostDutiesElementsWhenIAmHost');
@@ -630,7 +620,9 @@ function iAmHost() {
 }
 
 function submitGameParams() {
+	myGameState.gameParamsSubmitted = true;
 	showOrHideDOMElements('#gameParamsSubmitted');
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	const numRounds = document.getElementById('numRoundsField').value;
 	const roundDuration = document.getElementById('roundDurationField').value;
@@ -641,11 +633,13 @@ function submitGameParams() {
 
 function allocateTeams() {
 	showOrHideDOMElements('#teamsAllocated');
+	setDOMElementVisibility(myGameState, serverGameState);
 	sendAllocateTeamsRequest();
 }
 
 async function askGameIDResponse() {
 	showOrHideDOMElements('#gameIDSubmitted');
+	setDOMElementVisibility(myGameState, serverGameState);
 	const enteredGameID = document.getElementById('gameIDField').value;
 
 	try {
@@ -653,18 +647,10 @@ async function askGameIDResponse() {
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 			showOrHideDOMElements('#gameIDOKResponseReceived');
-
-			myGameState.gameID = result.GameID;
-
-			const gameIDHeading = createDOMElement('h2', `Game ID: ${myGameState.gameID}`);
-			setChildren('gameIDDiv', 'hr', gameIDHeading);
+			setDOMElementVisibility(myGameState, serverGameState);
 
 			if (gameResponse === 'OK') {
 				updateGameInfo('Waiting for others to join...');
-
-				if (!useSocket) {
-					updateGameStateForever(myGameState.gameID);
-				}
 			}
 		}
 		else {
@@ -677,8 +663,10 @@ async function askGameIDResponse() {
 }
 
 function requestNames() {
+	myGameState.namesRequested = true;
 	showOrHideDOMElements('#namesRequested');
 	showOrHideDOMElements('#showingHostDuties', false);
+	setDOMElementVisibility(myGameState, serverGameState);
 	sendNameRequest();
 }
 
@@ -702,6 +690,7 @@ function setGameStatus(newStatus) {
 	if (myGameState.statusAtLastUpdate != 'READY_TO_START_NEXT_TURN'
 		&& newStatus == 'READY_TO_START_NEXT_TURN') {
 		showOrHideDOMElements('#readyToStartNextTurn');
+		setDOMElementVisibility(myGameState, serverGameState);
 		removeChildren('currentNameDiv');
 		let userRoundIndex = serverGameState.roundIndex;
 		if (userRoundIndex != null) {
@@ -721,16 +710,19 @@ function setGameStatus(newStatus) {
 		}
 		showOrHideDOMElements('#showingHostDuties');
 		showOrHideDOMElements('#readyToStartNextRound');
+		setDOMElementVisibility(myGameState, serverGameState);
 
 		addTestTrigger('bot-ready-to-start-next-round');
 	}
 	else {
 		showOrHideDOMElements('#readyToStartNextRound', false);
+		setDOMElementVisibility(myGameState, serverGameState);
 	}
 
 	if (newStatus != 'READY_TO_START_NEXT_ROUND'
 		&& myGameState.statusAtLastUpdate == 'READY_TO_START_NEXT_ROUND') {
 		showOrHideDOMElements('#showingHostDuties', false);
+		setDOMElementVisibility(myGameState, serverGameState);
 	}
 
 	if (newStatus == 'ENDED') {
@@ -779,7 +771,10 @@ function addNameRequestForm() {
 }
 
 function submitNameList() {
+	myGameState.namesSubmitted = true;
+
 	showOrHideDOMElements('#nameListSubmitted');
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	let nameArr = [];
 	for (let i = 1; i <= serverGameState.numNames; i++) {
@@ -793,12 +788,14 @@ function submitNameList() {
 
 function startGame() {
 	showOrHideDOMElements('#gameStarted');
+	setDOMElementVisibility(myGameState, serverGameState);
 	removeChildren('gameStatusDiv');
 	sendStartGameRequest();
 }
 
 function startTurn() {
 	showOrHideDOMElements('#turnStarted');
+	setDOMElementVisibility(myGameState, serverGameState);
 	clearTestTrigger();
 	sendStartTurnRequest();
 }
@@ -822,6 +819,7 @@ function gotName() {
 	}
 	else {
 		showOrHideDOMElements('#turnEnded');
+		setDOMElementVisibility(myGameState, serverGameState);
 		finishRound();
 	}
 }

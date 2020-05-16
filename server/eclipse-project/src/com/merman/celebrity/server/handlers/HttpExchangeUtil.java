@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.WeakHashMap;
 
@@ -15,6 +16,9 @@ import com.merman.celebrity.server.CelebrityMain;
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
+	public static final String COOKIE_RESTORE_KEY = "restore";
+	public static final String COOKIE_RESTORE_VALUE = "true";
+	
 	private static WeakHashMap<HttpExchange, String> requestBodyCache		= new WeakHashMap<>();
 	
 	public static synchronized String getRequestBody(HttpExchange aExchange) {
@@ -100,17 +104,21 @@ public class HttpExchangeUtil {
 				 * pair as an element of the list. Something wrong there, but anyway we can
 				 * still parse it.
 				 */
-				List<String> cookieElementElementList = Arrays.asList( cookieElement.split(";") );
-				for ( String cookieElementElement: cookieElementElementList ) {
-					int indexOfEquals = cookieElementElement.indexOf('=');
-					if ( indexOfEquals >= 0
-							&& indexOfEquals < cookieElementElement.length() - 1 ) {
-						cookie.put(cookieElementElement.substring(0, indexOfEquals), cookieElementElement.substring(indexOfEquals + 1));
-					}
-				}
+				parseCookie(cookieElement, cookie);
 			}
 		}
 		return cookie;
+	}
+
+	public static void parseCookie(String aCookieString, Map<String, String> aCookieSFCT) {
+		List<String> cookieElementElementList = Arrays.asList( aCookieString.split("; *") );
+		for ( String cookieElementElement: cookieElementElementList ) {
+			int indexOfEquals = cookieElementElement.indexOf('=');
+			if ( indexOfEquals >= 0
+					&& indexOfEquals < cookieElementElement.length() - 1 ) {
+				aCookieSFCT.put(cookieElementElement.substring(0, indexOfEquals), cookieElementElement.substring(indexOfEquals + 1));
+			}
+		}
 	}
 	
 	public static void logBytesReceived(HttpExchange aExchange) {

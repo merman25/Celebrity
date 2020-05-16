@@ -1,18 +1,12 @@
 package com.merman.celebrity.server.analytics;
 
-import java.lang.management.ManagementFactory;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.merman.celebrity.game.GameManager;
-import com.merman.celebrity.game.PlayerManager;
-import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Server;
-import com.merman.celebrity.server.SessionManager;
 
 public class ServerAnalyticsLogger {
 	private static ThreadLocal<DateFormat>		threadLocalDateFormat		= new ThreadLocal<DateFormat>() {
@@ -57,16 +51,16 @@ public class ServerAnalyticsLogger {
 	}
 	
 	private static void log(Server aServer) {
-		System.out.format("[%s]\t%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received (ex. websocket handshakes)\n",
-				threadLocalDateFormat.get().format(new Date()),
-				GameManager.getNumGames(),
-				PlayerManager.getNumPlayers(),
-				SessionManager.getNumSessions(),
-				humanReadableByteCount(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(), false),
-				ManagementFactory.getThreadMXBean().getThreadCount(),
-				humanReadableByteCount(CelebrityMain.bytesSent.get(), false),
-				humanReadableByteCount(CelebrityMain.bytesReceived.get(), false)
-				);
+//		System.out.format("[%s]\t%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received (ex. websocket handshakes)\n",
+//				threadLocalDateFormat.get().format(new Date()),
+//				GameManager.getNumGames(),
+//				PlayerManager.getNumPlayers(),
+//				SessionManager.getNumSessions(),
+//				humanReadableByteCount(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(), false),
+//				ManagementFactory.getThreadMXBean().getThreadCount(),
+//				humanReadableByteCount(CelebrityMain.bytesSent.get(), false),
+//				humanReadableByteCount(CelebrityMain.bytesReceived.get(), false)
+//				);
 	}
 	
 	  /**

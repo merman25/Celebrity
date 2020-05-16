@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,7 +19,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.merman.celebrity.game.Game;
+import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.game.events.NotifyClientGameEventListener;
+import com.merman.celebrity.server.handlers.HttpExchangeUtil;
 
 public class WebsocketHandler {
 	private static final byte            MESSAGE_START_BYTE                = (byte) 0x81;                         // -127
@@ -58,7 +62,10 @@ public class WebsocketHandler {
 		@Override
 		public void run() {
 			try {
-				performHandshake();
+				handshakeCompleted = performHandshake();
+				if ( ! handshakeCompleted ) {
+					return;
+				}
 				InputStream inputStream = socket.getInputStream();
 				for ( int nextByte; listen && ( nextByte = inputStream.read() ) != -1; ) {
 					long bytesReceived = 1;
@@ -121,22 +128,8 @@ public class WebsocketHandler {
 										message = new String( decodedMessage, StandardCharsets.UTF_8 );
 									}
 
-									if ( getSession() == null
-											&& message.startsWith("session=") ) {
-										String sessionID = message.substring("session=".length());
-										session = SessionManager.getSession(sessionID);
-										if ( session != null ) {
-											SessionManager.putSocket( session, WebsocketHandler.this );
-											System.out.format( "Opened websocket with session %s [%s] from IP %s\n", sessionID, session.getPlayer(), socket.getRemoteSocketAddress() );
-											enqueueMessage("gotcha");
-										}
-										else {
-											System.err.println( "Unknown session ID: " + sessionID );
-										}
-									}
-									else if ( message.equals("client-ping") ) {
-//										System.out.println("Received client ping from " + getSession().getPlayer() );
-										enqueueMessage("client-pong");
+									if ( message.equals("initial-test") ) {
+										enqueueMessage("gotcha");
 									}
 									else {
 										System.out.println("Message from socket: " + message );
@@ -168,31 +161,29 @@ public class WebsocketHandler {
 
 		@Override
 		public void run() {
-			if ( handshakeCompleted ) {
-				while ( listen ) {
-					try {
-						String message 		= outgoingQueue.take();
-						if ( STOP.equals(message) ) {
-							continue;
-						}
-						sendMessage(MESSAGE_START_BYTE, message);
+			while ( listen ) {
+				try {
+					String message 		= outgoingQueue.take();
+					if ( STOP.equals(message) ) {
+						continue;
+					}
+					sendMessage(MESSAGE_START_BYTE, message);
 
+				}
+				catch ( InterruptedException e ) {
+					System.out.format("Output handler for session [%s] interrupted\n", getSession());
+				}
+				catch ( SocketException e ) {
+					System.out.format("Handler for session [%s] (%s) can no longer write: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
+					try {
+						stop();
 					}
-					catch ( InterruptedException e ) {
-						System.out.format("Output handler for session [%s] interrupted\n", getSession());
+					catch ( IOException e2 ) {
+						e2.printStackTrace();
 					}
-					catch ( SocketException e ) {
-						System.out.format("Handler for session [%s] (%s) can no longer write: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
-						try {
-							stop();
-						}
-						catch ( IOException e2 ) {
-							e2.printStackTrace();
-						}
-					}
-					catch (IOException e) {
-						e.printStackTrace();
-					}
+				}
+				catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -334,16 +325,20 @@ public class WebsocketHandler {
 		int threadNumber = threadCount.incrementAndGet();
 		new Thread(inputStreamRunnable,  "Websocket-InputStream-"  + threadNumber).start();
 		
-		while ( ! handshakeCompleted ) {
+		while ( ! handshakeCompleted
+				&& listen ) {
 			try {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {
 			}
 		}
-		new Thread(outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
 		
-		pingTimer = new Timer("ping-timer-" + threadNumber);
-		pingTimer.schedule(new MyPingTimerTask(), 5000, 10000);
+		if (listen) {
+			new Thread(outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
+
+			pingTimer = new Timer("ping-timer-" + threadNumber);
+			pingTimer.schedule(new MyPingTimerTask(), 5000, 10000);
+		}
 	}
 
 	public synchronized void stop() throws IOException {
@@ -355,9 +350,12 @@ public class WebsocketHandler {
 			pingTimer.cancel();
 			pingTimer = null;
 		}
-		enqueueMessage(STOP);
 		
 		Session session = getSession();
+		
+		if (session != null) {
+			enqueueMessage(STOP);
+		}
 		Player  player  = session == null ? null : session.getPlayer();
 		Game    game    = player == null ? null : player.getGame();
 		if ( game != null ) {
@@ -365,7 +363,7 @@ public class WebsocketHandler {
 		}
 	}
 
-	private void performHandshake() throws IOException {
+	private boolean performHandshake() throws IOException {
 		InputStream inputStream = socket.getInputStream();
 		OutputStream outputStream = socket.getOutputStream();
 
@@ -373,24 +371,67 @@ public class WebsocketHandler {
 			// Don't close this scanner, doing so will close ths socket
 			Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name());
 			String data = scanner.useDelimiter("\\r\\n\\r\\n").next();
+			
+//			System.out.println("\n=== Received incoming websocket request ===\n");
+//			System.out.println(data);
+			
 			Matcher get = Pattern.compile("^GET").matcher(data);
 			if (get.find()) {
-				Matcher match = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
-				match.find();
+				Matcher cookieMatcher = Pattern.compile("Cookie: (.*)").matcher(data);
+				if (cookieMatcher.find()) {
+					String cookieString = cookieMatcher.group(1);
+					HashMap<String, String> cookie = new HashMap<>();
+					HttpExchangeUtil.parseCookie(cookieString, cookie);
+					
+					String sessionID = cookie.get("session");
+					if (sessionID != null) {
+						session = SessionManager.getSession(sessionID);
+					}
+					
+					
+
+					if (session != null) {
+						String restoreString = cookie.get(HttpExchangeUtil.COOKIE_RESTORE_KEY);
+						if (HttpExchangeUtil.COOKIE_RESTORE_VALUE.equals(restoreString)) {
+							Player player = session.getPlayer();
+							Game game = player == null ? null : player.getGame();
+							if (game != null) {
+								enqueueMessage("GameState=" + GameManager.serialise(game, session.getSessionID(), true));
+								
+								game.addGameEventListener(new NotifyClientGameEventListener(WebsocketHandler.this));
+							}
+						}
+					}
+				}
+				
+				if (session == null) {
+					// Don't recognise this session, refuse this websocket
+					stop();
+					return false;
+				}
+
+				
+				Matcher keyMatcher = Pattern.compile("Sec-WebSocket-Key: (.*)").matcher(data);
+				keyMatcher.find();
 				byte[] response;
 				response = ("HTTP/1.1 101 Switching Protocols\r\n"
 						+ "Connection: Upgrade\r\n"
 						+ "Upgrade: websocket\r\n"
 						+ "Sec-WebSocket-Accept: "
-						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((match.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
+						+ Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest((keyMatcher.group(1) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").getBytes(StandardCharsets.UTF_8)))
 						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
-				handshakeCompleted = true;
+				
+				SessionManager.putSocket( session, WebsocketHandler.this );
+				System.out.format( "Opened websocket with session %s [%s] from IP %s\n", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() );
+
+				return true;
 			}
 		}
 		catch ( Exception e ) {
 			e.printStackTrace();
 		}
+		return false;
 	}
 	
 	private static byte[] decode(byte[] aKey, byte[] aEncodedMessage) {
@@ -401,9 +442,11 @@ public class WebsocketHandler {
 		return decodedMessage;
 	}
 	
-	public synchronized void enqueueMessage(String aMessage) {
+	public void enqueueMessage(String aMessage) {
 		try {
-			outgoingQueue.put(aMessage);
+			synchronized (outgoingQueue) {
+				outgoingQueue.put(aMessage);
+			}
 		}
 		catch ( InterruptedException e ) {
 			e.printStackTrace();

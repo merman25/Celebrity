@@ -6,7 +6,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class CleanupHelper {
-	public static int                                   defaultExpiryDurationInS = 300;
+	public static int                                   defaultExpiryDurationInS = 3600;
 
 	private static List<CleanupHelper>                  cleanupHelperList        = new ArrayList<>();
 	private static Timer                                cleanupTimer;

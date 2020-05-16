@@ -11,14 +11,6 @@ async function sendIWillHost() {
     return resultObject;
 }
 
-async function retrieveGameStateByHTTP() {
-    const data = JSON.stringify({ gameID });
-    const fetchResult = await fetch('requestGameState', { method: 'POST', body: data });
-    const result = await fetchResult.json();
-
-    return result;
-}
-
 function sendGameParams(numRounds, roundDuration, numNames) {
     const data = JSON.stringify({ numRounds, roundDuration, numNames });
     fetch('gameParams', { method: 'POST', body: data })

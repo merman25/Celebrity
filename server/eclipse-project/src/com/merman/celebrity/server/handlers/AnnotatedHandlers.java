@@ -29,22 +29,6 @@ public class AnnotatedHandlers {
 		return responseMap;
 	}
 	
-	@HTTPRequest(requestName = "requestGameState", argNames = {"gameID"})
-	public static String requestGameState(Session session, String gameID) {
-		Game game = GameManager.getGame(gameID);
-		if ( game != null ) {
-			try {
-				String serialisedGame = GameManager.serialise(game, session.getSessionID(), true);
-				return serialisedGame;
-			}
-			catch ( RuntimeException e ) {
-				e.printStackTrace();
-			}
-		}
-
-		return null;
-	}
-	
 	@HTTPRequest(requestName = "gameParams", argNames = {"numRounds", "roundDuration", "numNames"})
 	public static void setGameParams(Session session, Integer numRounds, Integer roundDuration, Integer numNames ) {
 		if ( numRounds <= 0 || numRounds > 10 ) {
