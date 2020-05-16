@@ -109,8 +109,10 @@ async function hostNewGame() {
 function tryToOpenSocket() {
 	try {
 		const currentURL = window.location.href;
+		console.log('currentURL', currentURL);
 		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
-			.replace(/:[0-9]+.*$/, '');
+			.replace(/:[0-9]+.*$/, '')
+			.replace(/\/$/, '');
 		if (webSocket)
 			webSocket.close();
 

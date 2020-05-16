@@ -14,6 +14,8 @@ import com.merman.celebrity.util.SharedRandom;
 public class CelebrityMain {
 	public static AtomicLong bytesReceived = new AtomicLong();
 	public static AtomicLong bytesSent = new AtomicLong();
+	
+	private static int overridePort = -1;
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -51,7 +53,13 @@ public class CelebrityMain {
 		GameManager.deleteExisting = GameManager.deleteExisting && ( gameFileList == null || gameFileList.isEmpty() || gameFileList.stream().noneMatch(file -> file.exists()) );
 
 		
-		Server server = new Server(gameFileList);
+		Server server;
+		if (overridePort >= 0 ) {
+			server = new Server(overridePort, gameFileList);
+		}
+		else {
+			server = new Server(gameFileList);
+		}
 		server.start();
 		new ServerAnalyticsLogger(server).start();
 	}
@@ -78,10 +86,24 @@ public class CelebrityMain {
 		else if ( aArgName.equals("delete-existing") ) {
 			if ( ! Arrays.asList("true", "false", "yes", "no", "y", "n").contains(aArgValue.toLowerCase() ) ) {
 				System.err.format("Error: cannot parse boolean: %s\n", aArgValue);
-				System.exit(4);
+				System.exit(5);
 			}
 			boolean deleteExisting = Boolean.parseBoolean(aArgValue);
 			GameManager.deleteExisting = deleteExisting;
+		}
+		else if ( aArgName.equals("port")) {
+			try {
+				overridePort = Integer.parseInt(aArgValue);
+				if (overridePort < 0) {
+					System.err.format("Error: negative port number %s\n", overridePort);
+					System.exit(6);
+				}
+			}
+			catch (NumberFormatException e) {
+				System.err.format("Error: cannot parse port number %s\n", aArgValue);
+				System.exit(6);
+			}
+
 		}
 		else {
 			System.err.format("Error: unknown argument: %s\n", aArgName);

@@ -25,6 +25,8 @@ public class ServeFileHandler extends AHttpHandler {
 
 	@Override
 	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aExchange) throws IOException {
+//		dumpRequest(aExchange);
+		
 		if (Server.MAIN_FILE_NAME.equals(relativePath)) {
 			if ( aSession == null
 					|| aSession.getPlayer() == null

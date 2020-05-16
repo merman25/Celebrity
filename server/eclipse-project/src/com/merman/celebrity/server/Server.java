@@ -38,6 +38,10 @@ public class Server {
 //	private int portNumber = 80;
 
 	private List<File> gameFileList;
+
+	public Server(int aPortNumber, List<File> aGameFileList) {
+		portNumber = aPortNumber;
+	}
 	
 	public Server(List<File> aGameFileList) {
 		gameFileList = aGameFileList;
@@ -70,7 +74,11 @@ public class Server {
 		for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
 			if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
 				System.out.println( "adding file: " + fileRelativePath );
-				server.createContext("/" + fileRelativePath, new ServeFileHandler(fileRelativePath));
+				String context = "/" + fileRelativePath;
+				if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
+					context = "/";
+				}
+				server.createContext(context, new ServeFileHandler(fileRelativePath));
 			}
 		}
 
