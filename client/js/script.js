@@ -85,7 +85,6 @@ async function hostNewGame() {
 
 	try {
 		const resultObject = await sendIWillHost();
-		updateGameInfo('Waiting for others to join...');
 	}
 	catch (err) { console.error(err); }
 }
@@ -630,10 +629,6 @@ async function askGameIDResponse() {
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 			setDOMElementVisibility(myGameState, serverGameState);
-
-			if (gameResponse === 'OK') {
-				updateGameInfo('Waiting for others to join...');
-			}
 		}
 		else {
 			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
@@ -650,6 +645,9 @@ function requestNames() {
 }
 
 function setGameStatus(newStatus) {
+	if (newStatus === 'WAITING_FOR_PLAYERS')
+		updateGameInfo('Waiting for others to join...')
+
 	if (myGameState.statusAtLastUpdate != 'WAITING_FOR_NAMES'
 		&& newStatus == 'WAITING_FOR_NAMES') {
 		updateGameInfo('Put your names into the hat!');
