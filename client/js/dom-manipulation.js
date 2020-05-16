@@ -70,6 +70,10 @@ const selectorsToShowOrHide = [
 		selector: '#nameList',
 		styleFn: (myGameState, serverGameState) => serverGameState.status === 'WAITING_FOR_NAMES' && !myGameState.namesSubmitted,
 	},
+	{
+		selector: '#exitGameButton',
+		styleFn: (myGameState, serverGameState) => serverGameState.gameID,
+	},
 ];
 
 const setDOMElementVisibility = function (myGameState, serverGameState) {

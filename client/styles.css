@@ -92,6 +92,15 @@ th, td {
     background-image: url("icons/sad-emoji.svg");
 }
 
+#exitGameButton{
+    background-image: url("icons/exit-icon.svg");
+    background-repeat: no-repeat;
+    background-position: 0px 0px;
+    height: 24px;
+    padding-left: 28px;
+    vertical-align: middle;
+}
+
 .clear {
     clear: both;
 }

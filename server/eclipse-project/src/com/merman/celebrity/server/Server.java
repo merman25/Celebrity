@@ -30,7 +30,8 @@ public class Server {
 			"js/api-calls.js",
 			"icons/happy-emoji.svg",
 			"icons/sad-emoji.svg",
-			"icons/thinking-emoji.svg"
+			"icons/thinking-emoji.svg",
+			"icons/exit-icon.svg"
     );
 	
 	private int portNumber = 8000;

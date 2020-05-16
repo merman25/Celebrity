@@ -34,6 +34,23 @@ document.getElementById('startTurnButton').addEventListener('click', startTurn);
 document.getElementById('gotNameButton').addEventListener('click', gotName);
 document.getElementById('passButton').addEventListener('click', pass);
 document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
+document.getElementById('exitGameButton').addEventListener('click', event => {
+	const answer = confirm('Are you sure you want to exit the game?');
+	if (answer) {
+		if (myGameState.myPlayerID && serverGameState.gameID)
+			sendRemoveFromGameRequest(myGameState.myPlayerID);
+
+		// clear cookies
+		const cookies = document.cookie.split(";");
+		cookies.forEach(keyValPair => {
+			const key = keyValPair.split('=')[0];
+			setCookie(key, '', -1);
+		});
+
+		// reload page
+		location.reload();
+	}
+});
 
 if (getCookie('restore') === 'true') {
 	tryToOpenSocket();
