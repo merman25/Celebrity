@@ -176,7 +176,11 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "removeFromGame", argNames = {"playerID"})
 	public static void removePlayerFromGame(Session session, Integer playerID) {
-		session.getPlayer().getGame().removePlayer(playerID);
+		Player 	player 	= session 	== null ? null : session.getPlayer();
+		Game 	game 	= player 	== null ? null : player.getGame();
+		if (game != null) {
+			game.removePlayer(playerID);
+		}
 	}
 	
 	@HTTPRequest(requestName = "moveEarlier", argNames = {"playerID"})
