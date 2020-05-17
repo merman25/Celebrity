@@ -58,6 +58,31 @@ if (getCookie('restore') === 'true') {
 
 setDOMElementVisibility(myGameState, serverGameState);
 
+// Handle device going to sleep - see https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
+// Set the name of the hidden property and the change event for visibility
+let hidden, visibilityChange;
+if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support 
+	hidden = "hidden";
+	visibilityChange = "visibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+	hidden = "msHidden";
+	visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+	hidden = "webkitHidden";
+	visibilityChange = "webkitvisibilitychange";
+}
+
+document.addEventListener(visibilityChange, () => {
+	if (!document[hidden]
+		&& (webSocket == null
+			|| webSocket.readyState === WebSocket.CLOSED)) {
+		console.log('Trying to restore websockt');
+		setCookie('restore', 'true', 10);
+		webSocket = null;
+		tryToOpenSocket();
+	}
+});
+
 function removeChildren(elementOrID) {
 	const element = typeof (elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
 	while (element.firstChild)
@@ -109,7 +134,6 @@ async function hostNewGame() {
 function tryToOpenSocket() {
 	try {
 		const currentURL = window.location.href;
-		console.log('currentURL', currentURL);
 		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
 			.replace(/:[0-9]+.*$/, '')
 			.replace(/\/$/, '');
@@ -135,7 +159,7 @@ function tryToOpenSocket() {
 			const message = evt.data;
 			if (firstSocketMessage) {
 				firstSocketMessage = false;
-				if (message == 'gotcha') {
+				if (message === 'gotcha') {
 					console.log('websocket is providing data');
 				}
 			}
@@ -153,7 +177,7 @@ function tryToOpenSocket() {
 
 				updateCountdownClock(secondsRemaining);
 			}
-			else {
+			else if (message !== 'gotcha') {
 				console.log(`message: ${evt.data}`);
 			}
 		};

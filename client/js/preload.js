@@ -2,9 +2,9 @@
  * in the body, so can't be included in the main script file which is loaded at the bottom of the body.
 */
 
-function setCookie(cname, cvalue, exdays) {
+function setCookie(cname, cvalue, seconds) {
 	let d = new Date();
-	d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+	d.setTime(d.getTime() + (seconds * 1000));
 	let expires = `expires=${d.toUTCString()}`;
 	let cookieString = `${cname}=${cvalue};${expires};path=/`;
 	document.cookie = cookieString;
