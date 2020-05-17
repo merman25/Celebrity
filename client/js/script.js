@@ -697,8 +697,7 @@ function setGameStatus(newStatus) {
 		addNameRequestForm();
 	}
 
-	if (myGameState.statusAtLastUpdate != 'PLAYING_A_TURN'
-		&& newStatus == 'PLAYING_A_TURN') {
+	if (newStatus == 'PLAYING_A_TURN') {
 		myGameState.currentNameIndex = serverGameState.currentNameIndex;
 
 		if (myGameState.iAmPlaying) {
@@ -809,9 +808,13 @@ function startTurn() {
 }
 
 function updateCurrentNameDiv() {
+	document.getElementById('gotNameButton').disabled = false;
 	if (myGameState.iAmPlaying) {
-		currentName = serverGameState.nameList[myGameState.currentNameIndex];
-		document.getElementById('currentNameDiv').textContent = `Name: ${currentName}`;
+		let currentName = serverGameState.currentName;
+		if (currentName != null)
+			document.getElementById('currentNameDiv').textContent = `Name: ${currentName}`;
+		else
+			document.getElementById('currentNameDiv').textContent = '';
 	}
 	else {
 		removeChildren('currentNameDiv');
@@ -819,13 +822,11 @@ function updateCurrentNameDiv() {
 }
 
 function gotName() {
+	document.getElementById('gotNameButton').disabled = true;
 	myGameState.currentNameIndex++;
 	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
 
-	if (myGameState.currentNameIndex < serverGameState.nameList.length) {
-		updateCurrentNameDiv();
-	}
-	else {
+	if (myGameState.currentNameIndex >= serverGameState.totalNames) {
 		setDOMElementVisibility(myGameState, serverGameState);
 		finishRound();
 	}
@@ -847,7 +848,7 @@ async function pass() {
 		const result = await sendPassRequest(myGameState.currentNameIndex);
 
 		document.getElementById('passButton').disabled = false;
-		serverGameState.nameList = result.nameList;
+		serverGameState.currentName = result.currentName;
 		updateCurrentNameDiv();
 	}
 	catch (err) { console.error(err) };

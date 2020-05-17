@@ -155,7 +155,7 @@ public class AnnotatedHandlers {
 		game.setPassOnNameIndex(passNameIndex);
 		
 		Map<String, Object>	responseMap = new HashMap<>();
-		responseMap.put("nameList", game.getShuffledNameList());
+		responseMap.put("currentName", game.getShuffledNameList().get(game.getCurrentNameIndex()));
 		return responseMap;
 	}
 	

@@ -196,8 +196,15 @@ public class GameManager {
 				jsonObject.put( "secondsRemaining", currentTurn.getSecondsRemaining() )
 				          .put( "previousNameIndex", aGame.getPreviousNameIndex() )
 				          .put( "currentNameIndex", aGame.getCurrentNameIndex() )
-				          .put( "nameList", aGame.getShuffledNameList() )
+				          .put( "totalNames", aGame.getShuffledNameList().size())
 				          ;
+				if (playerRequesting != null
+						&& aGame.getCurrentPlayer() == playerRequesting) {
+					int currentNameIndex = aGame.getCurrentNameIndex();
+					if (currentNameIndex < aGame.getShuffledNameList().size()) {
+						jsonObject.put("currentName", aGame.getShuffledNameList().get(currentNameIndex));
+					}
+				}
 			}
 		}
 		else {
