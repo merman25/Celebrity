@@ -16,6 +16,8 @@ import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.server.handlers.AnnotatedMethodBasedHttpHandler;
 import com.merman.celebrity.server.handlers.ServeFileHandler;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.HttpServer;
 
 public class Server {
@@ -35,7 +37,6 @@ public class Server {
     );
 	
 	private int portNumber = 8000;
-//	private int portNumber = 80;
 
 	private List<File> gameFileList;
 
@@ -61,19 +62,9 @@ public class Server {
 		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
 
-//		Files.walk( CLIENT_FILE_DIRECTORY )
-//		.forEach( path -> {
-//			if ( Files.isRegularFile(path) ) {
-//				String pathAsString = CLIENT_FILE_DIRECTORY.relativize(path).toString().replace('\\', '/');
-//				if ( FILE_TO_ADD_WHITELIST.contains(pathAsString) ) {
-//					System.out.println( "adding file: " + pathAsString );
-//					server.createContext("/" + pathAsString, new ServeFileHandler(pathAsString));
-//				}
-//			}
-//		} );
 		for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
 			if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
-				System.out.println( "adding file: " + fileRelativePath );
+				Log.log(LogInfo.class, "adding file", fileRelativePath);
 				String context = "/" + fileRelativePath;
 				if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
 					context = "/";
@@ -82,17 +73,15 @@ public class Server {
 			}
 		}
 
-		System.out.println("\n\n");
-
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
-			System.out.println("adding context " + handler.getContextName());
+			Log.log(LogInfo.class, "adding context", handler.getContextName());
 			server.createContext("/" + handler.getContextName(), handler);
 		}
 		
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();
-		System.out.println("Serving HTTP requests on port " + portNumber);
+		Log.log(LogInfo.class, "Serving HTTP requests on port " + portNumber);
 		
 		IncomingWebsocketListener websocketListener = new IncomingWebsocketListener(8001);
 		websocketListener.start();

@@ -24,7 +24,6 @@ public class CleanupHelper {
 					for ( ICanExpire canExpire : cleanupHelper.getCanExpireIterable() ) {
 						if (canExpire.isExpired()) {
 							somethingRemoved = true;
-							System.out.format("Removing %s %s\n", canExpire.getClass().getSimpleName(), canExpire);
 							cleanupHelper.getExpiredEntityRemover().remove(canExpire);
 						}
 					}

@@ -22,6 +22,8 @@ import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.ExpiryTime;
 import com.merman.celebrity.server.cleanup.ICanExpire;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.PerGameLogInfo;
 import com.merman.celebrity.util.SharedRandom;
 
 public class Game implements ICanExpire {
@@ -70,7 +72,7 @@ public class Game implements ICanExpire {
 
 	public synchronized void setStatus(GameStatus aStatus) {
 		status = aStatus;
-		System.out.format("Setting status to %s\n", aStatus);
+		Log.log(PerGameLogInfo.class, "Game", this, String.format("Setting status to %s", aStatus) );
 		fireGameEvent();
 	}
 
@@ -94,7 +96,7 @@ public class Game implements ICanExpire {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
 		if ( host == null ) {
-			System.out.format("Game %s had no host, setting %s as the host\n", getID(), aPlayer);
+			Log.log(PerGameLogInfo.class, "Game", this, String.format("Game %s had no host, setting %s as the host", getID(), aPlayer) );
 			host = aPlayer;
 			currentPlayer = aPlayer;
 		}
@@ -265,7 +267,7 @@ public class Game implements ICanExpire {
 	}
 	
 	public synchronized void startRound() {
-		System.out.format("Starting round %d\n", roundIndex+1);
+		Log.log(PerGameLogInfo.class, "Game", this, String.format("Starting round %d", roundIndex+1));
 		mapTeamsToAchievedNames.clear();
 		allowNextPlayerToStartNextTurn();
 	}
@@ -332,7 +334,7 @@ public class Game implements ICanExpire {
 		List<String>		namesAchieved		= new ArrayList<>(shuffledNameList.subList(previousNameIndex, currentNameIndex));
 		mapTeamsToAchievedNames.computeIfAbsent(currentTeam, t -> new ArrayList<>()).addAll(namesAchieved);
 		
-		System.out.format("%s got %d names for %s\n", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName());
+		Log.log(PerGameLogInfo.class, "Game", this, String.format("%s got %d names for %s", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName()));
 		
 		previousNameIndex = currentNameIndex;
 	}

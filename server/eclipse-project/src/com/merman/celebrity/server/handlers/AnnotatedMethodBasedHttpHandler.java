@@ -14,9 +14,12 @@ import java.util.Map.Entry;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -116,7 +119,8 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				throw new IOException(String.format("Cannot parse parameter %s [%s] as %s", argName, value, parameterType.getSimpleName()), e);
 			}
 			catch (RuntimeException e) {
-				e.printStackTrace();
+				Player player = aSession == null ? null : aSession.getPlayer();
+				Log.log(LogInfo.class, "Session", aSession, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
 			}
 		}
 		

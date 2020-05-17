@@ -1,10 +1,6 @@
 package com.merman.celebrity.server.analytics;
 
 import java.lang.management.ManagementFactory;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -13,19 +9,10 @@ import com.merman.celebrity.game.PlayerManager;
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.AnalyticsLogInfo;
 
 public class ServerAnalyticsLogger {
-	private static ThreadLocal<DateFormat>		threadLocalDateFormat		= new ThreadLocal<DateFormat>() {
-
-		@Override
-		protected DateFormat initialValue() {
-			SimpleDateFormat		dateFormat		= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-			return dateFormat;
-		}
-		
-	};
-	
 	private Server server;
 	private Timer  timer;
 	
@@ -57,8 +44,7 @@ public class ServerAnalyticsLogger {
 	}
 	
 	private static void log(Server aServer) {
-		System.out.format("[%s]\t%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received (ex. websocket handshakes)\n",
-				threadLocalDateFormat.get().format(new Date()),
+		Log.log(AnalyticsLogInfo.class, String.format("%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received (ex. websocket handshakes)",
 				GameManager.getNumGames(),
 				PlayerManager.getNumPlayers(),
 				SessionManager.getNumSessions(),
@@ -66,7 +52,7 @@ public class ServerAnalyticsLogger {
 				ManagementFactory.getThreadMXBean().getThreadCount(),
 				humanReadableByteCount(CelebrityMain.bytesSent.get(), false),
 				humanReadableByteCount(CelebrityMain.bytesReceived.get(), false)
-				);
+				));
 	}
 	
 	  /**

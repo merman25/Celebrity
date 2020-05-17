@@ -10,19 +10,23 @@ import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.info.PerGameLogInfo;
+import com.merman.celebrity.server.logging.info.SessionLogInfo;
 
 public class AnnotatedHandlers {
 
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
-		System.out.println( "Setting user name " + username + " to session " + session );
+		Log.log(SessionLogInfo.class, "Session", session, "Username", username);
 		session.getPlayer().setName(username);
 	}
 	
 	@HTTPRequest(requestName = "hostNewGame")
 	public static Map<String, String> hostNewGame(Session session) {
-		System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] will host a game" );
 		Game game = GameManager.createGame(session.getPlayer());
+		Log.log(PerGameLogInfo.class, "Player", session.getPlayer(), "Session", session, "hosting game", game);
 		
 		HashMap<String, String>		responseMap		= new HashMap<>();
 		responseMap.put("gameID", game.getID());
@@ -31,22 +35,25 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "gameParams", argNames = {"numRounds", "roundDuration", "numNames"})
 	public static void setGameParams(Session session, Integer numRounds, Integer roundDuration, Integer numNames ) {
+		Player player = session.getPlayer();
+		Game game = GameManager.getGameHostedByPlayer(player);
+		
+		Class<? extends LogInfo> logInfoClass = game == null ? LogInfo.class : PerGameLogInfo.class;
+		
 		if ( numRounds <= 0 || numRounds > 10 ) {
-			System.err.println( "numRounds " + numRounds + ", should be 1-10" );
+			Log.log(logInfoClass, "Game", game, "Error: numRounds " + numRounds + ", should be 1-10");
 			return;
 		}
 		if ( roundDuration <= 0 || roundDuration > 600 ) {
-			System.err.println( "roundDuration " + roundDuration + ", should be 1-600" );
+			Log.log(logInfoClass, "Game", game, "roundDuration " + roundDuration + ", should be 1-600" );
 			return;
 		}
 		if ( numNames <= 0 || numNames > 10 ) {
-			System.err.println( "numNames " + numNames + ", should be 1-10" );
+			Log.log(logInfoClass, "Game", game, "numNames " + numNames + ", should be 1-10" );
 			return;
 		}
 
 		
-		Player player = session.getPlayer();
-		Game game = GameManager.getGameHostedByPlayer(player);
 
 		if ( game != null ) {
 			game.setNumRounds(numRounds);
@@ -55,7 +62,7 @@ public class AnnotatedHandlers {
 			game.fireGameEvent();
 		}
 		else {
-			System.err.println( player + " is not hosting any game" );
+			Log.log(logInfoClass, "Error: " + player + " is not hosting any game, so cannot set game params" );
 		}
 	}
 	
@@ -65,13 +72,12 @@ public class AnnotatedHandlers {
 		Game game = GameManager.getGameHostedByPlayer(player);
 
 		if ( game != null ) {
-			System.out.println( "allocating teams" );
+			Log.log(PerGameLogInfo.class, "Game", game, "allocating teams" );
 			game.allocateTeams(true);
 		}
 		else {
-			System.err.println( player + " is not hosting any game" );
+			Log.log(LogInfo.class, "Error: " + player + " is not hosting any game, so can't allocate teams" );
 		}
-
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
@@ -85,13 +91,13 @@ public class AnnotatedHandlers {
 			responseMap.put("GameID", gameID);
 		}
 		else if ( game != null ) {
-			System.out.println( "Session " + session + " [" + session.getPlayer().getName() + "] wants to join game " + gameID );
+			Log.log(PerGameLogInfo.class, "Adding player", session.getPlayer(), "session", session, "to game", game);
 			game.addPlayer(session.getPlayer());
 			responseMap.put("GameResponse", "OK");
 			responseMap.put("GameID", game.getID());
 		}
 		else {
-			System.err.println("Game not found: " + gameID);
+			Log.log(LogInfo.class, "Error: game not found: " + gameID);
 			responseMap.put("GameResponse", "NotFound");
 		}
 

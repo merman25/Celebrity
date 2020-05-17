@@ -16,16 +16,22 @@ import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.Logger;
+import com.merman.celebrity.server.logging.info.PerGameLogInfo;
+import com.merman.celebrity.server.logging.outputters.FileOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class GameManager {
-	private static Map<String, Game>		gamesMap		= new HashMap<String, Game>();
-	private static Map<Player, Game>		mapHostsToGames	= new HashMap<Player, Game>();
-	private static List<String>             testStringList;
+	private static Map<String, Game> gamesMap          = new HashMap<String, Game>();
+	private static Map<Player, Game> mapHostsToGames   = new HashMap<Player, Game>();
+	private static Map<Game, Logger> mapGamesToLoggers = new HashMap<>();
+	private static List<String>      testStringList;
 	
 	public static boolean deleteExisting;
 	public static boolean createFiles;
@@ -35,9 +41,15 @@ public class GameManager {
 		@Override
 		public void remove(Game aGame) {
 			synchronized (GameManager.class) {
+				Log.log(PerGameLogInfo.class, "Removing game", aGame);
 				gamesMap.remove(aGame.getID());
 				if (aGame.getHost() != null)
 					mapHostsToGames.remove(aGame.getHost());
+
+				Logger gameLogger = mapGamesToLoggers.get(aGame);
+				if (gameLogger != null) {
+					Log.removeLogger(PerGameLogInfo.class, gameLogger);
+				}
 			}
 		}
 	}
@@ -68,8 +80,9 @@ public class GameManager {
 		gamesMap.put(aGameID, game);
 		mapHostsToGames.put(aHost, game);
 		
-		if ( createFiles
-				&& ! aGameID.toLowerCase().startsWith("test") ) {
+		if ( ( createFiles
+				|| ! CelebrityMain.isSysOutLogging() )
+					&& ! aGameID.toLowerCase().startsWith("test") ) {
 			File file = new File("games/" + aGameID );
 			if ( file.isDirectory() ) {
 				if ( deleteExisting ) {
@@ -80,6 +93,12 @@ public class GameManager {
 			}
 			else if ( ! file.exists() ) {
 				file.mkdirs();
+			}
+			
+			if ( ! CelebrityMain.isSysOutLogging() ) {
+				Logger logger = new Logger(logInfo -> ((PerGameLogInfo) logInfo).getGame() == game, new FileOutputter(new File(file, "log.txt")));
+				mapGamesToLoggers.put(game, logger);
+				Log.addLogger(PerGameLogInfo.class, logger);
 			}
 		}
 		
@@ -233,7 +252,7 @@ public class GameManager {
 		
 		game.freezeNameList();
 		for ( int roundIndex = 0; roundIndex < numRounds; roundIndex++ ) {
-			System.out.println( "playing round " + roundIndex );
+			Log.log(PerGameLogInfo.class, "Game", game, "playing round " + roundIndex );
 			game.shuffleNames();
 			game.startRound();
 			

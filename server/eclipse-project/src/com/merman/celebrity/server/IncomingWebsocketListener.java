@@ -8,6 +8,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Enumeration;
 
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
+
 public class IncomingWebsocketListener {
 	private volatile boolean listen;
 	private int portNumber = -1;
@@ -68,6 +71,7 @@ public class IncomingWebsocketListener {
 		
 		if ( inetAddressToUse == null ) {
 			System.err.println("Couldn't find valid inetAddress for websocket server");
+			System.exit(-1);
 		}
 		else {
 			int portNumber = getPortNumber();
@@ -78,7 +82,7 @@ public class IncomingWebsocketListener {
 			listen = true;
 			thread.start();
 
-			System.out.format("Listening for websockets at address %s on port %d\n", inetAddressToUse, portNumber);
+			Log.log(LogInfo.class, String.format( "Listening for websockets at address %s on port %d", inetAddressToUse, portNumber ) );
 		}
 	}
 

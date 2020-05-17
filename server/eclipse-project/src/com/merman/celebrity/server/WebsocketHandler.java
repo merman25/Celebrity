@@ -23,6 +23,8 @@ import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
 import com.merman.celebrity.server.handlers.HttpExchangeUtil;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
 
 public class WebsocketHandler {
 	private static final byte            MESSAGE_START_BYTE                = (byte) 0x81;                         // -127
@@ -81,7 +83,7 @@ public class WebsocketHandler {
 						byte lengthMagnitudeIndicator = (byte) ( nextByte - LENGTH_BYTE_SUBTRACTION_CONSTANT );
 						lengthByteArray[0] = lengthMagnitudeIndicator;
 						if ( lengthMagnitudeIndicator < 0 ) {
-							System.err.format( "Illegal magnitude indicator [%d] from byte [%d]\n", lengthMagnitudeIndicator, lengthByteArray[0] );
+							Log.log(LogInfo.class, String.format( "Error: Illegal magnitude indicator [%d] from byte [%d]", lengthMagnitudeIndicator, lengthByteArray[0] ));
 						}
 						else {
 							if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
@@ -104,10 +106,9 @@ public class WebsocketHandler {
 								
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
-//										System.out.format("Pong received from %s\n", getSession().getPlayer() );
 									}
 									else {
-										System.out.println( "zero-length message received" );
+										Log.log(LogInfo.class, "zero-length message received" );
 									}
 								}
 								else {
@@ -132,7 +133,7 @@ public class WebsocketHandler {
 										enqueueMessage("gotcha");
 									}
 									else {
-										System.out.println("Message from socket: " + message );
+										Log.log(LogInfo.class, "Message from socket: " + message );
 									}
 								}
 							}
@@ -140,14 +141,14 @@ public class WebsocketHandler {
 					}
 					else {
 						stopSoon();
-						System.out.println("Unexpected byte: " + bytesToHex(nextByte));
+						Log.log(LogInfo.class, "Unexpected byte: " + bytesToHex(nextByte));
 					}
 					
 					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, (m, n) -> m+n);
 				}
 			}
 			catch ( SocketException e ) {
-				System.out.format("Handler for session [%s] (%s) no longer listening: %s\n", getSession(), getSession() == null ? null : getSession().getPlayer(), e.getMessage());
+				Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) no longer listening: %s", getSession(), getSession() == null ? null : getSession().getPlayer(), e.getMessage()));
 			}
 			catch ( IOException e ) {
 				e.printStackTrace();
@@ -171,10 +172,10 @@ public class WebsocketHandler {
 
 				}
 				catch ( InterruptedException e ) {
-					System.out.format("Output handler for session [%s] interrupted\n", getSession());
+					Log.log(LogInfo.class, String.format("Output handler for session [%s] interrupted", getSession()));
 				}
 				catch ( SocketException e ) {
-					System.out.format("Handler for session [%s] (%s) can no longer write: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
+					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
 					try {
 						stop();
 					}
@@ -209,12 +210,11 @@ public class WebsocketHandler {
 		public void run() {
 			if ( listen ) {
 				try {
-//					System.out.println("Pinging " + getSession().getPlayer());
 					outputStreamRunnable.sendMessage((byte) PING_BYTE, "");
 					CelebrityMain.bytesSent.incrementAndGet();
 				}
 				catch ( SocketException e ) {
-					System.out.format("Handler for session [%s] (%s) can no longer write: %s\n", getSession(), getSession().getPlayer(), e.getMessage());
+					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
 					try {
 						stop();
 					}
@@ -423,7 +423,7 @@ public class WebsocketHandler {
 				outputStream.write(response, 0, response.length);
 				
 				SessionManager.putSocket( session, WebsocketHandler.this );
-				System.out.format( "Opened websocket with session %s [%s] from IP %s\n", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() );
+				Log.log(LogInfo.class, String.format( "Opened websocket with session %s [%s] from IP %s", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() ));
 
 				return true;
 			}

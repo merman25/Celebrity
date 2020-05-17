@@ -22,7 +22,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
     const gameSpec = gameSpecs[i];
     describe(`Player ${gameSpec.index + 1}`, () => {
         it(`Plays spec ${i}: ${gameSpec.description}`, () => {
-            cy.visit('http://192.168.1.17:8000/celebrity.html');
+            cy.visit('http://192.168.1.17:8000');
 
             if (gameSpec.index !== 0) {
                 // Since the player at index 0 is hard-coded to be the host, make sure they have time to join the game first.

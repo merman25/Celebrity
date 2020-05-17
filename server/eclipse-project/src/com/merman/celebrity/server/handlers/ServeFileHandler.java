@@ -3,6 +3,8 @@ package com.merman.celebrity.server.handlers;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
@@ -14,6 +16,8 @@ import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.SessionLogInfo;
 import com.sun.net.httpserver.HttpExchange;
 
 public class ServeFileHandler extends AHttpHandler {
@@ -25,15 +29,21 @@ public class ServeFileHandler extends AHttpHandler {
 
 	@Override
 	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aExchange) throws IOException {
-//		dumpRequest(aExchange);
 		
-		if (Server.MAIN_FILE_NAME.equals(relativePath)) {
+//		dumpRequest(aExchange);
+		if (Server.MAIN_FILE_NAME.equals(relativePath)
+				&& "/".equals( aExchange.getRequestURI().toString() )) {
 			if ( aSession == null
 					|| aSession.getPlayer() == null
 					|| aSession.getPlayer().getGame() == null
 					|| aSession.getPlayer().getGame().getStatus() == GameStatus.ENDED ) {
 				Session session = SessionManager.createSession();
 				aExchange.getResponseHeaders().set("Set-Cookie", String.format("session=%s; Max-Age=%s", session.getSessionID(), CleanupHelper.defaultExpiryDurationInS));
+				
+				InetSocketAddress remoteAddress = aExchange.getRemoteAddress();
+				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
+				session.setOriginalInetAddress(address);
+				Log.log(SessionLogInfo.class, "New session", session, "IP", address);
 			}
 			else {
 				WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(aSession);

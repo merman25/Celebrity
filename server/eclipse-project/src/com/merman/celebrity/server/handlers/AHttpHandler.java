@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -16,12 +18,13 @@ public abstract class AHttpHandler implements IContextHandler {
 
 	@Override
 	public void handle(HttpExchange aHttpExchange) throws IOException {
+		Session session = null;
 		try {
 //			dumpRequest(aHttpExchange);
 			
 			HttpExchangeUtil.logBytesReceived(aHttpExchange);
 			String sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
-			Session session = null;
+			session = null;
 			if ( sessionID != null ) {
 				session = SessionManager.getSession(sessionID);
 				
@@ -37,7 +40,8 @@ public abstract class AHttpHandler implements IContextHandler {
 			_handle( session, requestBodyAsMap, aHttpExchange );
 		}
 		catch (RuntimeException e) {
-			e.printStackTrace();
+			Player player = session == null ? null : session.getPlayer();
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Exception on HTTP request", e);
 		}
 	}
 
@@ -58,6 +62,7 @@ public abstract class AHttpHandler implements IContextHandler {
 		System.out.println( "Received request: " + getContextName() );
 		System.out.format("Request URI: %s\n", aExchange.getRequestURI() );
 		System.out.format("Path: %s\n", aExchange.getHttpContext().getPath() );
+		System.out.format("From: %s\n", aExchange.getRemoteAddress().getAddress() );
 		for ( Entry<String, List<String>> l_mapEntry : requestHeaders.entrySet() ) {
 			System.out.format("%s:\t%s\n", l_mapEntry.getKey(), String.join( ",", l_mapEntry.getValue() ));
 		}
