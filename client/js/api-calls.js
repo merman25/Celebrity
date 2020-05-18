@@ -100,3 +100,9 @@ function sendMakePlayerNextInTeamRequest(playerID) {
     fetch('makeNextInTeam', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }
+
+function sendMakeThisTeamNextRequest(teamIndex) {
+    const data = JSON.stringify({index: teamIndex});
+    fetch('setTeamIndex', { method: 'POST', body: data })
+        .catch(err => console.error(err));
+}

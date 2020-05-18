@@ -610,4 +610,12 @@ public class Game implements ICanExpire {
 	public String toString() {
 		return getID();
 	}
+	
+	public void setTeamIndex(int aIndex) {
+		if (aIndex < 0 || aIndex >= teamList.size()) {
+			throw new IndexOutOfBoundsException(aIndex + ": list size " + teamList.size());
+		}
+		nextTeamIndex = aIndex;
+		updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
+	}
 }

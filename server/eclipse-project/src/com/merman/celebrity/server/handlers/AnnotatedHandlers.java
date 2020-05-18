@@ -203,4 +203,19 @@ public class AnnotatedHandlers {
 	public static void makePlayerNextInTeam(Session session, Integer playerID) {
 		session.getPlayer().getGame().makePlayerNextInTeam(playerID);
 	}
+	
+	@HTTPRequest(requestName = "setTeamIndex", argNames = "index")
+	public static void setTeamIndex(Session session, Integer index) {
+		Player player = session == null ? null : session.getPlayer();
+		Game game = player == null ? null : GameManager.getGameHostedByPlayer(player);
+		if (game != null
+				&& index != null
+				&& index >= 0
+				&& index < game.getTeamList().size()) {
+			game.setTeamIndex(index);
+		}
+		else {
+			Log.log(LogInfo.class, "Error: cannot set team index. Session", session, "Player", player, "Game", game, "Index", index);
+		}
+	}
 }

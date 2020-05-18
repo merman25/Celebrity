@@ -422,6 +422,7 @@ function addPlayerInTeamContextMenu() {
 			const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
 			const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
 			const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
+			const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', {classList: ['menuItem']});
 
 			moveUpLi.addEventListener('click', event => {
 				sendMoveInTeamRequest(playerID, false);
@@ -436,8 +437,12 @@ function addPlayerInTeamContextMenu() {
 				sendMakePlayerNextInTeamRequest(playerID);
 				hideAllContextMenus();
 			});
+			makeThisTeamNextLi.addEventListener('click', event => {
+				sendMakeThisTeamNextRequest(teamIndex);
+				hideAllContextMenus();
+			})
 
-			appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi);
+			appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi, makeThisTeamNextLi);
 
 			setChildren('playerInTeamContextMenuDiv', ul);
 
