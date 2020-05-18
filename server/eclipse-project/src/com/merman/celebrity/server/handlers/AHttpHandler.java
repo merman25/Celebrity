@@ -41,7 +41,7 @@ public abstract class AHttpHandler implements IContextHandler {
 		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Exception on HTTP request", e);
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "Exception on HTTP request", e);
 		}
 	}
 

@@ -24,14 +24,11 @@ public class IncomingWebsocketListener {
 			try {
 				while (listen) {
 					try {
-						Log.log(LogInfo.class, "Calling serverSocket.accept()");
 						Socket clientSocket = serverSocket.accept();
-						Log.log(LogInfo.class, "Accepted");
 						WebsocketHandler handler = new WebsocketHandler(clientSocket);
 						handler.start();
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						Log.log(LogInfo.class, "Exception in websocket listener", e);
 					}
 				}
 			}

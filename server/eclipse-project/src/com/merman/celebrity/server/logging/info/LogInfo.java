@@ -32,7 +32,7 @@ public class LogInfo {
 	
 	public String formatArgs(Object... aArgs) {
 		List<String> argStringList = Arrays.asList( aArgs ).stream().map(x -> format(x)).collect(Collectors.toList());
-		return String.join(", ", argStringList);
+		return String.join(" ", argStringList);
 	}
 	
 	private static String format(Object aObject) {

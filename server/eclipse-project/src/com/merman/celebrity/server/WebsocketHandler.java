@@ -162,6 +162,7 @@ public class WebsocketHandler {
 
 		@Override
 		public void run() {
+			waitForHandshake();
 			while ( listen ) {
 				try {
 					String message 		= outgoingQueue.take();
@@ -208,6 +209,7 @@ public class WebsocketHandler {
 
 		@Override
 		public void run() {
+			waitForHandshake();
 			if ( listen ) {
 				try {
 					outputStreamRunnable.sendMessage((byte) PING_BYTE, "");
@@ -321,23 +323,22 @@ public class WebsocketHandler {
 		}
 		started = true;
 		listen = true;
-		
+
 		int threadNumber = threadCount.incrementAndGet();
 		new Thread(inputStreamRunnable,  "Websocket-InputStream-"  + threadNumber).start();
-		
+		new Thread(outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
+
+		pingTimer = new Timer("ping-timer-" + threadNumber);
+		pingTimer.schedule(new MyPingTimerTask(), 5000, 10000);
+	}
+
+	private void waitForHandshake() {
 		while ( ! handshakeCompleted
 				&& listen ) {
 			try {
 				Thread.sleep(50);
 			} catch (InterruptedException e) {
 			}
-		}
-		
-		if (listen) {
-			new Thread(outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
-
-			pingTimer = new Timer("ping-timer-" + threadNumber);
-			pingTimer.schedule(new MyPingTimerTask(), 5000, 10000);
 		}
 	}
 
@@ -375,15 +376,18 @@ public class WebsocketHandler {
 //			System.out.println("\n=== Received incoming websocket request ===\n");
 //			System.out.println(data);
 			
+			CelebrityMain.bytesReceived.accumulateAndGet(data.getBytes().length, (m, n) -> m+n);
+			
 			Matcher get = Pattern.compile("^GET").matcher(data);
 			if (get.find()) {
 				Matcher cookieMatcher = Pattern.compile("Cookie: (.*)").matcher(data);
+				String sessionID = null;
 				if (cookieMatcher.find()) {
 					String cookieString = cookieMatcher.group(1);
 					HashMap<String, String> cookie = new HashMap<>();
 					HttpExchangeUtil.parseCookie(cookieString, cookie);
 					
-					String sessionID = cookie.get("session");
+					sessionID = cookie.get("session");
 					if (sessionID != null) {
 						session = SessionManager.getSession(sessionID);
 					}
@@ -405,6 +409,7 @@ public class WebsocketHandler {
 				}
 				
 				if (session == null) {
+					Log.log(LogInfo.class, String.format( "Unknown session ID [%s], refusing handshake", sessionID));
 					// Don't recognise this session, refuse this websocket
 					stop();
 					return false;
@@ -422,6 +427,8 @@ public class WebsocketHandler {
 						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
 				
+				CelebrityMain.bytesSent.accumulateAndGet(data.getBytes().length, (m, n) -> m+n);
+				
 				SessionManager.putSocket( session, WebsocketHandler.this );
 				Log.log(LogInfo.class, String.format( "Opened websocket with session %s [%s] from IP %s", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() ));
 
@@ -429,8 +436,10 @@ public class WebsocketHandler {
 			}
 		}
 		catch ( Exception e ) {
-			e.printStackTrace();
+			Log.log(LogInfo.class, "Exception during websocket handshake", e);
 		}
+		Log.log(LogInfo.class, "Websocket handshake failed. IP", socket.getInetAddress());
+		stop();
 		return false;
 	}
 	

@@ -74,9 +74,9 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 
 document.addEventListener(visibilityChange, () => {
 	if (!document[hidden]
-		&& (webSocket == null
-			|| webSocket.readyState === WebSocket.CLOSED)) {
-		console.log('Trying to restore websockt');
+		&& webSocket != null
+		&& webSocket.readyState === WebSocket.CLOSED) {
+		console.log('Trying to restore websocket');
 		setCookie('restore', 'true', 10);
 		webSocket = null;
 		tryToOpenSocket();
@@ -165,7 +165,6 @@ function tryToOpenSocket() {
 			}
 
 			if (message.indexOf('GameState=') === 0) {
-				console.log('received game state');
 				const gameStateString = message.substring('GameState='.length, message.length);
 				const gameObj = JSON.parse(gameStateString);
 				processGameStateObject(gameObj);
@@ -422,7 +421,7 @@ function addPlayerInTeamContextMenu() {
 			const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
 			const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
 			const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
-			const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', {classList: ['menuItem']});
+			const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', { classList: ['menuItem'] });
 
 			moveUpLi.addEventListener('click', event => {
 				sendMoveInTeamRequest(playerID, false);

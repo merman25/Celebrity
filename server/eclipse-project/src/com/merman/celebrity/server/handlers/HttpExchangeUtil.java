@@ -73,12 +73,19 @@ public class HttpExchangeUtil {
 	public static LinkedHashMap<String, Object>	toMap( String aJSONString ) {
 		LinkedHashMap<String, Object>		map		= new LinkedHashMap<>();
 
-		if ( ! aJSONString.isEmpty() ) {
+		String jsonString = aJSONString == null ? null : aJSONString.trim();
+		if ( jsonString != null
+				&& jsonString.startsWith("{")
+				&& jsonString.endsWith("}" ) ) {
 			JSONObject jsonObject = new JSONObject(aJSONString);
 			String[] names = JSONObject.getNames(jsonObject);
 			for (String name : names) {
 				map.put(name, jsonObject.get(name));
 			}
+		}
+		else if (aJSONString != null
+				&& ! aJSONString.isEmpty() ) {
+			throw new InvalidJSONException("Invalid JSON: " + aJSONString);
 		}
 		
 		return map;
