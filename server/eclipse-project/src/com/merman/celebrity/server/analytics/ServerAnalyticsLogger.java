@@ -44,7 +44,7 @@ public class ServerAnalyticsLogger {
 	}
 	
 	private static void log(Server aServer) {
-		Log.log(AnalyticsLogInfo.class, String.format("%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received (ex. websocket handshakes)",
+		Log.log(AnalyticsLogInfo.class, String.format("%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received",
 				GameManager.getNumGames(),
 				PlayerManager.getNumPlayers(),
 				SessionManager.getNumSessions(),

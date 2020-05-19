@@ -139,9 +139,11 @@ public class HttpExchangeUtil {
 		}
 
 		String requestBody = getRequestBody(aExchange);
-		int bodyBytesReceived = requestBody.getBytes(StandardCharsets.UTF_8).length;
-		
-		CelebrityMain.bytesReceived.accumulateAndGet(headerBytesReceived + bodyBytesReceived, (m, n) -> m+n);
+		if (requestBody != null) {
+			int bodyBytesReceived = requestBody.getBytes(StandardCharsets.UTF_8).length;
+
+			CelebrityMain.bytesReceived.accumulateAndGet(headerBytesReceived + bodyBytesReceived, (m, n) -> m+n);
+		}
 	}
 	
 	public static void logBytesSent(HttpExchange aExchange, int aBodyLength) {

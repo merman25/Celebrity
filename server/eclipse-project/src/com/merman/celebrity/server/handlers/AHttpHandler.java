@@ -39,6 +39,10 @@ public abstract class AHttpHandler implements IContextHandler {
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );
 		}
+		catch (InvalidJSONException e) {
+			Player player = session == null ? null : session.getPlayer();
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), e.getMessage());
+		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
 			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "Exception on HTTP request", e);
