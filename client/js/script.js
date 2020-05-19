@@ -10,6 +10,7 @@ const myGameState = {
 	gameParamsSubmitted: false,
 	namesRequested: false,
 	namesSubmitted: false,
+	gameIDSubmitted: false,
 	statusAtLastUpdate: 'WAITING_FOR_PLAYERS',
 	currentNameIndex: 0,
 	iAmPlaying: false,
@@ -668,6 +669,7 @@ function allocateTeams() {
 }
 
 async function askGameIDResponse() {
+	myGameState.gameIDSubmitted = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	const enteredGameID = document.getElementById('gameIDField').value;
 
