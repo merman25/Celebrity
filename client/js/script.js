@@ -787,16 +787,21 @@ function addNameRequestForm() {
 }
 
 function submitNameList() {
-	myGameState.namesSubmitted = true;
-
-	setDOMElementVisibility(myGameState, serverGameState);
 
 	let nameArr = [];
 	for (let i = 1; i <= serverGameState.numNames; i++) {
 		const paramName = `name${i}`;
 		const nameToSubmit = document.getElementById(paramName).value;
+
+		if (nameToSubmit == null
+			|| nameToSubmit.trim() === '') {
+			alert('Please enter some text for each name');
+			return;
+		}
 		nameArr.push(nameToSubmit);
 	}
+	myGameState.namesSubmitted = true;
+	setDOMElementVisibility(myGameState, serverGameState);
 
 	sendNameList(nameArr);
 }
