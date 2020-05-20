@@ -61,6 +61,15 @@ const selectorsToShowOrHide = [
 	{
 		selector: '#turnControlsDiv',
 		styleFn: (myGameState, serverGameState) => serverGameState.status === 'PLAYING_A_TURN' && myGameState.iAmPlaying,
+		visibleDisplay: 'flex',
+	},
+	{
+		selector: '#turnControlsDiv',
+		styleFn: (myGameState, serverGameState) => document.body.clientWidth < 350,
+		mutators: {
+			true: element => element.style['flex-direction'] = 'column',
+			false: element => element.style['flex-direction'] = 'row',
+		},
 	},
 	{
 		selector: '#startNextRoundButton',
@@ -77,11 +86,22 @@ const selectorsToShowOrHide = [
 ];
 
 const setDOMElementVisibility = function (myGameState, serverGameState) {
-	selectorsToShowOrHide.forEach(({ selector, styleFn, visibleDisplay }) => {
-		const display = !styleFn(myGameState, serverGameState) ?         'none' :
-                                      visibleDisplay != null   ? visibleDisplay :
-                                                                         'block';
+	selectorsToShowOrHide.forEach(({ selector, styleFn, visibleDisplay, mutators }) => {
+		const styleFnResult = styleFn(myGameState, serverGameState);
+
+		let mutator;
+		if (mutators == null) {
+			const display = !styleFnResult         ? 'none'         :
+				            visibleDisplay != null ? visibleDisplay :
+					                                         'block';
+
+			mutator = element => element.style.display = display;
+		}
+		else {
+			mutator = mutators[styleFnResult];
+		}
+
 		document.querySelectorAll(selector)
-			.forEach(element => element.style.display = display);
+			.forEach(mutator);
 	});
 }

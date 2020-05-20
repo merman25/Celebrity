@@ -73,10 +73,13 @@ th, td {
 
 .turnControlButtonClass {
     margin-right: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
     background-repeat: no-repeat;
     background-position: 0px 0px;
     height: 24px;
     padding-left: 28px;
+    max-width: 6rem;
     vertical-align: middle;
 }
 
