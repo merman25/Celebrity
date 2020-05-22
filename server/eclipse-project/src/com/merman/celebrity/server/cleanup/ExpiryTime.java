@@ -20,4 +20,8 @@ public class ExpiryTime {
 			
 		return expired;
 	}
+	
+	public int getDurationToExpirySeconds() {
+		return Math.max(0, (int) ( durationOfInactivityBeforeExpiringInSec - ( System.currentTimeMillis() - lastResetTimeMillis ) / 1000 ) );
+	}
 }

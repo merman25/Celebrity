@@ -47,6 +47,9 @@ public class Session implements ICanExpire {
 	
 	public void resetExpiryTime() {
 		expiryTime.resetExpiryTime();
+		Player player = getPlayer();
+		if (player != null)
+			player.resetExpiryTime();
 	}
 
 	public InetAddress getOriginalInetAddress() {
@@ -59,5 +62,9 @@ public class Session implements ICanExpire {
 
 	public Date getStartTimeStamp() {
 		return startTimeStamp;
+	}
+
+	public ExpiryTime getExpiryTime() {
+		return expiryTime;
 	}
 }

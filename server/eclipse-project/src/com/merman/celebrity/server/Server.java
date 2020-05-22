@@ -42,6 +42,7 @@ public class Server {
 
 	public Server(int aPortNumber, List<File> aGameFileList) {
 		portNumber = aPortNumber;
+		gameFileList = aGameFileList;
 	}
 	
 	public Server(List<File> aGameFileList) {

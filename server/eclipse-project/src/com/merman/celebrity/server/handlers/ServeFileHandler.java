@@ -15,7 +15,6 @@ import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
-import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 import com.sun.net.httpserver.HttpExchange;
@@ -38,7 +37,7 @@ public class ServeFileHandler extends AHttpHandler {
 					|| aSession.getPlayer().getGame() == null
 					|| aSession.getPlayer().getGame().getStatus() == GameStatus.ENDED ) {
 				Session session = SessionManager.createSession();
-				aExchange.getResponseHeaders().set("Set-Cookie", String.format("session=%s; Max-Age=%s", session.getSessionID(), CleanupHelper.defaultExpiryDurationInS));
+				HttpExchangeUtil.setCookieResponseHeader(session, aExchange);
 				
 				InetSocketAddress remoteAddress = aExchange.getRemoteAddress();
 				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();

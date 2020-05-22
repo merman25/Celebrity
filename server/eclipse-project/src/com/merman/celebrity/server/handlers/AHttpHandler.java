@@ -30,11 +30,7 @@ public abstract class AHttpHandler implements IContextHandler {
 				
 				if (session != null) {
 					session.resetExpiryTime();
-					Player player = session.getPlayer();
-					if (player != null)
-						player.resetExpiryTime();
 				}
-
 			}
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );

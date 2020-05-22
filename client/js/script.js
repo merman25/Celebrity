@@ -203,6 +203,13 @@ function processGameStateObject(newGameStateObject) {
 		clearTestTrigger();
 	}
 
+	if (serverGameState.sessionMaxAge) {
+		const sessionCookie = getCookie('session');
+		if (sessionCookie != null) {
+			setCookie('session', sessionCookie, serverGameState.sessionMaxAge);
+		}
+	}
+
 	const gameIDHeading = createDOMElement('h2', `Game ID: ${serverGameState.gameID}`);
 	setChildren('gameIDDiv', 'hr', gameIDHeading);
 

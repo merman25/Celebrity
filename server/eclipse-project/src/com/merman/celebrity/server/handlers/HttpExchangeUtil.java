@@ -13,6 +13,7 @@ import java.util.WeakHashMap;
 import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
+import com.merman.celebrity.server.Session;
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
@@ -158,4 +159,10 @@ public class HttpExchangeUtil {
 
 		CelebrityMain.bytesSent.accumulateAndGet(headerBytesSent + aBodyLength, (m, n) -> m+n);
 	}
+
+	public static void setCookieResponseHeader(Session aSession, HttpExchange aHttpExchange) {
+		String cookieString = String.format("session=%s; Max-Age=%s", aSession.getSessionID(), aSession.getExpiryTime().getDurationToExpirySeconds());
+		aHttpExchange.getResponseHeaders().add("Set-Cookie", cookieString);
+	}
+
 }

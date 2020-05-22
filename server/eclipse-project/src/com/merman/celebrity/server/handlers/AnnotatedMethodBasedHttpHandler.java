@@ -124,6 +124,10 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			}
 		}
 		
+		if (aSession != null) {
+			HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchange);
+		}
+		
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			if ( responseObject == null ) {

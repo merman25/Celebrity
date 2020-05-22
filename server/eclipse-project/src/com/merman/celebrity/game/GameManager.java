@@ -122,10 +122,11 @@ public class GameManager {
 	public static String serialise( Game aGame, String aSessionIDOfRequester, boolean aForClient ) {
 		Integer publicIDOfRequester = null;
 		Player playerRequesting = null;
+		Session sessionRequesting = null;
 		if ( aSessionIDOfRequester != null ) {
-			Session session = SessionManager.getSession(aSessionIDOfRequester);
-			if ( session != null ) {
-				playerRequesting = session.getPlayer();
+			sessionRequesting = SessionManager.getSession(aSessionIDOfRequester);
+			if ( sessionRequesting != null ) {
+				playerRequesting = sessionRequesting.getPlayer();
 				publicIDOfRequester = playerRequesting.getPublicUniqueID();
 			}
 		}
@@ -171,6 +172,10 @@ public class GameManager {
 			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
 			.put( "turnCount", aGame.getTurnCount() )
 			;
+			
+			if (sessionRequesting != null) {
+				jsonObject.put( "sessionMaxAge", sessionRequesting.getExpiryTime().getDurationToExpirySeconds());
+			}
 			
 			if ( aGame.getCurrentPlayer() != null ) {
 				jsonObject.put( "currentPlayerID", aGame.getCurrentPlayer().getPublicUniqueID() );
