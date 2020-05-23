@@ -2,6 +2,8 @@ package com.merman.celebrity.server.handlers;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -19,6 +21,9 @@ public abstract class AHttpHandler implements IContextHandler {
 	@Override
 	public void handle(HttpExchange aHttpExchange) throws IOException {
 		Session session = null;
+		InetSocketAddress remoteAddress = aHttpExchange.getRemoteAddress();
+		InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
+
 		try {
 //			dumpRequest(aHttpExchange);
 			
@@ -37,11 +42,11 @@ public abstract class AHttpHandler implements IContextHandler {
 		}
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), e.getMessage());
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, e.getMessage());
 		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "Exception on HTTP request", e);
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, "Exception on HTTP request", e);
 		}
 	}
 
