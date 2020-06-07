@@ -82,10 +82,10 @@ function sendPutInTeamRequest(playerID, teamIndex) {
         .catch(err => console.error(err));
 }
 
-function sendRemoveFromGameRequest(playerID) {
+async function sendRemoveFromGameRequest(playerID) {
     const data = JSON.stringify({ playerID });
-    fetch('removeFromGame', { method: 'POST', body: data })
-        .catch(err => console.error(err));
+    await fetch('removeFromGame', { method: 'POST', body: data })
+              .catch(err => console.error(err));
 }
 
 function sendMoveInTeamRequest(playerID, moveDownOrLater) {

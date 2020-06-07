@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {} );
 document.getElementById('nameSubmitButton').addEventListener('click', () => {
 	const username = document.getElementById('nameField').value;
 	const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
-	const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name, and not the game ID?`);
+	const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name?`);
 	if (usernameAccepted) {
 		sendUsername(username);
 		myGameState.myName = username;
@@ -133,14 +133,15 @@ document.getElementById('passButton').addEventListener('click', async () => {
 });
 
 document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
-document.getElementById('exitGameButton').addEventListener('click', event => {
+document.getElementById('exitGameButton').addEventListener('click', async () => {
 	const answer = confirm('Are you sure you want to exit the game?');
 	if (answer) {
+		document.getElementById('exitGameButton').disabled = true;
 		if (myGameState.myPlayerID && serverGameState.gameID)
-			sendRemoveFromGameRequest(myGameState.myPlayerID);
+			await sendRemoveFromGameRequest(myGameState.myPlayerID);
 
 		// clear cookies
-		const cookies = document.cookie.split(";");
+		const cookies = document.cookie.split(/ *; */);
 		cookies.forEach(keyValPair => {
 			const key = keyValPair.split('=')[0];
 			setCookie(key, '', -1);

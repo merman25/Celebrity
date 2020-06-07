@@ -184,7 +184,9 @@ public class AnnotatedHandlers {
 	public static void removePlayerFromGame(Session session, Integer playerID) {
 		Player 	player 	= session 	== null ? null : session.getPlayer();
 		Game 	game 	= player 	== null ? null : player.getGame();
-		if (game != null) {
+		if (game != null
+				&& ( game.getHost() == player
+						|| player.getPublicUniqueID() == playerID ) ) {
 			game.removePlayer(playerID);
 		}
 	}

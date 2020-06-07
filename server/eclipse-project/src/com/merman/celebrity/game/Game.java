@@ -437,8 +437,7 @@ public class Game implements ICanExpire {
 
 	public void removePlayer(int aPlayerPublicID) {
 		Player player = PlayerManager.getPlayer(aPlayerPublicID);
-		if ( player != null
-				&& player != host ) {
+		if ( player != null ) {
 			player.setGame(null);
 
 
