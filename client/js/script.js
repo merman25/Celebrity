@@ -22,18 +22,112 @@ const myGameState = {
 document.addEventListener('DOMContentLoaded', () => {} );
 */
 
-document.getElementById('nameSubmitButton').addEventListener('click', submitName);
-document.getElementById('join').addEventListener('click', requestGameID);
-document.getElementById('gameIDSubmitButton').addEventListener('click', askGameIDResponse);
-document.getElementById('host').addEventListener('click', hostNewGame);
-document.getElementById('submitGameParamsButton').addEventListener('click', submitGameParams);
-document.getElementById('teamsButton').addEventListener('click', allocateTeams);
-document.getElementById('requestNamesButton').addEventListener('click', requestNames);
-document.getElementById('startGameButton').addEventListener('click', startGame);
-document.getElementById('startNextRoundButton').addEventListener('click', startNextRound);
-document.getElementById('startTurnButton').addEventListener('click', startTurn);
-document.getElementById('gotNameButton').addEventListener('click', gotName);
-document.getElementById('passButton').addEventListener('click', pass);
+document.getElementById('nameSubmitButton').addEventListener('click', () => {
+	const username = document.getElementById('nameField').value;
+	sendUsername(username);
+	myGameState.myName = username;
+
+	setDOMElementVisibility(myGameState, serverGameState);
+
+	tryToOpenSocket();
+});
+
+document.getElementById('join').addEventListener('click', () => {
+	myGameState.willJoin = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+});
+
+document.getElementById('gameIDSubmitButton').addEventListener('click', async () => {
+	myGameState.gameIDSubmitted = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+	const enteredGameID = document.getElementById('gameIDField').value;
+
+	try {
+		const result = await sendGameIDResponseRequest(enteredGameID);
+		const gameResponse = result.GameResponse;
+		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
+			setDOMElementVisibility(myGameState, serverGameState);
+		}
+		else {
+			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
+		}
+
+	}
+	catch (err) { console.error(err) };
+});
+
+document.getElementById('host').addEventListener('click', async () => {
+	myGameState.willHost = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+
+	try {
+		const resultObject = await sendIWillHost();
+	}
+	catch (err) { console.error(err); }
+});
+
+document.getElementById('submitGameParamsButton').addEventListener('click', () => {
+	myGameState.gameParamsSubmitted = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+
+	const numRounds = document.getElementById('numRoundsField').value;
+	const roundDuration = document.getElementById('roundDurationField').value;
+	const numNames = document.getElementById('numNamesField').value;
+
+	sendGameParams(numRounds, roundDuration, numNames);
+});
+
+document.getElementById('teamsButton').addEventListener('click', () => {
+	setDOMElementVisibility(myGameState, serverGameState);
+	sendAllocateTeamsRequest();
+});
+
+document.getElementById('requestNamesButton').addEventListener('click', () => {
+	myGameState.namesRequested = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+	sendNameRequest();
+});
+
+document.getElementById('startGameButton').addEventListener('click', () => {
+	setDOMElementVisibility(myGameState, serverGameState);
+	removeChildren('gameStatusDiv');
+	sendStartGameRequest();
+});
+
+document.getElementById('startNextRoundButton').addEventListener('click', () => {
+	clearTestTrigger();
+	sendStartNextRoundRequest();
+});
+
+document.getElementById('startTurnButton').addEventListener('click', () => {
+	setDOMElementVisibility(myGameState, serverGameState);
+	clearTestTrigger();
+	sendStartTurnRequest();
+});
+
+document.getElementById('gotNameButton').addEventListener('click', () => {
+	document.getElementById('gotNameButton').disabled = true;
+	myGameState.currentNameIndex++;
+	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
+
+	if (myGameState.currentNameIndex >= serverGameState.totalNames) {
+		setDOMElementVisibility(myGameState, serverGameState);
+		finishRound();
+	}
+});
+
+document.getElementById('passButton').addEventListener('click', async () => {
+	document.getElementById('passButton').disabled = true;
+	try {
+		const result = await sendPassRequest(myGameState.currentNameIndex);
+
+		document.getElementById('passButton').disabled = false;
+		serverGameState.currentName = result.currentName;
+		updateCurrentNameDiv();
+	}
+	catch (err) { console.error(err) };
+});
+
 document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
 document.getElementById('exitGameButton').addEventListener('click', event => {
 	const answer = confirm('Are you sure you want to exit the game?');
@@ -105,31 +199,6 @@ function setChildren(elementOrID, ...children) {
 	const element = typeof (elementOrID) === 'string' ? document.getElementById(elementOrID) : elementOrID;
 	removeChildren(element);
 	appendChildren.apply(this, [element, ...children]);
-}
-
-function submitName() {
-	const username = document.getElementById('nameField').value;
-	sendUsername(username);
-	myGameState.myName = username;
-
-	setDOMElementVisibility(myGameState, serverGameState);
-
-	tryToOpenSocket();
-}
-
-function requestGameID() {
-	myGameState.willJoin = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-}
-
-async function hostNewGame() {
-	myGameState.willHost = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-
-	try {
-		const resultObject = await sendIWillHost();
-	}
-	catch (err) { console.error(err); }
 }
 
 function tryToOpenSocket() {
@@ -659,47 +728,6 @@ function iAmHost() {
 		&& serverGameState.host.publicID === serverGameState.publicIDOfRecipient;
 }
 
-function submitGameParams() {
-	myGameState.gameParamsSubmitted = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-
-	const numRounds = document.getElementById('numRoundsField').value;
-	const roundDuration = document.getElementById('roundDurationField').value;
-	const numNames = document.getElementById('numNamesField').value;
-
-	sendGameParams(numRounds, roundDuration, numNames);
-}
-
-function allocateTeams() {
-	setDOMElementVisibility(myGameState, serverGameState);
-	sendAllocateTeamsRequest();
-}
-
-async function askGameIDResponse() {
-	myGameState.gameIDSubmitted = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	const enteredGameID = document.getElementById('gameIDField').value;
-
-	try {
-		const result = await sendGameIDResponseRequest(enteredGameID);
-		const gameResponse = result.GameResponse;
-		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
-			setDOMElementVisibility(myGameState, serverGameState);
-		}
-		else {
-			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
-		}
-
-	}
-	catch (err) { console.error(err) };
-}
-
-function requestNames() {
-	myGameState.namesRequested = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	sendNameRequest();
-}
-
 function setGameStatus(newStatus) {
 	if (newStatus === 'WAITING_FOR_PLAYERS')
 		updateGameInfo('Waiting for others to join...')
@@ -813,18 +841,6 @@ function submitNameList() {
 	sendNameList(nameArr);
 }
 
-function startGame() {
-	setDOMElementVisibility(myGameState, serverGameState);
-	removeChildren('gameStatusDiv');
-	sendStartGameRequest();
-}
-
-function startTurn() {
-	setDOMElementVisibility(myGameState, serverGameState);
-	clearTestTrigger();
-	sendStartTurnRequest();
-}
-
 function updateCurrentNameDiv() {
 	document.getElementById('gotNameButton').disabled = false;
 	if (myGameState.iAmPlaying) {
@@ -839,37 +855,9 @@ function updateCurrentNameDiv() {
 	}
 }
 
-function gotName() {
-	document.getElementById('gotNameButton').disabled = true;
-	myGameState.currentNameIndex++;
-	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
-
-	if (myGameState.currentNameIndex >= serverGameState.totalNames) {
-		setDOMElementVisibility(myGameState, serverGameState);
-		finishRound();
-	}
-}
-
 function finishRound() {
 	document.getElementById('gameStatusDiv').textContent = 'Finished Round!';
 	removeChildren('currentNameDiv');
-}
-
-function startNextRound() {
-	clearTestTrigger();
-	sendStartNextRoundRequest();
-}
-
-async function pass() {
-	document.getElementById('passButton').disabled = true;
-	try {
-		const result = await sendPassRequest(myGameState.currentNameIndex);
-
-		document.getElementById('passButton').disabled = false;
-		serverGameState.currentName = result.currentName;
-		updateCurrentNameDiv();
-	}
-	catch (err) { console.error(err) };
 }
 
 function hideAllContextMenus() {
