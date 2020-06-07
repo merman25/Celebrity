@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
 
-import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
@@ -35,7 +34,7 @@ public class ServeFileHandler extends AHttpHandler {
 			if ( aSession == null
 					|| aSession.getPlayer() == null
 					|| aSession.getPlayer().getGame() == null
-					|| aSession.getPlayer().getGame().getStatus() == GameStatus.ENDED ) {
+					|| aSession.getPlayer().getGame().isExpired() ) {
 				Session session = SessionManager.createSession();
 				HttpExchangeUtil.setCookieResponseHeader(session, aExchange);
 				
