@@ -24,12 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {} );
 
 document.getElementById('nameSubmitButton').addEventListener('click', () => {
 	const username = document.getElementById('nameField').value;
-	sendUsername(username);
-	myGameState.myName = username;
+	const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
+	const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name, and not the game ID?`);
+	if (usernameAccepted) {
+		sendUsername(username);
+		myGameState.myName = username;
 
-	setDOMElementVisibility(myGameState, serverGameState);
+		setDOMElementVisibility(myGameState, serverGameState);
 
-	tryToOpenSocket();
+		tryToOpenSocket();
+	}
 });
 
 document.getElementById('join').addEventListener('click', () => {
