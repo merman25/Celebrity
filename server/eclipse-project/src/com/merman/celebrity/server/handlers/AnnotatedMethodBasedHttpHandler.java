@@ -9,7 +9,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -131,18 +130,9 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			if ( responseObject == null ) {
-//				sendResponse(aHttpExchange, HTTPResponseConstants.Found, "");
-				
-//				dumpRequest(aHttpExchange);
-//				aHttpExchange.getResponseHeaders().set("Location", "http://192.168.1.17:8080/celebrity.html");
-//				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.Found, 0);
-				
 				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.No_Content, -1);
 				aHttpExchange.getResponseBody().close();
 				HttpExchangeUtil.logBytesSent(aHttpExchange, 0);
-				
-//				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.OK, -1);
-//				aHttpExchange.getResponseBody().close();
 			}
 			else if ( responseObject instanceof String ) {
 				sendResponse(aHttpExchange, HTTPResponseConstants.OK, (String) responseObject);
@@ -161,23 +151,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
 		
 		return jsonObject.toString();
-	}
-	
-	public String serialiseMapOld( Map<?, ?> aMap ) {
-		StringBuilder builder = new StringBuilder();
-		for ( Entry<?, ?> mapEntry : aMap.entrySet() ) {
-			Object key = mapEntry.getKey();
-			Object value = mapEntry.getValue();
-			
-			if ( builder.length() > 0 ) {
-				builder.append('&');
-			}
-			builder.append(key);
-			builder.append('=');
-			builder.append(value);
-		}
-		
-		return builder.toString();
 	}
 	
 	public static List<AnnotatedMethodBasedHttpHandler> createHandlers( Class aClass ) {
