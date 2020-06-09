@@ -51,7 +51,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		String requestName = httpRequestAnnotation.requestName();
 		if ( requestName == null
 				|| ! requestName.matches("[\\w-]+") ) {
-			throw new IllegalArgumentException( "Request name must consist of at least one word character and/or a hypen, and no other characters" );
+			throw new IllegalArgumentException( "Request name must consist of at least one word character and/or a hyphen, and no other characters" );
 		}
 		
 		name = requestName;

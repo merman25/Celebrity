@@ -16,7 +16,9 @@ import com.merman.celebrity.server.logging.info.PerGameLogInfo;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 
 public class AnnotatedHandlers {
-
+/* If error, throw exception, ensure client knows about it and can inform the user.
+ * Think about what kind of validation should be done in these methods vs in the Game object.
+ */
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
 		Log.log(SessionLogInfo.class, "Session", session, "Username", username);
