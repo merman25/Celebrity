@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.json.JSONException;
+
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
@@ -43,6 +45,10 @@ public abstract class AHttpHandler implements IContextHandler {
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
 			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, e.getMessage());
+		}
+		catch (JSONException e) {
+			Player player = session == null ? null : session.getPlayer();
+			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, "JSONException", e);
 		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
