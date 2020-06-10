@@ -144,7 +144,7 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 		const cookies = document.cookie.split(/ *; */);
 		cookies.forEach(keyValPair => {
 			const key = keyValPair.split('=')[0];
-			setCookie(key, '', -1);
+			clearCookie(key);
 		});
 
 		// reload page
@@ -154,6 +154,22 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 
 if (getCookie('restore') === 'true') {
 	tryToOpenSocket();
+}
+
+const messageOnReload = getCookie('messageOnReload');
+if (messageOnReload != null
+	&& messageOnReload != '') {
+	console.log('messageOnReload', messageOnReload);
+	clearCookie('messageOnReload');
+
+	const footer = document.getElementById('notificationFooterDiv');
+	const closeButton = createDOMElement('span', '\xd7', { classList: ['close'] });
+	setChildren(footer,
+		createDOMElement('span', messageOnReload),
+		closeButton
+	);
+	closeButton.addEventListener('click', () => footer.style.display = 'none');
+	footer.style.display = 'block';
 }
 
 setDOMElementVisibility(myGameState, serverGameState);

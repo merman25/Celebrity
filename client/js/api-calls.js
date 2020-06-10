@@ -1,6 +1,23 @@
 function sendUsername(name) {
     const data = JSON.stringify({ username: name });
     fetch('username', { method: 'POST', body: data })
+        .then(response => {
+            if (response.headers.get('content-type') &&
+                response.headers.get('content-type').toLowerCase().indexOf('application/json') >= 0) {
+                return response.json();
+            }
+            else {
+                return null;
+            }
+        })
+        .then(response => {
+            if (response
+                && response.Error === 'NO_SESSION') {
+                setCookie('messageOnReload', 'There was an error. You didn\'t have an active session');
+                location.reload();
+                console.log(response.Error);
+            }
+        })
         .catch(err => console.error(err));
 }
 
@@ -85,7 +102,7 @@ function sendPutInTeamRequest(playerID, teamIndex) {
 async function sendRemoveFromGameRequest(playerID) {
     const data = JSON.stringify({ playerID });
     await fetch('removeFromGame', { method: 'POST', body: data })
-              .catch(err => console.error(err));
+        .catch(err => console.error(err));
 }
 
 function sendMoveInTeamRequest(playerID, moveDownOrLater) {
@@ -102,7 +119,7 @@ function sendMakePlayerNextInTeamRequest(playerID) {
 }
 
 function sendMakeThisTeamNextRequest(teamIndex) {
-    const data = JSON.stringify({index: teamIndex});
+    const data = JSON.stringify({ index: teamIndex });
     fetch('setTeamIndex', { method: 'POST', body: data })
         .catch(err => console.error(err));
 }

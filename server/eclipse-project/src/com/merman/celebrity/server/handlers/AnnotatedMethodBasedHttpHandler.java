@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
@@ -87,6 +87,9 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 
 	@Override
 	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException {
+		if (aSession == null) {
+			throw new NullSessionException();
+		}
 		Object[] argValues = new Object[methodArgs.size() + 1];
 		argValues[0] = aSession;
 		for (int i = 0; i < methodArgs.size(); i++) {
@@ -122,11 +125,11 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				Log.log(LogInfo.class, "Session", aSession, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
 			}
 		}
-		
+
 		if (aSession != null) {
 			HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchange);
 		}
-		
+
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			if ( responseObject == null ) {
@@ -146,13 +149,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		}
 	}
 
-	public String serialiseMap( Map<?, ?> aMap ) {
-		JSONObject		jsonObject		= new JSONObject();
-		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
-		
-		return jsonObject.toString();
-	}
-	
 	public static List<AnnotatedMethodBasedHttpHandler> createHandlers( Class aClass ) {
 		List<AnnotatedMethodBasedHttpHandler> handlerList = new ArrayList<AnnotatedMethodBasedHttpHandler>();
 		

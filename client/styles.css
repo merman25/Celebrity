@@ -138,3 +138,50 @@ th, td {
 .rightClickable:hover {
     background-color: #BCDCFB;
 }
+
+/* Notification footer */
+.notification-footer {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    bottom: 0;
+    width: 100%; /* Full width */
+    overflow: auto; /* Enable scroll if needed */
+    text-align: center;
+    background-color: #fefefe;
+    animation-name: fadeIn;
+    animation-duration: 0.4s;
+    padding: 2px 16px;
+    -webkit-animation-name: slideIn;
+    -webkit-animation-duration: 0.4s;
+    animation-name: slideIn;
+    animation-duration: 0.4s
+  }
+  
+  /* The Close Button */
+  .close {
+    float: right;
+    font-size: 28 px;
+    font-weight: bold;
+    padding-right: 2rem;
+  }
+  
+  .close:hover,
+  .close:focus {
+    color: #a0a0a0;
+    text-decoration: none;
+    cursor: pointer;
+  }
+    
+  /* Add Animation */
+  @-webkit-keyframes slideIn {
+    from {bottom: -300px; opacity: 0} 
+    to {bottom: 0; opacity: 1}
+  }
+  
+  @keyframes slideIn {
+    from {bottom: -300px; opacity: 0}
+    to {bottom: 0; opacity: 1}
+  }
+  

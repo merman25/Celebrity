@@ -4,15 +4,20 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.Headers;
@@ -22,6 +27,7 @@ public abstract class AHttpHandler implements IContextHandler {
 
 	@Override
 	public void handle(HttpExchange aHttpExchange) throws IOException {
+		String sessionID = null;
 		Session session = null;
 		InetSocketAddress remoteAddress = aHttpExchange.getRemoteAddress();
 		InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
@@ -30,7 +36,7 @@ public abstract class AHttpHandler implements IContextHandler {
 //			dumpRequest(aHttpExchange);
 			
 			HttpExchangeUtil.logBytesReceived(aHttpExchange);
-			String sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
+			sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
 			session = null;
 			if ( sessionID != null ) {
 				session = SessionManager.getSession(sessionID);
@@ -41,6 +47,9 @@ public abstract class AHttpHandler implements IContextHandler {
 			}
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );
+		}
+		catch (NullSessionException e) {
+			sendErrorResponse(aHttpExchange, ServerErrors.NO_SESSION);
 		}
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
@@ -60,6 +69,11 @@ public abstract class AHttpHandler implements IContextHandler {
 	
 	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
 		int bodyLength = aResponse.getBytes().length;
+		if (aResponse != null
+				&& aResponse.startsWith("{")
+				&& aResponse.endsWith("}") ) {
+			aExchange.getResponseHeaders().put("content-type", Arrays.asList( "application/json" ));
+		}
 		aExchange.sendResponseHeaders(aCode, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
 		os.write(aResponse.getBytes());
@@ -81,5 +95,29 @@ public abstract class AHttpHandler implements IContextHandler {
 		System.out.println("Request body:");
 		System.out.println( String.join("\n", HttpExchangeUtil.getRequestBody(aExchange) ) );
 		System.out.println( "End request body\n\n" );
+	}
+	
+	protected void sendErrorResponse(HttpExchange aHttpExchange, ServerErrors aServerError) throws IOException {
+		Map<String, String>	responseObject		= new HashMap<>();
+		responseObject.put("Error", aServerError.toString());
+		String responseString = serialiseMap(responseObject);
+		
+		/* You would think we would send HTTPResponseConstants.Bad_Request (400) here.
+		 * If we do that, we enter the 'catch' block of the 'fetch' request. However,
+		 * there doesn't seem to be any way to access the response string from there.
+		 * 
+		 * So, we tell the browser the result was OK, but provide enough data to the
+		 * client code for it to do the right thing.
+		 * 
+		 * Try using https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_modal_bottom
+		 */
+		sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
+	}
+	
+	protected String serialiseMap( Map<?, ?> aMap ) {
+		JSONObject		jsonObject		= new JSONObject();
+		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
+		
+		return jsonObject.toString();
 	}
 }
