@@ -1,3 +1,6 @@
+/* This file contains functions which send requests to the server.
+*/
+
 function sendUsername(name) {
     const data = JSON.stringify({ username: name });
     fetch('username', { method: 'POST', body: data })

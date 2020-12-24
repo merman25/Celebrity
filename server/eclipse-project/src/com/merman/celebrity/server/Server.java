@@ -3,6 +3,7 @@ package com.merman.celebrity.server;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,7 +55,7 @@ public class Server {
 			for ( File gameFile : gameFileList ) {
 				if ( gameFile.exists() ) {
 					byte[] fileAsByteArr = Files.readAllBytes( gameFile.toPath() );
-					String	fileAsString = new String(fileAsByteArr);
+					String	fileAsString = new String(fileAsByteArr, StandardCharsets.UTF_8);
 					JSONObject jsonObject = new JSONObject(fileAsString);
 					GameManager.restoreGame(jsonObject);
 				}

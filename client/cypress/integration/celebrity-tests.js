@@ -106,6 +106,12 @@ export function playGame(clientState) {
             const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
 
             for (let i = 0; i < allPlayers.length; i++) {
+                if(i > 0) {
+                    // give time for it to process that it has changed somebody's team, otherwise it'll try to right-click on the next player's old table cell,
+                    // instead of the new one that appears after the teams table is re-rendered.
+                    let reRenderWaitTimeMillis = 500;
+                    cy.wait(reRenderWaitTimeMillis);
+                }
                 const player = allPlayers[i];
                 selectContextMenuItemForPlayer(player, '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', `changeToTeam${i % 2}`);
             }
@@ -266,10 +272,10 @@ function getNames(clientState) {
                                 assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
 
                                 const celebName = nameDivText.substring(prefixString.length);
-                                assert(allCelebNames.includes(celebName), 'Celeb name should be contained in celeb name list');
+                                assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
 
-                                assert(!namesSeenOnThisRound.has(celebName), 'Celeb name should not have been seen before on this round');
-                                assert(!namesSeenOnThisTurn.has(celebName), 'Celeb name should not have been seen before on this turn');
+                                assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
+                                assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
                                 namesSeenOnThisTurn.add(celebName);
                             });
 

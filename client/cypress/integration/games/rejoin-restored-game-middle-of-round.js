@@ -17,7 +17,7 @@ export const gameSpec = {
     celebrityNames: [
         ['Neil Armstrong', 'Marilyn Monroe', 'John F. Kennedy', 'Audrey Hepburn', 'Paul McCartney', 'Rosa Parks'],
         ['Hippolyta', 'Alexander the Great', 'Hypatia', 'Xerxes', 'Helen of Troy', 'Plato'],
-        ['Carl Friedrich Gauss', 'Leonhard Euler', 'John von Neumann', 'Kurt Gödel', 'Gottfried Leibniz', 'Joseph Fourier'],
+        ['Carl Friedrich Gauss', 'Leonhard Euler', 'John von Neumann', 'Kurt Godel', 'Gottfried Leibniz', 'Joseph Fourier'],
         ['Emily Blunt', 'Emma Thompson', 'Judi Dench', 'Carey Mulligan', 'Cate Blanchett', 'Rhea Seehorn']
     ],
 
@@ -73,14 +73,15 @@ export const gameSpec = {
 
             // give time for it to process that Marvin has changed teams, otherwise it'll try to right-click on Johnny 5's old table cell (at index 1),
             // instead of the new one (at index 0) that appears after the teams table is re-rendered.
-            cy.wait(500);
+            let reRenderWaitTimeMillis=500;
+            cy.wait(reRenderWaitTimeMillis);
 
             // Moves Johnny 5 to Team1 and Bender to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam1');
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
 
             // give time to re-render the table
-            cy.wait(500);
+            cy.wait(reRenderWaitTimeMillis);
 
             // Moves R2D2 to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');

@@ -13,7 +13,7 @@ export const gameSpec = {
     celebrityNames: [
         ['Neil Armstrong', 'Marilyn Monroe', 'John F. Kennedy', 'Audrey Hepburn', 'Paul McCartney', 'Rosa Parks'],
         ['Hippolyta', 'Alexander the Great', 'Hypatia', 'Xerxes', 'Helen of Troy', 'Plato'],
-        ['Carl Friedrich Gauss', 'Leonhard Euler', 'John von Neumann', 'Kurt Gödel', 'Gottfried Leibniz', 'Joseph Fourier'],
+        ['Carl Friedrich Gauss', 'Leonhard Euler', 'John von Neumann', 'Kurt Godel', 'Gottfried Leibniz', 'Joseph Fourier'],
         ['Emily Blunt', 'Emma Thompson', 'Judi Dench', 'Carey Mulligan', 'Cate Blanchett', 'Rhea Seehorn']
     ],
     turnIndexOffset: 0,
