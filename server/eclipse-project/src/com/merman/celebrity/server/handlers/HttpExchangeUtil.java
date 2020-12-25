@@ -14,6 +14,8 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 

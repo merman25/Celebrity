@@ -16,7 +16,6 @@ public class ParameterParserRegistry {
 
 	static {
 		putFormat(Integer.class, new IntegerParameterFormat());
-		putFormat(String.class, new StringParameterFormat());
 	}
 	
 	public static synchronized <T> T parseParameter(String aParameterAsString, Class<T> aClass) throws ParseException {
@@ -28,7 +27,8 @@ public class ParameterParserRegistry {
 	}
 	
 	public static synchronized boolean formatDefinedForClass( Class<?> aClass ) {
-		if ( aClass == List.class ) {
+		if ( aClass == String.class
+				|| aClass == List.class ) {
 			return true;
 		}
 		return mapClassesToFormats.containsKey(aClass);

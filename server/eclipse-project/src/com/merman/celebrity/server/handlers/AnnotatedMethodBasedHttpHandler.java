@@ -100,14 +100,14 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 
 			try {
 				Object parameterValue;
-				if ( methodArg.clazz == List.class ) {
+				if ( parameterType == List.class ) {
 					JSONArray			jsonArray				= (JSONArray) value;
 					List<String>		parameterValueList		= new ArrayList<>();
 					jsonArray.forEach(element -> parameterValueList.add((String) element));
 					parameterValue = parameterValueList;
 				}
 				else if (value instanceof String
-						&& methodArg.clazz != String.class ) {
+						&& parameterType != String.class ) {
 					parameterValue = ParameterParserRegistry.parseParameter((String) value, parameterType);
 				}
 				else if (value != null) {
@@ -117,6 +117,8 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 					throw new IOException("Request " + getContextName() + " missing required parameter: " + argName);
 				}
 				argValues[i+1] = parameterValue;
+				
+				
 			} catch (ParseException e) {
 				throw new IOException(String.format("Cannot parse parameter %s [%s] as %s", argName, value, parameterType.getSimpleName()), e);
 			}
