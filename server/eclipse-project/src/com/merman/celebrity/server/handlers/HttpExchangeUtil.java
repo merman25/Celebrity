@@ -27,10 +27,8 @@ public class HttpExchangeUtil {
 		String requestBody = requestBodyCache.get(aExchange);
 		if ( requestBody == null ) {
 			int bufferSize = 1024 * 1024;
-			List<String> contentLengthList = aExchange.getRequestHeaders().get("Content-Length");
-			if ( contentLengthList != null
-					&& ! contentLengthList.isEmpty() ) {
-				String reportedContentLengthString = contentLengthList.get(0);
+			String reportedContentLengthString = HttpExchangeUtil.getHeaderValue("Content-Length", aExchange);
+			if ( reportedContentLengthString != null ) {
 				try {
 					int reportedContentLength = Integer.parseInt(reportedContentLengthString);
 					if (reportedContentLength > 0) {
