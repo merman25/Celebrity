@@ -162,14 +162,7 @@ if (messageOnReload != null
 	console.log('messageOnReload', messageOnReload);
 	clearCookie('messageOnReload');
 
-	const footer = document.getElementById('notificationFooterDiv');
-	const closeButton = createDOMElement('span', '\xd7', { classList: ['close'] });
-	setChildren(footer,
-		createDOMElement('span', messageOnReload),
-		closeButton
-	);
-	closeButton.addEventListener('click', () => footer.style.display = 'none');
-	footer.style.display = 'block';
+	showNotification(messageOnReload);
 }
 
 setDOMElementVisibility(myGameState, serverGameState);
@@ -900,4 +893,15 @@ function setTestBotInfo(testBotInfo) {
 	else {
 		testBotInfoDiv.textContent = '';
 	}
+}
+
+function showNotification(message) {
+	const footer = document.getElementById('notificationFooterDiv');
+	const closeButton = createDOMElement('span', '\xd7', { classList: ['close'] });
+	setChildren(footer,
+		createDOMElement('span', message),
+		closeButton
+	);
+	closeButton.addEventListener('click', () => footer.style.display = 'none');
+	footer.style.display = 'block';
 }
