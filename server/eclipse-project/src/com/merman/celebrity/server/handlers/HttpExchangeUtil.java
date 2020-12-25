@@ -144,7 +144,7 @@ public class HttpExchangeUtil {
 		if (requestBody != null) {
 			int bodyBytesReceived = requestBody.getBytes(StandardCharsets.UTF_8).length;
 
-			CelebrityMain.bytesReceived.accumulateAndGet(headerBytesReceived + bodyBytesReceived, (m, n) -> m+n);
+			CelebrityMain.bytesReceived.accumulateAndGet(headerBytesReceived + bodyBytesReceived, Long::sum);
 		}
 	}
 	
@@ -158,7 +158,7 @@ public class HttpExchangeUtil {
 			}
 		}
 
-		CelebrityMain.bytesSent.accumulateAndGet(headerBytesSent + aBodyLength, (m, n) -> m+n);
+		CelebrityMain.bytesSent.accumulateAndGet(headerBytesSent + aBodyLength, Long::sum);
 	}
 
 	public static void setCookieResponseHeader(Session aSession, HttpExchange aHttpExchange) {

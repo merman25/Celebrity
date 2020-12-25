@@ -144,7 +144,7 @@ public class WebsocketHandler {
 						Log.log(LogInfo.class, "Unexpected byte: " + bytesToHex(nextByte));
 					}
 					
-					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, (m, n) -> m+n);
+					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, Long::sum);
 				}
 			}
 			catch ( SocketException e ) {
@@ -200,7 +200,7 @@ public class WebsocketHandler {
 			System.arraycopy(messageBytes, 0, frame, lengthArray.length + 1, messageBytes.length);
 
 			socket.getOutputStream().write(frame);
-			CelebrityMain.bytesSent.accumulateAndGet(frame.length, (m, n) -> m+n);
+			CelebrityMain.bytesSent.accumulateAndGet(frame.length, Long::sum);
 		}
 	}
 	
@@ -376,7 +376,7 @@ public class WebsocketHandler {
 //			System.out.println("\n=== Received incoming websocket request ===\n");
 //			System.out.println(data);
 			
-			CelebrityMain.bytesReceived.accumulateAndGet(data.getBytes().length, (m, n) -> m+n);
+			CelebrityMain.bytesReceived.accumulateAndGet(data.getBytes().length, Long::sum);
 			
 			Matcher get = Pattern.compile("^GET").matcher(data);
 			if (get.find()) {
@@ -427,7 +427,7 @@ public class WebsocketHandler {
 						+ "\r\n\r\n").getBytes(StandardCharsets.UTF_8);
 				outputStream.write(response, 0, response.length);
 				
-				CelebrityMain.bytesSent.accumulateAndGet(data.getBytes().length, (m, n) -> m+n);
+				CelebrityMain.bytesSent.accumulateAndGet(data.getBytes().length, Long::sum);
 				
 				SessionManager.putSocket( session, WebsocketHandler.this );
 				Log.log(LogInfo.class, String.format( "Opened websocket with session %s [%s] from IP %s", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() ));
