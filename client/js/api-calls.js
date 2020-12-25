@@ -1,27 +1,22 @@
 /* This file contains functions which send requests to the server.
 */
 
-function sendUsername(name) {
+async function sendUsername(name) {
     const data = JSON.stringify({ username: name });
-    fetch('username', { method: 'POST', body: data })
-        .then(response => {
-            if (response.headers.get('content-type') &&
-                response.headers.get('content-type').toLowerCase().indexOf('application/json') >= 0) {
-                return response.json();
-            }
-            else {
-                return null;
-            }
-        })
-        .then(response => {
-            if (response
-                && response.Error === 'NO_SESSION') {
-                setCookie('messageOnReload', 'There was an error. You didn\'t have an active session');
-                location.reload();
-                console.log(response.Error);
-            }
-        })
-        .catch(err => console.error(err));
+    const fetchResult = await fetch('username', { method: 'POST', body: data });
+
+    if (fetchResult.headers.get('content-type')
+        && fetchResult.headers.get('content-type').toLowerCase().indexOf('application/json') >= 0) {
+
+        const response = await fetchResult.json();
+
+        if (response
+            && response.Error === 'NO_SESSION') {
+            setCookie('messageOnReload', 'There was an error. You didn\'t have an active session');
+            location.reload();
+            console.log(response.Error);
+        }
+    }
 }
 
 async function sendIWillHost() {
