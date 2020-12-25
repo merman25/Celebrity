@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Map;
 
 import com.merman.celebrity.server.HTTPResponseConstants;
@@ -14,6 +15,8 @@ import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.analytics.Browser;
+import com.merman.celebrity.server.analytics.UserAgentUtil;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 import com.sun.net.httpserver.HttpExchange;
@@ -41,7 +44,16 @@ public class ServeFileHandler extends AHttpHandler {
 				InetSocketAddress remoteAddress = aExchange.getRemoteAddress();
 				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
 				session.setOriginalInetAddress(address);
-				Log.log(SessionLogInfo.class, "New session", session, "IP", address);
+				
+				Browser browser = null;
+				String operatingSystem = null;
+				String userAgentString = HttpExchangeUtil.getHeaderValue("User-agent", aExchange);
+				if (userAgentString != null) {
+					browser = UserAgentUtil.getBrowserFromUserAgent(userAgentString);
+					operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
+				}
+				
+				Log.log(SessionLogInfo.class, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
 			}
 			else {
 				WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(aSession);

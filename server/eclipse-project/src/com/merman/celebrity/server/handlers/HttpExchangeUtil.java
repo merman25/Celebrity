@@ -14,6 +14,7 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
@@ -165,4 +166,20 @@ public class HttpExchangeUtil {
 		aHttpExchange.getResponseHeaders().add("Set-Cookie", cookieString);
 	}
 
+	/**
+	 * Returns the first element of the list
+	 * <pre>aExchange.getRequestHeaders().get( aHeaderName )</pre> if it exists.
+	 * <p>
+	 * {@link Headers#get(Object)} returns a <code>List&lt;String&gt;</code>, but in most common cases,
+	 * there's only one element, containing the header value we want. So this is a convenience method
+	 * to use in the typical case.
+	 * @param aHeaderName The name of an HTTP header.
+	 * @param aExchange The current {@link HttpExchange}.
+	 * @return The first element of the list returned by querying for this header name. If the list is null or empty, the method returns <code>null</code>.
+	 */
+	public static String getHeaderValue(String aHeaderName, HttpExchange aExchange) {
+		List<String> headerValueList = aExchange.getRequestHeaders().get( aHeaderName );
+		String headerValue = headerValueList != null && ! headerValueList.isEmpty() ? headerValueList.get( 0 ) : null;
+		return headerValue;
+	}
 }
