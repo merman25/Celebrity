@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +69,8 @@ public abstract class AHttpHandler implements IContextHandler {
 	protected abstract void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException;
 	
 	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
-		int bodyLength = aResponse.getBytes().length;
+		byte[] responseBytes = aResponse.getBytes(StandardCharsets.UTF_8);
+		int bodyLength = responseBytes.length;
 		if (aResponse != null
 				&& aResponse.startsWith("{")
 				&& aResponse.endsWith("}") ) {
@@ -76,7 +78,7 @@ public abstract class AHttpHandler implements IContextHandler {
 		}
 		aExchange.sendResponseHeaders(aCode, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
-		os.write(aResponse.getBytes());
+		os.write(responseBytes);
 		os.close();
 		
 		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);

@@ -76,13 +76,12 @@ public class ServeFileHandler extends AHttpHandler {
 	
 	public static void serveFileContent( String aRelativePath, HttpExchange aExchange ) throws IOException {
 		File file = new File( Server.CLIENT_FILE_DIRECTORY.toFile(), aRelativePath );
-		String response;
+		byte[] responseBytes;
 		if ( file.exists() ) {
-			byte[] bytes = Files.readAllBytes(file.toPath());
-			response = new String( bytes, StandardCharsets.UTF_8 );
+			responseBytes = Files.readAllBytes(file.toPath());
 		}
 		else {
-			response = "File does not exist: " + file.getAbsolutePath();
+			responseBytes = ( "File does not exist: " + aRelativePath ).getBytes(StandardCharsets.UTF_8);
 		}
 		
 		if ( aRelativePath.toLowerCase().endsWith(".css") ) {
@@ -96,10 +95,10 @@ public class ServeFileHandler extends AHttpHandler {
 		}
 				
 		
-		int bodyLength = response.getBytes().length;
+		int bodyLength = responseBytes.length;
 		aExchange.sendResponseHeaders(HTTPResponseConstants.OK, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
-		os.write(response.getBytes());
+		os.write(responseBytes);
 		os.close();
 		
 		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);
