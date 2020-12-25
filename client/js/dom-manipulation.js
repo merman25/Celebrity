@@ -27,7 +27,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#startTurnButton',
-		styleFn: (myGameState, serverGameState) => serverGameState.status === 'READY_TO_START_NEXT_TURN' && myGameState.iAmPlaying,
+		styleFn: (myGameState, serverGameState) => serverGameState.status === 'READY_TO_START_NEXT_TURN' && myGameState.iAmPlaying && ! myGameState.sendingStartTurn,
 	},
 	{
 		selector: '#startGameButton',

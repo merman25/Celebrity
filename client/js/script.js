@@ -16,6 +16,7 @@ const myGameState = {
 	iAmPlaying: false,
 	myPlayerID: null,
 	teamsAllocated: false,
+	sendingStartTurn: false,
 };
 
 /* Might be useful later: event when DOM is fully loaded 
@@ -103,10 +104,12 @@ document.getElementById('startNextRoundButton').addEventListener('click', () => 
 	sendStartNextRoundRequest();
 });
 
-document.getElementById('startTurnButton').addEventListener('click', () => {
+document.getElementById('startTurnButton').addEventListener('click', async () => {
+	myGameState.sendingStartTurn = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	clearTestTrigger();
-	sendStartTurnRequest();
+	await sendStartTurnRequest();
+	myGameState.sendingStartTurn = false;
 });
 
 document.getElementById('gotNameButton').addEventListener('click', () => {

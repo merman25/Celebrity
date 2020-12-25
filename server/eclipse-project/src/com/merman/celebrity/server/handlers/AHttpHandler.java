@@ -18,6 +18,7 @@ import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
@@ -52,6 +53,9 @@ public abstract class AHttpHandler implements IContextHandler {
 		catch (NullSessionException e) {
 			sendErrorResponse(aHttpExchange, ServerErrors.NO_SESSION);
 		}
+		catch (IllegalServerRequestException e) {
+			sendErrorResponse(aHttpExchange, ServerErrors.ILLEGAL_REQUEST, e.getEndUserMessage());
+		}
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
 			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, e.getMessage());
@@ -71,10 +75,14 @@ public abstract class AHttpHandler implements IContextHandler {
 	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
 		byte[] responseBytes = aResponse.getBytes(StandardCharsets.UTF_8);
 		int bodyLength = responseBytes.length;
-		if (aResponse != null
-				&& aResponse.startsWith("{")
-				&& aResponse.endsWith("}") ) {
-			aExchange.getResponseHeaders().put("content-type", Arrays.asList( "application/json" ));
+		if (aResponse != null ) {
+			if ( aResponse.startsWith("{")
+					&& aResponse.endsWith("}") ) {
+				aExchange.getResponseHeaders().put("content-type", Arrays.asList( "application/json" ));
+			}
+			else {
+				aExchange.getResponseHeaders().put("content-type", Arrays.asList( "text/html" ) );
+			}
 		}
 		aExchange.sendResponseHeaders(aCode, bodyLength);
 		OutputStream os = aExchange.getResponseBody();
@@ -100,8 +108,15 @@ public abstract class AHttpHandler implements IContextHandler {
 	}
 	
 	protected void sendErrorResponse(HttpExchange aHttpExchange, ServerErrors aServerError) throws IOException {
+		sendErrorResponse(aHttpExchange, aServerError, null);
+	}
+	
+	protected void sendErrorResponse(HttpExchange aHttpExchange, ServerErrors aServerError, String aErrorMessage) throws IOException {
 		Map<String, String>	responseObject		= new HashMap<>();
 		responseObject.put("Error", aServerError.toString());
+		if ( aErrorMessage != null ) {
+			responseObject.put("Message", aErrorMessage);
+		}
 		String responseString = serialiseMap(responseObject);
 		
 		/* You would think we would send HTTPResponseConstants.Bad_Request (400) here.

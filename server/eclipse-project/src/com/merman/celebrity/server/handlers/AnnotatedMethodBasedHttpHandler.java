@@ -128,9 +128,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			}
 		}
 
-		if (aSession != null) {
-			HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchange);
-		}
+		HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchange);
 
 		try {
 			Object responseObject = method.invoke(null, argValues);
@@ -146,7 +144,15 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				String responseString = serialiseMap( (Map) responseObject );
 				sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
 			}
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+		} catch (InvocationTargetException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof RuntimeException) {
+				throw (RuntimeException) cause;
+			}
+			else {
+				e.printStackTrace();
+			}
+		} catch (IllegalAccessException | IllegalArgumentException e) {
 			e.printStackTrace();
 		}
 	}

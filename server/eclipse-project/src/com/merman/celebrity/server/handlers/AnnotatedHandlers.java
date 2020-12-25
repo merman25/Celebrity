@@ -10,6 +10,7 @@ import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.logging.info.PerGameLogInfo;
@@ -137,8 +138,29 @@ public class AnnotatedHandlers {
 	}
 	
 	@HTTPRequest(requestName = "startTurn")
-	public static void startTurn(Session session) {
-		session.getPlayer().getGame().startTurn();
+	public static Map<String, String> startTurn(Session session) {
+		Player player = session.getPlayer();
+		Game game = player.getGame();
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], not part of any game", session, player), "Error: you're not in any game at the moment");
+		}
+		else if (game.getStatus() != GameStatus.READY_TO_START_NEXT_TURN) {
+			String endUserMessage = "Error: you can't start a turn right now";
+			if (game.getStatus() == GameStatus.PLAYING_A_TURN) {
+				endUserMessage = "Error: turn has already started";
+			}
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to start turn in game [%s], but its state is [%s]", session, player, game, game.getStatus()), endUserMessage);
+		}
+		else if (game.getCurrentPlayer() != player) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to start turn in game [%s], but current player is [%s]", session, player, game, game.getCurrentPlayer()), String.format( "Error: it should be %s to take the next turn", game.getCurrentPlayer() ) ); 
+		}
+		
+		game.startTurn();
+		
+		Map<String, String> responseMap = new HashMap<>();
+		responseMap.put("status", "OK");
+		
+		return responseMap;
 	}
 	
 	@HTTPRequest(requestName = "startNextRound")

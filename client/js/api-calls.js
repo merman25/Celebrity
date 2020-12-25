@@ -20,11 +20,28 @@ async function sendRequest(requestName, data = null) {
         const response = await fetchResult.json();
 
         if (response
-            && response.Error === 'NO_SESSION') {
-            setCookie('messageOnReload', 'There was an error. You didn\'t have an active session');
-            location.reload();
-            console.log(response.Error);
-            return null;
+            && response.Error != null) {
+            if (response.Error === 'NO_SESSION') {
+                setCookie('messageOnReload', 'There was an error. You didn\'t have an active session');
+                location.reload();
+                console.log(response.Error);
+                return null;
+            }
+            else if (response.Error === 'ILLEGAL_REQUEST') {
+                let errorMessage = response.Message;
+                if (errorMessage === null) {
+                    errorMessage = 'An unknown error occurred';
+                }
+
+                setCookie('messageOnReload', errorMessage);
+                location.reload();
+                return null;
+            }
+            else {
+                console.log(`Unknown error code: ${response.Error}. Full response: ${response}`);
+                showNotification(`The server is reporting an error called '${response.Error}', but I don't know what that means :(`);
+                return null;
+            }
         }
 
         return response;
@@ -77,8 +94,10 @@ function sendStartGameRequest() {
     sendRequest('startGame')
 }
 
-function sendStartTurnRequest() {
-    sendRequest('startTurn')
+async function sendStartTurnRequest() {
+    const requestResult = sendRequest('startTurn');
+
+    return requestResult;
 }
 
 async function sendUpdateCurrentNameIndex(newNameIndex) {
