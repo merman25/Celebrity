@@ -177,12 +177,7 @@ public class WebsocketHandler {
 				}
 				catch ( SocketException e ) {
 					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
-					try {
-						stop();
-					}
-					catch ( IOException e2 ) {
-						e2.printStackTrace();
-					}
+					stop();
 				}
 				catch (IOException e) {
 					e.printStackTrace();
@@ -217,12 +212,7 @@ public class WebsocketHandler {
 				}
 				catch ( SocketException e ) {
 					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
-					try {
-						stop();
-					}
-					catch ( IOException e2 ) {
-						e2.printStackTrace();
-					}
+					stop();
 				}
 				catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -342,23 +332,28 @@ public class WebsocketHandler {
 		}
 	}
 
-	public synchronized void stop() throws IOException {
+	public synchronized void stop() {
 		listen = false;
+
+		Session session = getSession();
+		Player  player  = session == null ? null : session.getPlayer();
+		Game    game    = player == null ? null : player.getGame();
+
 		if ( socket != null ) {
-			socket.close();
+			try {
+				socket.close();
+			} catch (IOException e) {
+				Log.log(LogInfo.class, "IOException when closing socket of WebsocketHandler. Session", session, "Player", player, "Exception", e);
+			}
 		}
 		if ( pingTimer != null ) {
 			pingTimer.cancel();
 			pingTimer = null;
 		}
 		
-		Session session = getSession();
-		
 		if (session != null) {
 			enqueueMessage(STOP);
 		}
-		Player  player  = session == null ? null : session.getPlayer();
-		Game    game    = player == null ? null : player.getGame();
 		if ( game != null ) {
 			game.removeAllGameEventListeners(this);
 		}

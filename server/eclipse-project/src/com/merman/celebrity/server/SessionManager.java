@@ -26,11 +26,7 @@ public class SessionManager {
 				WebsocketHandler websocketHandler = socketsMap.get(aSession);
 				if (websocketHandler != null) {
 					socketsMap.remove(aSession);
-					try {
-						websocketHandler.stop();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+					websocketHandler.stop();
 				}
 			}
 		}
@@ -62,6 +58,10 @@ public class SessionManager {
 	}
 
 	public static void putSocket(Session aSession, WebsocketHandler aWebsocketHandler) {
+		WebsocketHandler oldWebsocketHandler = socketsMap.get(aSession);
+		if (oldWebsocketHandler != null) {
+			oldWebsocketHandler.stop();
+		}
 		socketsMap.put(aSession, aWebsocketHandler);
 	}
 	

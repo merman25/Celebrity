@@ -108,6 +108,7 @@ document.getElementById('startTurnButton').addEventListener('click', async () =>
 	myGameState.sendingStartTurn = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	clearTestTrigger();
+	restoreWebsocketIfNecessary();
 	await sendStartTurnRequest();
 	myGameState.sendingStartTurn = false;
 });
@@ -186,12 +187,8 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 
 document.addEventListener(visibilityChange, () => {
 	if (!document[hidden]
-		&& webSocket != null
-		&& webSocket.readyState === WebSocket.CLOSED) {
-		console.log('Trying to restore websocket');
-		setCookie('restore', 'true', 10);
-		webSocket = null;
-		tryToOpenSocket();
+		&& webSocket) {
+		restoreWebsocketIfNecessary();
 	}
 });
 
@@ -234,12 +231,9 @@ function tryToOpenSocket() {
 		};
 		webSocket.onclose = evt => {
 			console.log('websocket closed');
-			console.log(evt);
 		};
 		webSocket.onopen = event => {
-			console.log('websocket opened');
-			if (getCookie('restore') !== 'true')
-				webSocket.send('initial-test');
+			webSocket.send('initial-test');
 		};
 
 		webSocket.onmessage = evt => {
@@ -247,7 +241,7 @@ function tryToOpenSocket() {
 			if (firstSocketMessage) {
 				firstSocketMessage = false;
 				if (message === 'gotcha') {
-					console.log('websocket is providing data');
+					console.log('websocket connection OK');
 				}
 			}
 
@@ -907,4 +901,14 @@ function showNotification(message) {
 	);
 	closeButton.addEventListener('click', () => footer.style.display = 'none');
 	footer.style.display = 'block';
+}
+
+function restoreWebsocketIfNecessary() {
+	if (webSocket == null
+		|| webSocket.readyState === WebSocket.CLOSED
+		|| webSocket.readyState === WebSocket.CLOSING) {
+		console.log('Trying to restore websocket');
+		setCookie('restore', 'true', 10);
+		tryToOpenSocket();
+	}
 }
