@@ -148,6 +148,7 @@ document.getElementById('startTurnButton').addEventListener('click', async () =>
 
 document.getElementById('gotNameButton').addEventListener('click', () => {
 	document.getElementById('gotNameButton').disabled = true;
+	restoreWebsocketIfNecessary();
 	myGameState.currentNameIndex++;
 	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
 
@@ -160,6 +161,7 @@ document.getElementById('gotNameButton').addEventListener('click', () => {
 document.getElementById('passButton').addEventListener('click', async () => {
 	document.getElementById('passButton').disabled = true;
 	try {
+		restoreWebsocketIfNecessary();
 		const result = await sendPassRequest(myGameState.currentNameIndex);
 
 		document.getElementById('passButton').disabled = false;
@@ -169,7 +171,11 @@ document.getElementById('passButton').addEventListener('click', async () => {
 	catch (err) { console.error(err) };
 });
 
-document.getElementById('endTurnButton').addEventListener('click', sendEndTurnRequest);
+document.getElementById('endTurnButton').addEventListener('click', () => {
+	restoreWebsocketIfNecessary();
+	sendEndTurnRequest();
+});
+
 document.getElementById('exitGameButton').addEventListener('click', async () => {
 	const answer = confirm('Are you sure you want to exit the game?');
 	if (answer) {
