@@ -127,6 +127,7 @@ document.getElementById('startTurnButton').addEventListener('click', async () =>
 	myGameState.sentStartTurn = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	document.getElementById('startTurnButton').disabled = false;
+	myGameState.sentStartTurn = false;
 });
 
 document.getElementById('gotNameButton').addEventListener('click', () => {
