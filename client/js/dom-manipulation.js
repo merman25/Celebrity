@@ -5,7 +5,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#divChooseName',
-		styleFn: (myGameState, serverGameState) => !myGameState.myName,
+		styleFn: (myGameState, serverGameState) => ! myGameState.myName,
 	},
 	{
 		selector: '#joinGameForm',

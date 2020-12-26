@@ -22,6 +22,10 @@ public class AnnotatedHandlers {
  */
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
+		if (username == null
+				|| username.trim().isEmpty() ) {
+			throw new IllegalServerRequestException( String.format("Session [%s], illegal user name [%s]", session, username), null);
+		}
 		Log.log(SessionLogInfo.class, "Session", session, "Username", username);
 		session.getPlayer().setName(username);
 	}

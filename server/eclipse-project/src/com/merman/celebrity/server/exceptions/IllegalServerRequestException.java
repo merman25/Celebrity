@@ -8,10 +8,11 @@ public class IllegalServerRequestException extends RuntimeException {
 		
 		if ( aEndUserMessage == null
 				|| aEndUserMessage.trim().isEmpty() ) {
-			throw new IllegalArgumentException("EndUserMessage is mandatory");
+			endUserMessage = "Error: something went wrong";
 		}
-		
-		endUserMessage = aEndUserMessage;
+		else {
+			endUserMessage = aEndUserMessage;
+		}
 	}
 
 	public String getEndUserMessage() {

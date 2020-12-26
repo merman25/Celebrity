@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
@@ -110,11 +111,11 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 						&& parameterType != String.class ) {
 					parameterValue = ParameterParserRegistry.parseParameter((String) value, parameterType);
 				}
-				else if (value != null) {
-					parameterValue = value;
+				else if (value == JSONObject.NULL) {
+					parameterValue = null;
 				}
 				else {
-					throw new IOException("Request " + getContextName() + " missing required parameter: " + argName);
+					parameterValue = value;
 				}
 				argValues[i+1] = parameterValue;
 				

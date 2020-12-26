@@ -25,6 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {} );
 
 document.getElementById('nameSubmitButton').addEventListener('click', () => {
 	const username = document.getElementById('nameField').value;
+	if (!username
+		|| username.trim() === '') {
+		alert('Please enter a name');
+		return;
+	}
 	const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
 	const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name?`);
 	if (usernameAccepted) {
