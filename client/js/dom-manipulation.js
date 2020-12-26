@@ -9,7 +9,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#joinGameForm',
-		styleFn: (myGameState, serverGameState) => myGameState.willJoin && !serverGameState.gameID && !myGameState.gameIDSubmitted,
+		styleFn: (myGameState, serverGameState) => myGameState.willJoin && !serverGameState.gameID,
 	},
 	{
 		selector: '#join',

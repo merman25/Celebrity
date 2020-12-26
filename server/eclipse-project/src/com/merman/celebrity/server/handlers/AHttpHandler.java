@@ -54,6 +54,7 @@ public abstract class AHttpHandler implements IContextHandler {
 			sendErrorResponse(aHttpExchange, ServerErrors.NO_SESSION);
 		}
 		catch (IllegalServerRequestException e) {
+			Log.log(LogInfo.class, e.getClass().getName(), "==>", e.getMessage());
 			sendErrorResponse(aHttpExchange, ServerErrors.ILLEGAL_REQUEST, e.getEndUserMessage());
 		}
 		catch (InvalidJSONException e) {

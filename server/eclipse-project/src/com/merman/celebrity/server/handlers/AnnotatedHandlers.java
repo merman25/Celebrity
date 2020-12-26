@@ -89,6 +89,9 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
 	public static Map<String, String> askGameIDResponse(Session session, String gameID) {
+		if (gameID == null) {
+			throw new IllegalServerRequestException( String.format("Session [%s], player [%s] provided null game ID", session, session.getPlayer()), null);
+		}
 		Map<String, String>	responseMap		= new HashMap<String, String>();
 		
 		Game game = GameManager.getGame(gameID);

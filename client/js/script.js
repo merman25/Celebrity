@@ -10,7 +10,6 @@ const myGameState = {
 	gameParamsSubmitted: false,
 	namesRequested: false,
 	namesSubmitted: false,
-	gameIDSubmitted: false,
 	statusAtLastUpdate: 'WAITING_FOR_PLAYERS',
 	currentNameIndex: 0,
 	iAmPlaying: false,
@@ -48,18 +47,27 @@ document.getElementById('join').addEventListener('click', () => {
 });
 
 document.getElementById('gameIDSubmitButton').addEventListener('click', async () => {
-	myGameState.gameIDSubmitted = true;
-	setDOMElementVisibility(myGameState, serverGameState);
 	const enteredGameID = document.getElementById('gameIDField').value;
+	const cleanedGameID = enteredGameID ? enteredGameID.trim() : null;
+	if (!cleanedGameID
+		|| ( ! /^[0-9]{4}$/.test(cleanedGameID)
+			&& ! /^test.*/i.test(cleanedGameID) ) ) {
+		alert('Please enter the 4-digit game ID provided by your host');
+		return;
+	}
+
+	document.getElementById('gameIDSubmitButton').disabled = true;
 
 	try {
 		const result = await sendGameIDResponseRequest(enteredGameID);
+		document.getElementById('gameIDSubmitButton').disabled = false;
+
 		const gameResponse = result.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 			setDOMElementVisibility(myGameState, serverGameState);
 		}
 		else {
-			document.getElementById('gameIDErrorDiv').textContent = 'Unknown Game ID';
+			alert('Unknown Game ID');
 		}
 
 	}
