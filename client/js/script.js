@@ -59,6 +59,7 @@ document.getElementById('gameIDSubmitButton').addEventListener('click', async ()
 	document.getElementById('gameIDSubmitButton').disabled = true;
 
 	try {
+		restoreWebsocketIfNecessary();
 		const result = await sendGameIDResponseRequest(enteredGameID);
 		document.getElementById('gameIDSubmitButton').disabled = false;
 
