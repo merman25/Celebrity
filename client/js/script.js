@@ -846,8 +846,7 @@ function addNameRequestForm() {
 	setChildren('nameList', form);
 }
 
-function submitNameList() {
-
+async function submitNameList() {
 	let nameArr = [];
 	for (let i = 1; i <= serverGameState.numNames; i++) {
 		const paramName = `name${i}`;
@@ -860,10 +859,14 @@ function submitNameList() {
 		}
 		nameArr.push(nameToSubmit);
 	}
+
+	document.getElementById('submitNamesButton').disabled = true;
+	restoreWebsocketIfNecessary();
+	await sendNameList(nameArr);
+
+	document.getElementById('submitNamesButton').disabled = false;
 	myGameState.namesSubmitted = true;
 	setDOMElementVisibility(myGameState, serverGameState);
-
-	sendNameList(nameArr);
 }
 
 function updateCurrentNameDiv() {

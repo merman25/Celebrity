@@ -126,10 +126,33 @@ public class AnnotatedHandlers {
 	public static void provideNames(Session session, List<String> nameList ) {
 		Player player = session.getPlayer();
 		Game game = player.getGame();
-		if ( game != null
-				&& game.getStatus() == GameStatus.WAITING_FOR_NAMES ) {
-			game.setNameList(player, nameList);
+		
+		if (nameList == null) {
+			throw new IllegalServerRequestException( String.format("Session [%s], player [%s], game [%s], provided null name list", session, player, game), null);
 		}
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to provide names when game is null", session, player), "Error: you provided names, but you're not currently part of any game");
+		}
+		
+		if (game.getStatus() != GameStatus.WAITING_FOR_NAMES) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to provide names when game is in state", session, player, game.getStatus()), "Error: you provided names, but we don't need them from you at this time");
+		}
+		
+		int numNamesPerPlayer = game.getNumNamesPerPlayer();
+		if (nameList.size() != numNamesPerPlayer) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], game [%s], provided [%,d] names instead of [%,d]. Full list: %s", session, player, game, nameList.size(), numNamesPerPlayer, nameList), String.format( "Error: you gave %,d names, we need %,d", nameList.size(), numNamesPerPlayer ) );
+		}
+		
+		for (String name : nameList) {
+			if (name == null
+					|| name.trim().isEmpty() ) {
+				throw new IllegalServerRequestException(String.format("Session [%s], player [%s], game [%s], provided null or empty names. Full list: %s", session, player, game, nameList), "Error: some names had no text");
+			}
+		}
+		
+		
+		game.setNameList(player, nameList);
 	}
 	
 	@HTTPRequest(requestName = "startGame")
