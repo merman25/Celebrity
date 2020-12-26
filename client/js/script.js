@@ -15,7 +15,10 @@ const myGameState = {
 	iAmPlaying: false,
 	myPlayerID: null,
 	teamsAllocated: false,
+
 	sentStartTurn: false,
+	sentStartRound: false,
+	sentStartGame: false,
 };
 
 /* Might be useful later: event when DOM is fully loaded 
@@ -107,15 +110,28 @@ document.getElementById('requestNamesButton').addEventListener('click', () => {
 	sendNameRequest();
 });
 
-document.getElementById('startGameButton').addEventListener('click', () => {
-	setDOMElementVisibility(myGameState, serverGameState);
+document.getElementById('startGameButton').addEventListener('click', async () => {
+	document.getElementById('startGameButton').disabled = true;
 	removeChildren('gameStatusDiv');
-	sendStartGameRequest();
+	restoreWebsocketIfNecessary();
+	await sendStartGameRequest();
+
+	myGameState.sentStartGame = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+	document.getElementById('startGameButton').disabled = false;
+	myGameState.sentStartGame = false;
 });
 
-document.getElementById('startNextRoundButton').addEventListener('click', () => {
+document.getElementById('startNextRoundButton').addEventListener('click', async () => {
+	document.getElementById('startNextRoundButton').disabled = true;
 	clearTestTrigger();
-	sendStartNextRoundRequest();
+	restoreWebsocketIfNecessary();
+	await sendStartNextRoundRequest();
+
+	myGameState.sentStartRound = true;
+	setDOMElementVisibility(myGameState, serverGameState);
+	document.getElementById('startNextRoundButton').disabled = false;
+	myGameState.sentStartRound = false;
 });
 
 document.getElementById('startTurnButton').addEventListener('click', async () => {

@@ -31,7 +31,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#startGameButton',
-		styleFn: (myGameState, serverGameState) => myGameState.iAmHosting && serverGameState.status === 'WAITING_FOR_NAMES' && serverGameState.numPlayersToWaitFor === 0,
+		styleFn: (myGameState, serverGameState) => myGameState.iAmHosting && serverGameState.status === 'WAITING_FOR_NAMES' && serverGameState.numPlayersToWaitFor === 0 && ! myGameState.sentStartGame,
 	},
 	{
 		selector: '#gameParamsForm',
@@ -73,7 +73,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#startNextRoundButton',
-		styleFn: (myGameState, serverGameState) => myGameState.iAmHosting && serverGameState.status === 'READY_TO_START_NEXT_ROUND',
+		styleFn: (myGameState, serverGameState) => myGameState.iAmHosting && serverGameState.status === 'READY_TO_START_NEXT_ROUND' && ! myGameState.sentStartRound,
 	},
 	{
 		selector: '#nameList',

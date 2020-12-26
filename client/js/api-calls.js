@@ -90,8 +90,8 @@ async function sendNameList(nameArr) {
     return requestResult;
 }
 
-function sendStartGameRequest() {
-    sendRequest('startGame')
+async function sendStartGameRequest() {
+    await sendRequest('startGame')
 }
 
 async function sendStartTurnRequest() {
@@ -107,8 +107,8 @@ async function sendUpdateCurrentNameIndex(newNameIndex) {
     return requestResult;
 }
 
-function sendStartNextRoundRequest() {
-    sendRequest('startNextRound');
+async function sendStartNextRoundRequest() {
+    await sendRequest('startNextRound');
 }
 
 async function sendPassRequest(passNameIndex) {
