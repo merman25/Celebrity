@@ -390,15 +390,11 @@ public class WebsocketHandler {
 					
 
 					if (session != null) {
-						String restoreString = cookie.get(HttpExchangeUtil.COOKIE_RESTORE_KEY);
-						if (HttpExchangeUtil.COOKIE_RESTORE_VALUE.equals(restoreString)) {
-							Player player = session.getPlayer();
-							Game game = player == null ? null : player.getGame();
-							if (game != null) {
-								enqueueMessage("GameState=" + GameManager.serialise(game, session.getSessionID(), true));
-								
-								game.addGameEventListener(new NotifyClientGameEventListener(WebsocketHandler.this));
-							}
+						Player player = session.getPlayer();
+						Game game = player == null ? null : player.getGame();
+						if (game != null) {
+							enqueueMessage("GameState=" + GameManager.serialise(game, session.getSessionID(), true));
+							game.addGameEventListener(new NotifyClientGameEventListener(WebsocketHandler.this));
 						}
 					}
 				}

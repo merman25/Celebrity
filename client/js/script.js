@@ -25,109 +25,184 @@ const myGameState = {
 document.addEventListener('DOMContentLoaded', () => {} );
 */
 
-document.getElementById('nameSubmitButton').addEventListener('click', () => {
-	const username = document.getElementById('nameField').value;
-	if (!username
-		|| username.trim() === '') {
-		alert('Please enter a name');
-		return;
-	}
-	const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
-	const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name?`);
-	if (usernameAccepted) {
-		sendUsername(username);
-		myGameState.myName = username;
+/* Function to add a standard click listener to buttons which result in
+*  a request to the server.
+*/
+const addServerRequestClickListener = function (
+	button,
+	serverRequestFunction,
+	serverRequestArgumentRetriever = null,
+	myGameStateMutator = null,
+	myGameStateReverter = null,
+	inputValidator = null,
+	responseProcessor = null) {
+	button.addEventListener('click', async () => {
+		let inputArguments = [];
+		if (serverRequestArgumentRetriever) {
+			inputArguments = serverRequestArgumentRetriever.apply(null);
+			if (! Array.isArray(inputArguments)) {
+				inputArguments = [inputArguments];
+			}
+		}
 
-		setDOMElementVisibility(myGameState, serverGameState);
+		if (!inputValidator
+			|| inputValidator.apply(null, inputArguments)) {
+			button.disabled = true;
 
-		tryToOpenSocket();
+			try {
+				restoreWebsocketIfNecessary();
+				const response = await serverRequestFunction.apply(null, inputArguments);
+
+				if (myGameStateMutator) {
+					myGameStateMutator.apply(null, [inputArguments, myGameState]);
+					setDOMElementVisibility(myGameState, serverGameState);
+				}
+
+				if (myGameStateReverter) {
+					myGameStateReverter.apply(null, [myGameState]);
+				}
+
+				if (responseProcessor) {
+					responseProcessor.apply(null, [response]);
+				}
+			}
+			catch (err) { console.error(err); }
+			finally {
+				button.disabled = false;
+			}
+		}
+	});
+};
+
+addServerRequestClickListener(
+	document.getElementById('nameSubmitButton'),
+	sendUsername,
+	() => document.getElementById('nameField').value,
+	([username], myGameState) => myGameState.myName = username,
+	null,
+	(username) => {
+		if (!username
+			|| username.trim() === '') {
+			alert('Please enter a name');
+			return false;
+		}
+		const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
+		const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name?`);
+
+		return usernameAccepted;
 	}
-});
+);
+
 
 document.getElementById('join').addEventListener('click', () => {
 	myGameState.willJoin = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 });
 
-document.getElementById('gameIDSubmitButton').addEventListener('click', async () => {
-	const enteredGameID = document.getElementById('gameIDField').value;
-	const cleanedGameID = enteredGameID ? enteredGameID.trim() : null;
-	if (!cleanedGameID
-		|| ( ! /^[0-9]{4}$/.test(cleanedGameID)
-			&& ! /^test.*/i.test(cleanedGameID) ) ) {
-		alert('Please enter the 4-digit game ID provided by your host');
-		return;
-	}
-
-	document.getElementById('gameIDSubmitButton').disabled = true;
-
-	try {
-		restoreWebsocketIfNecessary();
-		const result = await sendGameIDResponseRequest(enteredGameID);
-		document.getElementById('gameIDSubmitButton').disabled = false;
-
-		const gameResponse = result.GameResponse;
+addServerRequestClickListener(
+	document.getElementById('gameIDSubmitButton'),
+	sendGameIDResponseRequest,
+	() => document.getElementById('gameIDField').value.trim(),
+	null,
+	null,
+	(gameID) => {
+		if (!gameID
+			|| (! /^[0-9]{4}$/.test(gameID)
+				&& ! /^test.*/i.test(gameID))) {
+			alert('Please enter the 4-digit game ID provided by your host');
+			return false;
+		}
+		else {
+			return true;
+		}
+	},
+	(response) => {
+		const gameResponse = response.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
+			// TODO check why this changes any visibility. It seems to, but where do we change either of the state objects?
 			setDOMElementVisibility(myGameState, serverGameState);
 		}
 		else {
 			alert('Unknown Game ID');
 		}
-
 	}
-	catch (err) { console.error(err) };
-});
+);
 
-document.getElementById('host').addEventListener('click', async () => {
-	myGameState.willHost = true;
-	setDOMElementVisibility(myGameState, serverGameState);
+addServerRequestClickListener(
+	document.getElementById('host'),
+	sendIWillHost,
+	null,
+	(_, myGameState) => myGameState.willHost = true
+);
 
-	try {
-		const resultObject = await sendIWillHost();
+addServerRequestClickListener(
+	document.getElementById('submitGameParamsButton'),
+	sendGameParams,
+	() => [document.getElementById('numRoundsField').value,
+			document.getElementById('roundDurationField').value,
+			document.getElementById('numNamesField').value],
+	(_, myGameState) => myGameState.gameParamsSubmitted = true,
+	null,
+	(numRounds, roundDuration, numNames) => {
+		if (numRounds <= 0 || numRounds > 10) {
+			alert('Number of rounds must be 1-10');
+			return false;
+		}
+		else if (roundDuration <= 0 || roundDuration > 600) {
+			alert('Round duration should be 1-600 seconds');
+			return false;
+		}
+		else if (numNames <= 0 || numNames > 10) {
+			alert('Number of names per player must be 1-10');
+			return false;
+		}
+		else {
+			return true;
+		}
 	}
-	catch (err) { console.error(err); }
-});
+);
 
-document.getElementById('submitGameParamsButton').addEventListener('click', () => {
-	myGameState.gameParamsSubmitted = true;
-	setDOMElementVisibility(myGameState, serverGameState);
+addServerRequestClickListener(
+	document.getElementById('teamsButton'),
+	sendAllocateTeamsRequest
+);
 
-	const numRounds = document.getElementById('numRoundsField').value;
-	const roundDuration = document.getElementById('roundDurationField').value;
-	const numNames = document.getElementById('numNamesField').value;
+addServerRequestClickListener(
+	document.getElementById('requestNamesButton'),
+	sendNameRequest,
+	null,
+	(_, myGameState) => myGameState.namesRequested = true
+);
 
-	sendGameParams(numRounds, roundDuration, numNames);
-});
+addServerRequestClickListener(
+	document.getElementById('startGameButton'),
+	sendStartGameRequest,
+	null,
+	(_, myGameState) => myGameState.sentStartGame = true,
+	myGameState => myGameState.sentStartGame = false
+);
 
-document.getElementById('teamsButton').addEventListener('click', () => {
-	setDOMElementVisibility(myGameState, serverGameState);
-	sendAllocateTeamsRequest();
-});
+// addServerRequestClickListener(
+// 	document.getElementById('startNextRoundButton'),
+// 	sendStartNextRoundRequest,
+// 	null,
+// 	(_, myGameState) => myGameState.sentStartRound = true,
+// 	(myGameState) => myGameState.sentStartRound = false
+// );
 
-document.getElementById('requestNamesButton').addEventListener('click', () => {
-	myGameState.namesRequested = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	sendNameRequest();
-});
-
-document.getElementById('startGameButton').addEventListener('click', async () => {
-	document.getElementById('startGameButton').disabled = true;
-	removeChildren('gameStatusDiv');
-	restoreWebsocketIfNecessary();
-	await sendStartGameRequest();
-
-	myGameState.sentStartGame = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	document.getElementById('startGameButton').disabled = false;
-	myGameState.sentStartGame = false;
-});
+// addServerRequestClickListener(
+// 	document.getElementById('startTurnButton'),
+// 	sendStartTurnRequest,
+// 	null,
+// 	(_, myGameState) => myGameState.sentStartTurn = true,
+// 	(myGameState) => myGameState.sentStartTurn = false
+// );
 
 document.getElementById('startNextRoundButton').addEventListener('click', async () => {
 	document.getElementById('startNextRoundButton').disabled = true;
 	clearTestTrigger();
 	restoreWebsocketIfNecessary();
 	await sendStartNextRoundRequest();
-
 	myGameState.sentStartRound = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	document.getElementById('startNextRoundButton').disabled = false;
@@ -139,42 +214,45 @@ document.getElementById('startTurnButton').addEventListener('click', async () =>
 	clearTestTrigger();
 	restoreWebsocketIfNecessary();
 	await sendStartTurnRequest();
-
 	myGameState.sentStartTurn = true;
 	setDOMElementVisibility(myGameState, serverGameState);
 	document.getElementById('startTurnButton').disabled = false;
 	myGameState.sentStartTurn = false;
 });
 
-document.getElementById('gotNameButton').addEventListener('click', () => {
-	document.getElementById('gotNameButton').disabled = true;
-	restoreWebsocketIfNecessary();
-	myGameState.currentNameIndex++;
-	sendUpdateCurrentNameIndex(myGameState.currentNameIndex);
 
-	if (myGameState.currentNameIndex >= serverGameState.totalNames) {
-		setDOMElementVisibility(myGameState, serverGameState);
-		finishRound();
+addServerRequestClickListener(
+	document.getElementById('gotNameButton'),
+	sendUpdateCurrentNameIndex,
+	() => {
+		myGameState.currentNameIndex++;
+
+		if (myGameState.currentNameIndex >= serverGameState.totalNames) {
+			setDOMElementVisibility(myGameState, serverGameState);
+			finishRound();
+		}
+
+		return myGameState.currentNameIndex;
 	}
-});
+);
 
-document.getElementById('passButton').addEventListener('click', async () => {
-	document.getElementById('passButton').disabled = true;
-	try {
-		restoreWebsocketIfNecessary();
-		const result = await sendPassRequest(myGameState.currentNameIndex);
-
-		document.getElementById('passButton').disabled = false;
+addServerRequestClickListener(
+	document.getElementById('passButton'),
+	sendPassRequest,
+	() => myGameState.currentNameIndex,
+	null,
+	null,
+	null,
+	(result) => {
 		serverGameState.currentName = result.currentName;
 		updateCurrentNameDiv();
 	}
-	catch (err) { console.error(err) };
-});
+);
 
-document.getElementById('endTurnButton').addEventListener('click', () => {
-	restoreWebsocketIfNecessary();
-	sendEndTurnRequest();
-});
+addServerRequestClickListener(
+	document.getElementById('endTurnButton'),
+	sendEndTurnRequest
+);
 
 document.getElementById('exitGameButton').addEventListener('click', async () => {
 	const answer = confirm('Are you sure you want to exit the game?');
@@ -949,8 +1027,6 @@ function restoreWebsocketIfNecessary() {
 	if (webSocket == null
 		|| webSocket.readyState === WebSocket.CLOSED
 		|| webSocket.readyState === WebSocket.CLOSING) {
-		console.log('Trying to restore websocket');
-		setCookie('restore', 'true', 10);
 		tryToOpenSocket();
 	}
 }

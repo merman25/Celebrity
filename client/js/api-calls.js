@@ -1,6 +1,13 @@
 /* This file contains functions which send requests to the server.
+ * All functions in here should use async/await, since they will be called by
+ * the event listener added by addServerRequestClickListener, and it will use await
+ * when calling the api function.
 */
 
+/* Function to send a request to the server. All other functions in this file delegate
+ * to this function. It provides error handling by ensuring the appropriate notification
+ * is shown to the user if the server returns an error response.
+*/
 async function sendRequest(requestName, data = null) {
     let fetchArgs = null;
     if (data !== null)
@@ -68,8 +75,8 @@ async function sendGameParams(numRounds, roundDuration, numNames) {
     return requestResult;
 }
 
-function sendAllocateTeamsRequest() {
-    sendRequest('allocateTeams');
+async function sendAllocateTeamsRequest() {
+    await sendRequest('allocateTeams');
 }
 
 async function sendGameIDResponseRequest(enteredGameID) {
@@ -79,8 +86,8 @@ async function sendGameIDResponseRequest(enteredGameID) {
     return requestResult;
 }
 
-function sendNameRequest() {
-    sendRequest('sendNameRequest');
+async function sendNameRequest() {
+    await sendRequest('sendNameRequest');
 }
 
 async function sendNameList(nameArr) {
@@ -118,8 +125,8 @@ async function sendPassRequest(passNameIndex) {
     return requestResult;
 }
 
-function sendEndTurnRequest() {
-    sendRequest('endTurn');
+async function sendEndTurnRequest() {
+    await sendRequest('endTurn');
 }
 
 async function sendPutInTeamRequest(playerID, teamIndex) {
