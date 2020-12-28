@@ -82,7 +82,7 @@ public class GameManager {
 		
 		if ( ( createFiles
 				|| ! CelebrityMain.isSysOutLogging() )
-					&& ! aGameID.toLowerCase().startsWith("test") ) {
+			&& ! aGameID.toLowerCase().startsWith("test") ) {
 			File file = new File("games/" + aGameID );
 			if ( file.isDirectory() ) {
 				if ( deleteExisting ) {
