@@ -1,16 +1,45 @@
-html {
-    min-height: 100%;
-    background-image: linear-gradient(to bottom, #C0E0FF, #E0E0FF); 
-    background-repeat: no-repeat;
-    background-size: cover;
-    font-family: 'Baloo Paaji 2', cursive;
+:root {
+    --colour-gradient-start: #C0E0FF;
+    --colour-gradient-end: #E0E0FF;
 }
 
-body {
+html {
+    min-height: 100%;
+    font-family: 'Baloo Paaji 2', cursive;
+    background-color: var(--colour-gradient-end);
+}
+
+#confineWidthDiv {
     width: 800px;
     max-width: 80%; 
     margin: auto;
     padding-bottom: 15em; /* To give some space for the context menus */
+}
+
+#backgroundColourGradientDiv {
+    background-image: linear-gradient(to bottom, var(--colour-gradient-start), var(--colour-gradient-end)); 
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 200px;
+
+    /* For some reason, without the below negative margin and compensatory positive
+    padding, the backgroundColourGradientDiv doesn't go all the way to the top of the screen. There's
+    a small margin at the top in which the background colour of the HTML element pokes through (i.e. the
+    colour that's only supposed to be used at the bottom), creating a discontinuity in the colour.
+    */
+    margin-top: -21px;
+    padding-top: 18px;
+}
+
+@media screen and (max-width: 500px) {
+    h1.christmas {
+        /* Try to give space to still have title on one line, even with extra characters */
+        font-size: 1.5em;
+    }
+
+    #turnControlsDiv {
+        flex-direction: column;
+    }
 }
 
 #divChooseName, #divJoinOrHost {
@@ -162,31 +191,39 @@ th, td {
     -webkit-animation-duration: 0.4s;
     animation-name: slideIn;
     animation-duration: 0.4s
-  }
+}
   
-  /* The Close Button */
-  .close {
+/* The Close Button */
+.close {
     float: right;
     font-size: 28 px;
     font-weight: bold;
     padding-right: 2rem;
-  }
+}
   
-  .close:hover,
-  .close:focus {
+.close:hover,
+.close:focus {
     color: #a0a0a0;
     text-decoration: none;
     cursor: pointer;
-  }
+}
     
-  /* Add Animation */
-  @-webkit-keyframes slideIn {
+/* Add Animation */
+@-webkit-keyframes slideIn {
     from {bottom: -300px; opacity: 0} 
     to {bottom: 0; opacity: 1}
-  }
+}
   
-  @keyframes slideIn {
+@keyframes slideIn {
     from {bottom: -300px; opacity: 0}
     to {bottom: 0; opacity: 1}
-  }
+}
   
+h1.christmas::before { content: '🎄 ';}
+h1.christmas::after  { content: ' 🎄';}
+html.christmas {
+    --colour-gradient-start: #A80010;
+    --colour-gradient-end: #A80710;
+    color: #FFFFFF;
+}
+

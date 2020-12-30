@@ -64,14 +64,6 @@ const selectorsToShowOrHide = [
 		visibleDisplay: 'flex',
 	},
 	{
-		selector: '#turnControlsDiv',
-		styleFn: (myGameState, serverGameState) => document.body.clientWidth < 350,
-		mutators: {
-			true: element => element.style['flex-direction'] = 'column',
-			false: element => element.style['flex-direction'] = 'row',
-		},
-	},
-	{
 		selector: '#startNextRoundButton',
 		styleFn: (myGameState, serverGameState) => myGameState.iAmHosting && serverGameState.status === 'READY_TO_START_NEXT_ROUND' && ! myGameState.sentStartRound,
 	},

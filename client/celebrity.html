@@ -21,129 +21,133 @@
 </head>
 
 <body>
-  <center>
-    <h1>Let's Play Celebrity!</h1>
-  </center>
-
-  <div id="dummy"></div>
-
-  <hr>
-  <div id="instructions">
-    <ul>
-      <li>Play Celebrity online!</li>
-      <li>Get a group together over video chat or in real life. This site provides the "hat" for you to put the names
-        into.</li>
-      <li>For the rules, see <a href="http://howell.seattle.wa.us/games/rules/celebrities.pdf">here</a> or <a
-          href="https://en.wikipedia.org/wiki/Celebrity_(game)">here</a>.
-      </li>
-      <li>This is still a work in progress. If something doesn't work and you know the developer, please let him know.
-      </li>
-      <li>Enjoy!</li>
-    </ul>
-  </div>
-
-  <div id="divChooseName">
-    <hr>
-    <p>Give yourself a name:</p>
-    <form id="nameForm" onsubmit="return false;">
-      <input id="nameField" name="username" type="text" autofocus>
-      <button id="nameSubmitButton">OK</button>
-    </form>
-  </div>
-
-  <div id="divJoinOrHost" style="display:none">
-    <hr>
-    <button id="join">Join Existing Game</button>
-    <div id="joinGameForm" style="display:none">
-      <form id="gameIDForm" onsubmit="return false;">
-        <label for="gameIDField">Game ID</label>
-        <input id="gameIDField" name="gameID" type="text">
-        <button id="gameIDSubmitButton">OK</button>
-      </form>
-    </div>
-    <br>
-    <br>
-    <button id="host">Host New Game</button>
-  </div>
-
-  <div id="gameIDDiv">
-  </div>
-  <div id="gameInfoDiv">
-  </div>
-
-
-  <div id="hostGameDiv" style="display:none">
-    <form id="gameParamsForm" onsubmit="return false;">
+  <div id="backgroundColourGradientDiv">
+    <div id="confineWidthDiv">
+      <center>
+        <h1 id="gameTitleH1">Let's Play Celebrity!</h1>
+      </center>
+      
+      <div id="dummy"></div>
+      
       <hr>
-      <div class="col-label">
-        <label for="numRoundsField">Number of Rounds</label>
+      <div id="instructions">
+        <ul>
+          <li>Play Celebrity online!</li>
+          <li>Get a group together over video chat or in real life. This site provides the "hat" for you to put the names
+            into.</li>
+          <li>For the rules, see <a href="http://howell.seattle.wa.us/games/rules/celebrities.pdf">here</a> or <a
+              href="https://en.wikipedia.org/wiki/Celebrity_(game)">here</a>.
+          </li>
+          <li>This is still a work in progress. If something doesn't work and you know the developer, please let him know.
+          </li>
+          <li>Enjoy!</li>
+        </ul>
       </div>
-      <div class="col-textfield">
-        <input id="numRoundsField" name="numRounds" type="number" value=3 size="10"><br>
+      
+      <div id="divChooseName">
+        <hr>
+        <p>Give yourself a name:</p>
+        <form id="nameForm" onsubmit="return false;">
+          <input id="nameField" name="username" type="text" autofocus>
+          <button id="nameSubmitButton">OK</button>
+        </form>
       </div>
-      <div class="col-label">
-        <label for="roundDurationField">Length of a Round in Seconds</label>
+      
+      <div id="divJoinOrHost" style="display:none">
+        <hr>
+        <button id="join">Join Existing Game</button>
+        <div id="joinGameForm" style="display:none">
+          <form id="gameIDForm" onsubmit="return false;">
+            <label for="gameIDField">Game ID</label>
+            <input id="gameIDField" name="gameID" type="text">
+            <button id="gameIDSubmitButton">OK</button>
+          </form>
+        </div>
+        <br>
+        <br>
+        <button id="host">Host New Game</button>
       </div>
-      <div class="col-textfield">
-        <input id="roundDurationField" name="roundDuration" type="number" value=60 size="10"><br>
+      
+      <div id="gameIDDiv">
       </div>
-      <div class="col-label">
-        <label for="numNamesField">Number of names from each player</label>
+      <div id="gameInfoDiv">
       </div>
-      <div class="col-textfield">
-        <input id="numNamesField" name="numNames" type="number" value=6 size="10"><br>
+      
+      
+      <div id="hostGameDiv" style="display:none">
+        <form id="gameParamsForm" onsubmit="return false;">
+          <hr>
+          <div class="col-label">
+            <label for="numRoundsField">Number of Rounds</label>
+          </div>
+          <div class="col-textfield">
+            <input id="numRoundsField" name="numRounds" type="number" value=3 size="10"><br>
+          </div>
+          <div class="col-label">
+            <label for="roundDurationField">Length of a Round in Seconds</label>
+          </div>
+          <div class="col-textfield">
+            <input id="roundDurationField" name="roundDuration" type="number" value=60 size="10"><br>
+          </div>
+          <div class="col-label">
+            <label for="numNamesField">Number of names from each player</label>
+          </div>
+          <div class="col-textfield">
+            <input id="numNamesField" name="numNames" type="number" value=6 size="10"><br>
+          </div>
+          <div class="clear"></div>
+          <div class="col-label">
+            <button id="submitGameParamsButton">Set</button>
+          </div>
+        </form>
+      
+        <div id="allocateTeamsDiv">
+          <div class="clear"></div>
+          <hr>
+      
+          <button id="teamsButton">Allocate Teams</button>
+          <br>
+        </div>
+      
+        <button id="requestNamesButton" style="display:none">Request Names</button>
       </div>
-      <div class="clear"></div>
-      <div class="col-label">
-        <button id="submitGameParamsButton">Set</button>
+      
+      <div id="playGameDiv">
+        <hr>
+        <button id="startGameButton" style="display:none">Start Game</button>
+        <button id="startNextRoundButton" class="buttonForBotToClick" style="display:none">Start Next Round</button>
+        <button id="startTurnButton" class="buttonForBotToClick" style="display:none">Start Turn</button>
+        <div id="gameStatusDiv"></div>
+        <div id="currentNameDiv"></div>
+        <div id="turnControlsDiv" style="display:none">
+          <button id="gotNameButton" class="turnControlButtonClass">Got it!</button>
+          <button id="passButton" class="turnControlButtonClass">Pass</button>
+          <button id="endTurnButton" class="turnControlButtonClass">End turn</button>
+        </div>
+        <div id="gameParamsDiv"></div>
+        <button id="exitGameButton">Exit Game</button>
+        <div id="playerList">
+        </div>
+        <div id="teamAndTotalScoresDiv" style="display: flex; flex-direction: row;">
+          <div id="teamList">
+          </div>
+          <div id="totalScoresDiv" style="padding-left: 10rem;">
+          </div>
+        </div>
+        <div id="nameList">
+        </div>
+        <div id="scoresDiv">
+        </div>
       </div>
-    </form>
-
-    <div id="allocateTeamsDiv">
-      <div class="clear"></div>
-      <hr>
-
-      <button id="teamsButton">Allocate Teams</button>
-      <br>
+      
+      <div id="teamlessPlayerContextMenuDiv" style="display:none"></div>
+      <div id="playerInTeamContextMenuDiv" style="display:none"></div>
+      <div id="testTriggerDiv" style="display:none"></div>
+      <div id="testBotInfoDiv" style="display:none"></div>
     </div>
-
-    <button id="requestNamesButton" style="display:none">Request Names</button>
   </div>
 
-  <div id="playGameDiv">
-    <hr>
-    <button id="startGameButton" style="display:none">Start Game</button>
-    <button id="startNextRoundButton" class="buttonForBotToClick" style="display:none">Start Next Round</button>
-    <button id="startTurnButton" class="buttonForBotToClick" style="display:none">Start Turn</button>
-    <div id="gameStatusDiv"></div>
-    <div id="currentNameDiv"></div>
-    <div id="turnControlsDiv" style="display:none; flex-direction: row;">
-      <button id="gotNameButton" class="turnControlButtonClass">Got it!</button>
-      <button id="passButton" class="turnControlButtonClass">Pass</button>
-      <button id="endTurnButton" class="turnControlButtonClass">End turn</button>
-    </div>
-    <div id="gameParamsDiv"></div>
-    <button id="exitGameButton">Exit Game</button>
-    <div id="playerList">
-    </div>
-    <div id="teamAndTotalScoresDiv" style="display: flex; flex-direction: row;">
-      <div id="teamList">
-      </div>
-      <div id="totalScoresDiv" style="padding-left: 10rem;">
-      </div>
-    </div>
-    <div id="nameList">
-    </div>
-    <div id="scoresDiv">
-    </div>
-  </div>
-
-  <div id="teamlessPlayerContextMenuDiv" style="display:none"></div>
-  <div id="playerInTeamContextMenuDiv" style="display:none"></div>
-  <div id="testTriggerDiv" style="display:none"></div>
-  <div id="testBotInfoDiv" style="display:none"></div>
-
-<div id="notificationFooterDiv" class="notification-footer"></div>
+  <div id="notificationFooterDiv" class="notification-footer"></div>
 
   <script src="js/api-calls.js"></script>
   <script src="js/dom-manipulation.js"></script>

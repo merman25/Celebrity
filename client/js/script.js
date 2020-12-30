@@ -1060,3 +1060,17 @@ function restoreWebsocketIfNecessary() {
 		tryToOpenSocket();
 	}
 }
+
+/* Change styles based on date
+*/
+const date = new Date();
+const isChristmas = ( date.getMonth() === 11
+						&& date.getDate() >= 14 )
+					|| ( date.getMonth() === 0
+						&& date.getDate() <= 6 );
+
+if (isChristmas) {
+	document.getElementById('gameTitleH1').classList.add('christmas');
+	document.getElementById('backgroundColourGradientDiv').classList.add('christmas');
+	document.querySelector('html').classList.add('christmas');
+}
