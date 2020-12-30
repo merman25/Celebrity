@@ -37,6 +37,8 @@ const addServerRequestClickListener = function (
 	inputValidator = null,
 	responseProcessor = null) {
 	button.addEventListener('click', async () => {
+		clearNotification();
+
 		let inputArguments = [];
 		if (serverRequestArgumentRetriever) {
 			inputArguments = serverRequestArgumentRetriever.apply(null);
@@ -1006,6 +1008,12 @@ function showNotification(message) {
 	);
 	closeButton.addEventListener('click', () => footer.style.display = 'none');
 	footer.style.display = 'block';
+}
+
+function clearNotification() {
+	const footer = document.getElementById('notificationFooterDiv');
+	removeChildren(footer);
+	footer.style.display = 'none';
 }
 
 function restoreWebsocketIfNecessary() {
