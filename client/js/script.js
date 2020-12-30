@@ -925,38 +925,41 @@ function addNameRequestForm() {
 		inputDiv.appendChild(createDOMElement('input', '', { name: `name${i}`, id: `name${i}`, type: 'text' }));
 		appendChildren(form, labelDiv, inputDiv);
 	}
-	const button = createDOMElement('button', 'Put in Hat', { id: 'submitNamesButton' });
-	button.onclick = submitNameList;
+	const nameListSubmitButton = createDOMElement('button', 'Put in Hat', { id: 'submitNamesButton' });
+
+	addServerRequestClickListener(
+		nameListSubmitButton,
+		sendNameList,
+		() => {
+			const nameArr = [];
+			for (let i = 1; i <= serverGameState.numNames; i++) {
+				const paramName = `name${i}`;
+				const nameToSubmit = document.getElementById(paramName).value;
+				nameArr.push(nameToSubmit);
+			}
+
+			return [nameArr];
+		},
+		(_, myGameState) => myGameState.namesSubmitted = true,
+		null,
+		(nameArr) => {
+			for (name of nameArr) {
+				if (name == null
+					|| name.trim() === '') {
+					alert('Please enter some text for each name');
+					return false;
+				}
+			}
+			return true;
+		}
+	);
 
 	appendChildren(form,
 		createDOMElement('div', '', { classList: ['clear'] }),
-		button
+		nameListSubmitButton
 	);
 
 	setChildren('nameList', form);
-}
-
-async function submitNameList() {
-	let nameArr = [];
-	for (let i = 1; i <= serverGameState.numNames; i++) {
-		const paramName = `name${i}`;
-		const nameToSubmit = document.getElementById(paramName).value;
-
-		if (nameToSubmit == null
-			|| nameToSubmit.trim() === '') {
-			alert('Please enter some text for each name');
-			return;
-		}
-		nameArr.push(nameToSubmit);
-	}
-
-	document.getElementById('submitNamesButton').disabled = true;
-	restoreWebsocketIfNecessary();
-	await sendNameList(nameArr);
-
-	document.getElementById('submitNamesButton').disabled = false;
-	myGameState.namesSubmitted = true;
-	setDOMElementVisibility(myGameState, serverGameState);
 }
 
 function updateCurrentNameDiv() {
