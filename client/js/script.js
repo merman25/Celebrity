@@ -598,6 +598,19 @@ function addTeamlessPlayerContextMenu() {
 			ul.appendChild(changeToTeamLi);
 		});
 
+		if (Number(playerID) !== myGameState.myPlayerID) {
+			const makePlayerHostLi = createDOMElement('li', 'Make this player the host', { classList: ['menuItem'] });
+			const playerName = teamlessPlayerLi.textContent;
+			addServerRequestClickListener(
+				makePlayerHostLi,
+				sendMakePlayerHostRequest,
+				() => playerID,
+				null, null,
+				() => confirm(`Are you sure you want to stop hosting and make ${playerName} the host?`)
+			);
+			ul.appendChild(makePlayerHostLi);
+		}
+
 		ul.addEventListener('mouseleave', event => {
 			hideAllContextMenus();
 		});
@@ -748,6 +761,20 @@ function addPlayerInTeamContextMenu() {
 		);
 
 		appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi, makeThisTeamNextLi);
+
+		if (Number(playerID) !== myGameState.myPlayerID) {
+			const makePlayerHostLi = createDOMElement('li', 'Make this player the host', { classList: ['menuItem'] });
+			const playerName = playerInTeamTD.textContent;
+			addServerRequestClickListener(
+				makePlayerHostLi,
+				sendMakePlayerHostRequest,
+				() => playerID,
+				null, null,
+				() => confirm(`Are you sure you want to stop hosting and make ${playerName} the host?`)
+			);
+			ul.appendChild(makePlayerHostLi);
+		}
+
 
 		ul.addEventListener('mouseleave', event => {
 			hideAllContextMenus();

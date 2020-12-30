@@ -177,3 +177,10 @@ async function sendRestoreGameRequest(gameID) {
 
     return requestResult;
 }
+
+async function sendMakePlayerHostRequest(playerID) {
+    const data = JSON.stringify({ playerID });
+    const requestResult = await sendRequest('makePlayerHost', data);
+
+    return requestResult;   
+}

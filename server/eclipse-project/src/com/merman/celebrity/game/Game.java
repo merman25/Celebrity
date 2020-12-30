@@ -636,5 +636,6 @@ public class Game implements ICanExpire {
 		playersWithoutTeams.clear();
 		mapPlayersToTeams.clear();
 		mapPlayersToNameLists.clear();
+		GameManager.setPlayerAsHostOfGame(this, null);
 	}
 }

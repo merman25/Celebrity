@@ -12,6 +12,7 @@ import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.game.PlayerManager;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
@@ -338,5 +339,27 @@ public class AnnotatedHandlers {
 		}
 		
 		return responseMap;
+	}
+	
+	@HTTPRequest( requestName = "makePlayerHost", argNames = "playerID" )
+	public static void makePlayerHost(Session aSession, Integer aPlayerPublicID) {
+		Game game = GameManager.getGameHostedByPlayer(aSession.getPlayer());
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], Session [%s], public ID of other player [%,d], Non-host tried to give hosting duties to other player", aSession.getPlayer(), aSession, aPlayerPublicID ), "Error: you can't make somebody the host when you're not the host yourself" );
+		}
+		if (aPlayerPublicID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], Session [%s], public ID of other player was null", aSession.getPlayer(), aSession ), null );
+		}
+		Player player = PlayerManager.getPlayer(aPlayerPublicID);
+		if (player == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], Session [%s], Unknown public ID of other player [%,d]", aSession.getPlayer(), aSession, aPlayerPublicID ), null );
+		}
+		
+		if (player.getGame() != game) {
+			throw new IllegalServerRequestException(String.format("Player [%s], Session [%s], other player [%s], is part of game [%s], can't be made host of game [%s]", aSession.getPlayer(), aSession, player, player.getGame(), game ), "Error: a player must be part of a game before they can be made the host" );
+		}
+		
+		GameManager.setPlayerAsHostOfGame(game, player);
+		game.fireGameEvent();
 	}
 }

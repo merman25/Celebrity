@@ -106,6 +106,9 @@ public class GameManager {
 	}
 	
 	public static synchronized void setPlayerAsHostOfGame(Game game, Player player) {
+		if (game.getHost() != null) {
+			mapHostsToGames.remove(game.getHost());
+		}
 		game.setHost(player);
 		mapHostsToGames.put(player, game);
 	}
