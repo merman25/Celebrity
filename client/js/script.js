@@ -247,6 +247,94 @@ addServerRequestClickListener(
 	sendEndTurnRequest
 );
 
+addServerRequestClickListener(
+	document.getElementById('restoreGameButton'),
+	sendGetRestorableGameListRequest,
+	null, null, null, null,
+	(result) => {
+		if (! result.gameList
+			|| result.gameList.length === 0) {
+				alert('No games to restore');
+			}
+			else {
+				const titleH2 = createDOMElement('h2', 'Active games:');
+				const activeGameDiv = createDOMElement('div', null, null, {display: 'flex', flexDirection: 'column', maxWidth: '4rem'});
+
+				for (restorableGameID of result.gameList) {
+					// Needs to be in a separate variable, otherwise we always send the value from the last iteration of the loop
+					const gameIDToSend = restorableGameID;
+					const button = createDOMElement('button', restorableGameID, null, {margin: '0.2rem'});
+
+					addServerRequestClickListener(
+						button,
+						sendRestoreGameRequest,
+						() => gameIDToSend,
+						null, null, null,
+						(response) => {
+							if (response.result === 'error') {
+								alert(response.message);
+							}
+							else if (response.result === 'still_active') {
+								const activePlayers = response.activePlayers;
+								const lastSeenAges = response.lastSeenAgesInSeconds;
+
+								// Lots of faffing to ensure the Math.max function is always passed actual numbers as arguments
+								let numPlayerIDs = activePlayers ? activePlayers.length : 0;
+								if (!numPlayerIDs) {
+									numPlayerIDs = 0;
+								}
+								let numAges = lastSeenAges ? lastSeenAges.length : 0;
+								if (!numAges) {
+									numAges = 0;
+								}
+								const numActivePlayers = Math.max(numPlayerIDs, numAges);
+
+								const p1 = 'Looks like some players are still connected. The \'Restore lost game\''
+												+ ' function will put you back as the host, but the others need to disconnect first.'
+												+ ' Tell them to leave the game, by using the \'Exit Game\' button or just closing their tabs.'
+
+								const p2 = 'If you\'re not the host, you don\'t need to use \'Restore lost game\'.'
+												+ ' Just re-join the game using \'Join Existing Game\', and ask the host'
+												+ ' to put you back in the right team.'
+
+								setChildren('gameStatusDiv',
+									createDOMElement('p', p1),
+									createDOMElement('p', p2),
+									createDOMElement('span', `${numActivePlayers} active players:`)
+								);
+								
+								const ul = createDOMElement('ul');
+								for (let i=0; i<numActivePlayers; i++) {
+									let playerName = activePlayers && i < activePlayers.length ? activePlayers[i] : 'UNKNOWN_PLAYER';
+									let lastSeenAge = lastSeenAges && i < lastSeenAges.length ? lastSeenAges[i] : 'UNKNOWN';
+
+									appendChildren(ul, createDOMElement('li', `${playerName} (last seen ${lastSeenAge} seconds ago)`));
+								}
+								appendChildren('gameStatusDiv', ul);
+
+								// Use setTimeout to make the above message appear before the alert does
+								setTimeout(() => alert('Some players still active'), 200);
+							}
+							else if (response.result === 'OK') {
+								removeChildren('gameStatusDiv');
+								myGameState.willHost = true;
+								restoreWebsocketIfNecessary();
+							}
+							else {
+								setCookie('messageOnReload', 'An unknown error occurred');
+								location.reload();
+							}
+						}
+					);
+
+					appendChildren(activeGameDiv, button);
+				}
+
+				setChildren('gameStatusDiv', titleH2, activeGameDiv);
+			}
+	}
+);
+
 document.getElementById('exitGameButton').addEventListener('click', async () => {
 	const answer = confirm('Are you sure you want to exit the game?');
 	if (answer) {

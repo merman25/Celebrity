@@ -104,6 +104,11 @@ public class GameManager {
 		
 		return game;
 	}
+	
+	public static synchronized void setPlayerAsHostOfGame(Game game, Player player) {
+		game.setHost(player);
+		mapHostsToGames.put(player, game);
+	}
 
 	private static String generateGameID() {
 		String gameID;
@@ -397,5 +402,17 @@ public class GameManager {
 	
 	public static synchronized int getNumGames() {
 		return gamesMap.size();
+	}
+	
+	public static synchronized List<Game> getAllNonExpiredGames() {
+		List<Game> gameList = new ArrayList<>();
+		
+		for (Game game : gamesMap.values()) {
+			if (! game.isExpired()) {
+				gameList.add(game);
+			}
+		}
+		
+		return gameList;
 	}
 }

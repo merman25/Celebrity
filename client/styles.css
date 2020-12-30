@@ -138,6 +138,7 @@ th, td {
 }
 
 .contextMenuClass {
+    color: #000000;
     display: none;
     position: absolute;
     background-color: white;
@@ -175,6 +176,7 @@ th, td {
 
 /* Notification footer */
 .notification-footer {
+    color: #000000;
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */
     z-index: 1; /* Sit on top */
@@ -217,6 +219,11 @@ th, td {
 @keyframes slideIn {
     from {bottom: -300px; opacity: 0}
     to {bottom: 0; opacity: 1}
+}
+
+.footer {
+    position: fixed;
+    bottom: 0.5rem;
 }
   
 h1.christmas::before { content: '🎄 ';}

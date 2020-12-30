@@ -41,6 +41,7 @@ public class WebsocketHandler {
 	private static final int             PONG_BYTE						   = 0x8A;
 	
 	private static final String          STOP                              = "__STOP__";
+	private static final String          CLOSE_CONNECTION_MESSAGE          = "03E9";
 	
 	private static AtomicInteger threadCount = new AtomicInteger();
 	
@@ -55,6 +56,7 @@ public class WebsocketHandler {
 	private Timer pingTimer;
 	private final MyInputStreamRunnable inputStreamRunnable = new MyInputStreamRunnable();
 	private final MyOutputStreamRunnable outputStreamRunnable = new MyOutputStreamRunnable();
+	private long lastSeenTimeMillis = System.currentTimeMillis();
 	
 	private volatile boolean stoppingSoon;
 	
@@ -106,12 +108,15 @@ public class WebsocketHandler {
 								
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
+										lastSeenTimeMillis = System.currentTimeMillis();
 									}
 									else {
 										Log.log(LogInfo.class, "zero-length message received" );
 									}
 								}
 								else {
+									lastSeenTimeMillis = System.currentTimeMillis();
+
 									// FIXME can't handle messages whose lengths don't fit into an int
 									byte[] encodedMessage = new byte[(int) messageLength];
 
@@ -123,7 +128,11 @@ public class WebsocketHandler {
 									byte[] decodedMessage = decode(key, encodedMessage);
 									String message;
 									if ( firstByteOfMessage == CLOSE_CONNECTION_BYTE ) {
-										message = bytesToHex(decodedMessage) + " (encoded as " + bytesToHex(encodedMessage) + ")";
+										message = bytesToHex(decodedMessage);
+										if ( CLOSE_CONNECTION_MESSAGE.equals(message)) {
+											message = "CLOSE_CONNECTION";
+											stop();
+										}
 									}
 									else {
 										message = new String( decodedMessage, StandardCharsets.UTF_8 );
@@ -133,7 +142,7 @@ public class WebsocketHandler {
 										enqueueMessage("gotcha");
 									}
 									else {
-										Log.log(LogInfo.class, "Message from socket: " + message );
+										Log.log(LogInfo.class, "Session", getSession(), "Player", getSession() == null ? null : getSession().getPlayer(), "Message from socket: " + message );
 									}
 								}
 							}
@@ -478,5 +487,13 @@ public class WebsocketHandler {
 		hexChars[0] = HEX_ARRAY[v >>> 4];
 		hexChars[1] = HEX_ARRAY[v & 0x0F];
 		return new String(hexChars);
+	}
+
+	public long getLastSeenTimeMillis() {
+		return lastSeenTimeMillis;
+	}
+
+	public boolean isListening() {
+		return listen;
 	}
 }

@@ -4,6 +4,10 @@ const selectorsToShowOrHide = [
 		styleFn: (myGameState, serverGameState) => myGameState.myName && !serverGameState.gameID,
 	},
 	{
+		selector: '#restoreGameButton',
+		styleFn: (myGameState, serverGameState) => myGameState.myName && !serverGameState.gameID,
+	},
+	{
 		selector: '#divChooseName',
 		styleFn: (myGameState, serverGameState) => ! myGameState.myName,
 	},

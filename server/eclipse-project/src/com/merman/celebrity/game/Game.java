@@ -92,12 +92,16 @@ public class Game implements ICanExpire {
 		return host;
 	}
 
+	public synchronized void setHost(Player aHost) {
+		host = aHost;
+	}
+
 	public synchronized void addPlayer(Player aPlayer) {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
 		if ( host == null ) {
 			Log.log(PerGameLogInfo.class, "Game", this, String.format("Game %s had no host, setting %s as the host", getID(), aPlayer) );
-			host = aPlayer;
+			GameManager.setPlayerAsHostOfGame(this, aPlayer);
 			currentPlayer = aPlayer;
 		}
 		
@@ -616,5 +620,21 @@ public class Game implements ICanExpire {
 		}
 		nextTeamIndex = aIndex;
 		updateCurrentPlayerFromIndicesAfterChangeToTeamStructure();
+	}
+
+	public void removeAllPlayers() {
+		List<Player> allReferencedPlayers = getAllReferencedPlayers();
+		for (Player player: allReferencedPlayers) {
+			player.setGame(null);
+		}
+		for (Team team : teamList) {
+			team.getPlayerList().clear();
+		}
+		
+		host = null;
+		currentPlayer = null;
+		playersWithoutTeams.clear();
+		mapPlayersToTeams.clear();
+		mapPlayersToNameLists.clear();
 	}
 }

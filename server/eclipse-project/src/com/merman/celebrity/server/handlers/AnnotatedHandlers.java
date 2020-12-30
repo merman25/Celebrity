@@ -1,14 +1,20 @@
 package com.merman.celebrity.server.handlers;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.Session;
+import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
@@ -182,7 +188,7 @@ public class AnnotatedHandlers {
 			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to start turn in game [%s], but its state is [%s]", session, player, game, game.getStatus()), endUserMessage);
 		}
 		else if (game.getCurrentPlayer() != player) {
-			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to start turn in game [%s], but current player is [%s]", session, player, game, game.getCurrentPlayer()), String.format( "Error: it should be %s to take the next turn", game.getCurrentPlayer() ) ); 
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], trying to start turn in game [%s], but current player is [%s]", session, player, game, game.getCurrentPlayer()), String.format( "Error: it should be %s to take the next turn", game.getCurrentPlayer() ) );
 		}
 		
 		game.startTurn();
@@ -273,5 +279,64 @@ public class AnnotatedHandlers {
 		else {
 			Log.log(LogInfo.class, "Error: cannot set team index. Session", session, "Player", player, "Game", game, "Index", index);
 		}
+	}
+	
+	@HTTPRequest(requestName = "getRestorableGameList")
+	public static Map<String, List<String>> getRestorableGameList(Session session) {
+		Map<String, List<String>>		responseMap		= new HashMap<>();
+		List<Game> allNonExpiredGames = GameManager.getAllNonExpiredGames();
+		List<String> gameIDList = allNonExpiredGames.stream()
+													.map(game -> game.getID())
+													.collect(Collectors.toList());
+		
+		Collections.sort(gameIDList);
+		responseMap.put("gameList", gameIDList);
+		
+		return responseMap;
+	}
+	
+	@HTTPRequest(requestName = "restoreGame", argNames = "gameID")
+	public static Map<String, Object> restoreGame(Session session, String gameID) {
+		Map<String, Object>		responseMap		= new HashMap<>();
+		Game game = GameManager.getGame(gameID);
+		if (game == null) {
+			responseMap.put("result", "error");
+			responseMap.put("message", "Unknown game ID: " + gameID);
+		}
+		else {
+			List<Player> allReferencedPlayers = game.getAllReferencedPlayers();
+			long currentTimeMillis = System.currentTimeMillis();
+			Map<Player, Long>		mapActivePlayersToLastSeenDurations		= new LinkedHashMap<Player, Long>();
+			for (Player player: allReferencedPlayers) {
+				if ( ! player.isExpired() ) {
+					Session playerSession = SessionManager.getSession(player.getSessionID());
+					if (playerSession != null) {
+						WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(playerSession);
+						if (websocketHandler != null
+								&& websocketHandler.isListening() ) {
+							mapActivePlayersToLastSeenDurations.put(player, ( currentTimeMillis - websocketHandler.getLastSeenTimeMillis() ) / 1000);
+						}
+					}
+				}
+			}
+			
+			if ( ! mapActivePlayersToLastSeenDurations.isEmpty() ) {
+				List<String> activePlayerNameList = mapActivePlayersToLastSeenDurations.keySet()
+																				   .stream()
+																				   .map(player -> player.getName())
+																				   .collect(Collectors.toList());
+				
+				responseMap.put("result", "still_active");
+				responseMap.put("activePlayers", activePlayerNameList);
+				responseMap.put("lastSeenAgesInSeconds", new ArrayList<>(mapActivePlayersToLastSeenDurations.values()));
+			}
+			else {
+				responseMap.put("result", "OK");
+				game.removeAllPlayers();
+				game.addPlayer(session.getPlayer()); // This player becomes the host
+			}
+		}
+		
+		return responseMap;
 	}
 }

@@ -165,3 +165,15 @@ async function sendMakeThisTeamNextRequest(teamIndex) {
 
     return requestResult;
 }
+
+async function sendGetRestorableGameListRequest() {
+    const requestResult = await sendRequest('getRestorableGameList');
+    return requestResult;
+}
+
+async function sendRestoreGameRequest(gameID) {
+    const data = JSON.stringify({ gameID });
+    const requestResult = await sendRequest('restoreGame', data);
+
+    return requestResult;
+}
