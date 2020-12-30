@@ -182,44 +182,29 @@ addServerRequestClickListener(
 	myGameState => myGameState.sentStartGame = false
 );
 
-// addServerRequestClickListener(
-// 	document.getElementById('startNextRoundButton'),
-// 	sendStartNextRoundRequest,
-// 	null,
-// 	(_, myGameState) => myGameState.sentStartRound = true,
-// 	(myGameState) => myGameState.sentStartRound = false
-// );
-
-// addServerRequestClickListener(
-// 	document.getElementById('startTurnButton'),
-// 	sendStartTurnRequest,
-// 	null,
-// 	(_, myGameState) => myGameState.sentStartTurn = true,
-// 	(myGameState) => myGameState.sentStartTurn = false
-// );
-
 document.getElementById('startNextRoundButton').addEventListener('click', async () => {
-	document.getElementById('startNextRoundButton').disabled = true;
 	clearTestTrigger();
-	restoreWebsocketIfNecessary();
-	await sendStartNextRoundRequest();
-	myGameState.sentStartRound = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	document.getElementById('startNextRoundButton').disabled = false;
-	myGameState.sentStartRound = false;
 });
+
+addServerRequestClickListener(
+	document.getElementById('startNextRoundButton'),
+	sendStartNextRoundRequest,
+	null,
+	(_, myGameState) => myGameState.sentStartRound = true,
+	(myGameState) => myGameState.sentStartRound = false
+);
 
 document.getElementById('startTurnButton').addEventListener('click', async () => {
-	document.getElementById('startTurnButton').disabled = true;
 	clearTestTrigger();
-	restoreWebsocketIfNecessary();
-	await sendStartTurnRequest();
-	myGameState.sentStartTurn = true;
-	setDOMElementVisibility(myGameState, serverGameState);
-	document.getElementById('startTurnButton').disabled = false;
-	myGameState.sentStartTurn = false;
 });
 
+addServerRequestClickListener(
+	document.getElementById('startTurnButton'),
+	sendStartTurnRequest,
+	null,
+	(_, myGameState) => myGameState.sentStartTurn = true,
+	(myGameState) => myGameState.sentStartTurn = false
+);
 
 addServerRequestClickListener(
 	document.getElementById('gotNameButton'),
