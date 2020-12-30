@@ -28,28 +28,31 @@ document.addEventListener('DOMContentLoaded', () => {} );
 /* Function to add a standard click listener to buttons which result in
 *  a request to the server.
 */
-const addServerRequestClickListener = function (
-	button,
+const addServerRequestClickListener = function(
+	element,
 	serverRequestFunction,
 	serverRequestArgumentRetriever = null,
 	myGameStateMutator = null,
 	myGameStateReverter = null,
 	inputValidator = null,
 	responseProcessor = null) {
-	button.addEventListener('click', async () => {
+	element.addEventListener('click', async () => {
 		clearNotification();
 
 		let inputArguments = [];
 		if (serverRequestArgumentRetriever) {
 			inputArguments = serverRequestArgumentRetriever.apply(null);
-			if (! Array.isArray(inputArguments)) {
+			if (!Array.isArray(inputArguments)) {
 				inputArguments = [inputArguments];
 			}
 		}
 
 		if (!inputValidator
 			|| inputValidator.apply(null, inputArguments)) {
-			button.disabled = true;
+			element.disabled = true;
+			if (element.nodeName === 'LI') {
+				element.classList.add('disabledMenuItem')
+			}
 
 			try {
 				restoreWebsocketIfNecessary();
@@ -70,7 +73,10 @@ const addServerRequestClickListener = function (
 			}
 			catch (err) { console.error(err); }
 			finally {
-				button.disabled = false;
+				element.disabled = false;
+				if (element.nodeName === 'LI') {
+					element.classList.remove('disabledMenuItem')
+				}
 			}
 		}
 	});
@@ -457,11 +463,8 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 		const ul = document.createElement('ul');
 
 		playerList.forEach(player => {
-			const li = createDOMElement('li', '', { classList: ['teamlessPlayerLiClass'] });
-			const span = createDOMElement('span', player.name, {
-				playerID: player.publicID,
-				classList: myGameState.iAmHosting ? ['rightClickable'] : []
-			});
+			const li = createDOMElement('li', '', { playerID: player.publicID, classList: ['teamlessPlayerLiClass'] });
+			const span = createDOMElement('span', player.name, { classList: myGameState.iAmHosting ? ['rightClickable'] : [] });
 			li.appendChild(span);
 			ul.appendChild(li);
 		});
@@ -480,40 +483,46 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 function addTeamlessPlayerContextMenu() {
 	const teamlessPlayerLiElements = document.querySelectorAll('.teamlessPlayerLiClass');
 	for (const teamlessPlayerLi of teamlessPlayerLiElements) {
+		const playerID = teamlessPlayerLi.getAttribute('playerID');
+
+		const ul = createDOMElement('ul', '', { id: 'contextMenuForTeamlessPlayer', classList: ['contextMenuClass'] });
+		const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removeTeamlessPlayerFromGame', classList: ['menuItem'] });
+		addServerRequestClickListener(
+			removePlayerLi,
+			sendRemoveFromGameRequest,
+			() => playerID,
+			null, null, null,
+			hideAllContextMenus
+		);
+		ul.appendChild(removePlayerLi);
+
+		const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
+		ul.appendChild(separatorLi);
+		serverGameState.teams.forEach((team, teamIndex) => {
+			const changeToTeamLi = createDOMElement('li', `Put in ${team.name}`, { id: `changeToTeam${teamIndex}`, classList: ['menuItem'] });
+			addServerRequestClickListener(
+				changeToTeamLi,
+				sendPutInTeamRequest,
+				() => [playerID, teamIndex],
+				null, null, null,
+				hideAllContextMenus
+			);
+			ul.appendChild(changeToTeamLi);
+		});
+
+		ul.addEventListener('mouseleave', event => {
+			hideAllContextMenus();
+		});
 
 		teamlessPlayerLi.addEventListener('contextmenu', event => {
-			const playerID = event.target.getAttribute('playerID');
 			event.preventDefault();
 
-			const ul = createDOMElement('ul', '', { id: 'contextMenuForTeamlessPlayer', classList: ['contextMenuClass'] });
-			const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removeTeamlessPlayerFromGame', classList: ['menuItem'] });
-			removePlayerLi.addEventListener('click', event => {
-				sendRemoveFromGameRequest(playerID);
-				hideAllContextMenus();
-			})
-			ul.appendChild(removePlayerLi);
-
-			const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
-			ul.appendChild(separatorLi);
-			serverGameState.teams.forEach((team, teamIndex) => {
-				const changeToTeamLi = createDOMElement('li', `Put in ${team.name}`, { id: `changeToTeam${teamIndex}`, classList: ['menuItem'] });
-				changeToTeamLi.addEventListener('click', event => {
-					sendPutInTeamRequest(playerID, teamIndex);
-					hideAllContextMenus();
-				});
-				ul.appendChild(changeToTeamLi);
-			});
-
-			ul.addEventListener('mouseleave', event => {
-				hideAllContextMenus();
-			});
 			setChildren('teamlessPlayerContextMenuDiv', ul);
-
-
 
 			ul.style.left = `${(event.pageX - 10)}px`;
 			ul.style.top = `${(event.pageY - 10)}px`;
 			ul.style.display = 'block';
+			document.getElementById('teamlessPlayerContextMenuDiv').style.display = 'block';
 		});
 	}
 }
@@ -581,69 +590,91 @@ function updateTeamTable(myGameState, serverGameState) {
 function addPlayerInTeamContextMenu() {
 	const playerInTeamTDElements = document.querySelectorAll('.playerInTeamTDClass');
 	for (const playerInTeamTD of playerInTeamTDElements) {
+		const playerID = playerInTeamTD.getAttribute('playerID');
+		const teamIndex = parseInt(playerInTeamTD.getAttribute('teamIndex'));
+
+		const ul = createDOMElement('ul', '', { id: 'playerInTeamContextMenu', classList: ['contextMenuClass'] });
+
+		const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removePlayerInTeamFromGame', classList: ['menuItem'] });
+		addServerRequestClickListener(
+			removePlayerLi,
+			sendRemoveFromGameRequest,
+			() => playerID,
+			null, null, null,
+			hideAllContextMenus
+		);
+		ul.appendChild(removePlayerLi);
+
+		const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
+		ul.appendChild(separatorLi);
+
+		serverGameState.teams.forEach((team, otherTeamIndex) => {
+			if (otherTeamIndex !== teamIndex) {
+				const li = createDOMElement('li', `Put in ${team.name}`, { id: `changePlayerInTeamToTeam${otherTeamIndex}`, classList: ['menuItem'] });
+				addServerRequestClickListener(
+					li,
+					sendPutInTeamRequest,
+					() => [playerID, otherTeamIndex],
+					null, null, null,
+					hideAllContextMenus
+				);
+				ul.appendChild(li);
+			}
+		});
+
+		const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
+		const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
+		const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
+		const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', { classList: ['menuItem'] });
+
+		addServerRequestClickListener(
+			moveUpLi,
+			sendMoveInTeamRequest,
+			() => [playerID, false],
+			null, null, null,
+			hideAllContextMenus
+		);
+
+		addServerRequestClickListener(
+			moveDownLi,
+			sendMoveInTeamRequest,
+			() => [playerID, true],
+			null, null, null,
+			hideAllContextMenus
+		);
+
+		addServerRequestClickListener(
+			makePlayerNextInTeamLi,
+			sendMakePlayerNextInTeamRequest,
+			() => playerID,
+			null, null, null,
+			hideAllContextMenus
+		);
+
+		addServerRequestClickListener(
+			makeThisTeamNextLi,
+			sendMakeThisTeamNextRequest,
+			() => teamIndex,
+			null, null, null,
+			hideAllContextMenus
+		);
+
+		appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi, makeThisTeamNextLi);
+
+		ul.addEventListener('mouseleave', event => {
+			hideAllContextMenus();
+		});
 
 		playerInTeamTD.addEventListener('contextmenu', event => {
 			event.preventDefault();
-			const playerID = event.target.getAttribute('playerID');
-			const teamIndex = parseInt(event.target.getAttribute('teamIndex'));
-
-			const ul = createDOMElement('ul', '', { id: 'playerInTeamContextMenu', classList: ['contextMenuClass'] });
-
-			const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removePlayerInTeamFromGame', classList: ['menuItem'] });
-			removePlayerLi.addEventListener('click', event => {
-				sendRemoveFromGameRequest(playerID);
-				hideAllContextMenus();
-			});
-			ul.appendChild(removePlayerLi);
-
-			const separatorLi = createDOMElement('li', '', { classList: ['separator'] });
-			ul.appendChild(separatorLi);
-
-			serverGameState.teams.forEach((team, otherTeamIndex) => {
-				if (otherTeamIndex !== teamIndex) {
-					const li = createDOMElement('li', `Put in ${team.name}`, { id: `changePlayerInTeamToTeam${otherTeamIndex}`, classList: ['menuItem'] });
-					li.addEventListener('click', event => {
-						sendPutInTeamRequest(playerID, otherTeamIndex);
-						hideAllContextMenus();
-					});
-					ul.appendChild(li);
-				}
-			});
-
-			const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
-			const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
-			const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
-			const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', { classList: ['menuItem'] });
-
-			moveUpLi.addEventListener('click', event => {
-				sendMoveInTeamRequest(playerID, false);
-				hideAllContextMenus();
-			});
-
-			moveDownLi.addEventListener('click', event => {
-				sendMoveInTeamRequest(playerID, true);
-				hideAllContextMenus();
-			});
-			makePlayerNextInTeamLi.addEventListener('click', event => {
-				sendMakePlayerNextInTeamRequest(playerID);
-				hideAllContextMenus();
-			});
-			makeThisTeamNextLi.addEventListener('click', event => {
-				sendMakeThisTeamNextRequest(teamIndex);
-				hideAllContextMenus();
-			})
-
-			appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi, makeThisTeamNextLi);
+			const playerID = playerInTeamTD.getAttribute('playerID');
 
 			setChildren('playerInTeamContextMenuDiv', ul);
 
 			ul.style.left = `${(event.pageX - 10)}px`;
 			ul.style.top = `${(event.pageY - 10)}px`;
 			ul.style.display = 'block';
-
-			ul.addEventListener('mouseleave', event => {
-				hideAllContextMenus();
-			});
+			document.getElementById('playerInTeamContextMenuDiv').style.display = 'block';
 		});
 	}
 }
@@ -986,6 +1017,9 @@ function hideAllContextMenus() {
 	for (let i = 0; i < contextMenus.length; i++) {
 		contextMenus[i].style.display = 'none';
 	}
+
+	document.getElementById('teamlessPlayerContextMenuDiv').style.display = 'none';
+	document.getElementById('playerInTeamContextMenuDiv').style.display = 'none';
 }
 
 function updateCountdownClock(secondsRemaining) {

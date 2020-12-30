@@ -139,6 +139,11 @@ th, td {
     background-color: #BCDCFB;
 }
 
+.disabledMenuItem {
+    pointer-events:none;
+    opacity:0.4;
+}
+
 /* Notification footer */
 .notification-footer {
     display: none; /* Hidden by default */
