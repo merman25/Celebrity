@@ -223,7 +223,11 @@ th, td {
 
 .footer {
     position: fixed;
-    bottom: 0.5rem;
+    bottom: 0;
+    padding-bottom: 0.5rem;
+    z-index: 0.5;
+    background-color: var(--colour-gradient-end);
+    font-size: 0.8rem;
 }
   
 h1.christmas::before { content: '🎄 ';}
@@ -234,3 +238,6 @@ html.christmas {
     color: #FFFFFF;
 }
 
+a.christmas {
+    color: cyan;
+}

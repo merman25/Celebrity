@@ -1188,4 +1188,5 @@ if (isChristmas) {
 	document.getElementById('gameTitleH1').classList.add('christmas');
 	document.getElementById('backgroundColourGradientDiv').classList.add('christmas');
 	document.querySelector('html').classList.add('christmas');
+	document.querySelectorAll('a').forEach(element => element.classList.add('christmas'));
 }
