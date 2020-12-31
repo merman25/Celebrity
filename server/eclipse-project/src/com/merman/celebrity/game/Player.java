@@ -9,6 +9,7 @@ public class Player implements ICanExpire {
 	private Game game;
 	private String sessionID;
 	private int publicUniqueID;
+	private String icon;
 	
 	private boolean                   expired;
 	private ExpiryTime                expiryTime 				  = new ExpiryTime(CleanupHelper.defaultExpiryDurationInS);
@@ -62,5 +63,13 @@ public class Player implements ICanExpire {
 	
 	public void resetExpiryTime() {
 		expiryTime.resetExpiryTime();
+	}
+
+	public String getIcon() {
+		return icon;
+	}
+
+	public void setIcon(String aIcon) {
+		icon = aIcon;
 	}
 }

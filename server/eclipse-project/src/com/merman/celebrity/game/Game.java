@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,11 +13,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.merman.celebrity.game.events.GameEvent;
 import com.merman.celebrity.game.events.GameStateUpdateEvent;
 import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
+import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
@@ -97,6 +101,7 @@ public class Game implements ICanExpire {
 	}
 
 	public synchronized void addPlayer(Player aPlayer) {
+		setPlayerIconIfNecessary( aPlayer );
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
 		if ( host == null ) {
@@ -110,6 +115,33 @@ public class Game implements ICanExpire {
 			addGameEventListener(new NotifyClientGameEventListener( websocketHandler ) );
 		}
 		fireGameEvent();
+	}
+
+	private void setPlayerIconIfNecessary(Player aPlayer) {
+		if ( aPlayer.getIcon() == null ) {
+			Calendar calendar = Calendar.getInstance();
+			if ( ( calendar.get(Calendar.MONTH) == 11
+					&& calendar.get(Calendar.DAY_OF_MONTH) >= 14 )
+					|| ( calendar.get(Calendar.MONTH) == 0
+					&& calendar.get(Calendar.DAY_OF_MONTH) <= 6 ) ) {
+
+				Set<String> usedIcons = getAllReferencedPlayers()
+						.stream()
+						.map( player -> player.getIcon() )
+						.filter(x -> x!=null)
+						.collect(Collectors.toSet());
+
+				List<String> possibleIcons = new ArrayList<>(Server.ICON_LIST);
+				if (usedIcons.size() < possibleIcons.size()) {
+					possibleIcons.removeAll(usedIcons);
+				}
+
+				if (! possibleIcons.isEmpty()) {
+					String icon = possibleIcons.get( (int) ( Math.random() * possibleIcons.size() ) );
+					aPlayer.setIcon(icon);
+				}
+			}
+		}
 	}
 
 	public synchronized int getNumRounds() {

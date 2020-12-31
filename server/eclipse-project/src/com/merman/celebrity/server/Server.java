@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -24,7 +25,7 @@ import com.sun.net.httpserver.HttpServer;
 public class Server {
 	public static final Path CLIENT_FILE_DIRECTORY = new File( "../../client" ).toPath();
 	public static final String MAIN_FILE_NAME = "celebrity.html";
-	private static final List<String> FILE_TO_ADD_WHITELIST = Arrays.asList(
+	private static final List<String> FILE_TO_ADD_WHITELIST = new ArrayList<>( Arrays.asList(
 			MAIN_FILE_NAME,
 			"styles.css",
 			"js/preload.js",
@@ -35,7 +36,9 @@ public class Server {
 			"icons/sad-emoji.svg",
 			"icons/thinking-emoji.svg",
 			"icons/exit-icon.svg"
-    );
+    ) );
+	
+	public static final List<String> ICON_LIST = new ArrayList<>();
 	
 	private int portNumber = 8000;
 
@@ -63,6 +66,13 @@ public class Server {
 		}
 		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
+		
+		Arrays.asList( new File( CLIENT_FILE_DIRECTORY.toFile(), "icons/christmas" ).listFiles( f -> f.getName().toLowerCase().endsWith(".svg") ) )
+			.stream()
+			.map( file -> CLIENT_FILE_DIRECTORY.relativize( file.toPath() ) )
+			.forEach( path -> ICON_LIST.add( path.toString() ) );
+		
+		FILE_TO_ADD_WHITELIST.addAll( ICON_LIST );
 
 		for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
 			if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {

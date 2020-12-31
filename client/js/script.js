@@ -3,6 +3,8 @@ let firstSocketMessage = true;
 
 let serverGameState = {};
 
+const iconSize = '1.5rem';
+
 const myGameState = {
 	myName: null,
 	willHost: false,
@@ -553,6 +555,12 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 		playerList.forEach(player => {
 			const li = createDOMElement('li', '', { playerID: player.publicID, classList: ['teamlessPlayerLiClass'] });
 			const span = createDOMElement('span', player.name, { classList: myGameState.iAmHosting ? ['rightClickable'] : [] });
+
+			if (player.icon) {
+				const img = createDOMElement('img', null, {src: player.icon, alt: 'player icon'}, { height: iconSize, paddingRight: '0.25rem'});
+				li.appendChild(img);
+			}
+
 			li.appendChild(span);
 			ul.appendChild(li);
 		});
@@ -669,6 +677,7 @@ function updateTeamTable(myGameState, serverGameState) {
 					playerID: player.publicID,
 					teamindex: col,
 					playerindex: row,
+					icon: player.icon
 				}
 				if (myGameState.iAmHosting)
 					attributes.classList.push('rightClickable');
@@ -844,7 +853,15 @@ function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn)
 			const td = document.createElement('td');
 			if (row < column.length) {
 				setAttributes(td, attributesByColumn[colIndex][row]);
-				td.textContent = column[row];
+				if (attributesByColumn[colIndex][row].icon) {
+					appendChildren(td,
+						createDOMElement('img', null, {src: attributesByColumn[colIndex][row].icon, alt: 'player icon'}, { height: iconSize, paddingRight: '0.25rem'}),
+						createDOMElement('span', column[row])
+					);
+				}
+				else {
+					td.textContent = column[row];
+				}
 			}
 			tr.appendChild(td);
 		});

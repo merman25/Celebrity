@@ -249,6 +249,7 @@ public class GameManager {
 		return new JSONObject()
 				.put("name", aPlayer.getName())
 				.put("publicID", aPlayer.getPublicUniqueID())
+				.put("icon", aPlayer.getIcon())
 				;
 	}
 	
