@@ -61,9 +61,8 @@ public class Game implements ICanExpire {
 	// Useful for E2E testing. Value is supplied to the testBots, so they can tell if they're taking their turn at the proper time.
 	private int                       turnCount;
 	
-	public Game(String aID, Player aHost) {
+	public Game(String aID) {
 		ID = aID;
-		host = aHost;
 	}
 
 	public synchronized GameStatus getStatus() {
@@ -94,6 +93,7 @@ public class Game implements ICanExpire {
 
 	public synchronized void setHost(Player aHost) {
 		host = aHost;
+		fireGameEvent();
 	}
 
 	public synchronized void addPlayer(Player aPlayer) {

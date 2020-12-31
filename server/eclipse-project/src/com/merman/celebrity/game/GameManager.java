@@ -75,10 +75,10 @@ public class GameManager {
 	}
 
 	private static Game createGame(Player aHost, String aGameID) {
-		Game game = new Game( aGameID, aHost );
+		Game game = new Game( aGameID );
+		setPlayerAsHostOfGame(game, aHost);
 		game.addPlayer(aHost);
 		gamesMap.put(aGameID, game);
-		mapHostsToGames.put(aHost, game);
 		
 		if ( ( createFiles
 				|| ! CelebrityMain.isSysOutLogging() )
@@ -106,11 +106,23 @@ public class GameManager {
 	}
 	
 	public static synchronized void setPlayerAsHostOfGame(Game game, Player player) {
+		// Make sure game isn't recorded as having a different host
 		if (game.getHost() != null) {
 			mapHostsToGames.remove(game.getHost());
 		}
+		
+		if (player != null) {
+			// Make sure player isn't recorded as hosting another game
+			Game gamePreviouslyHostedByPlayer = mapHostsToGames.get(player);
+			if (gamePreviouslyHostedByPlayer != null
+					&& gamePreviouslyHostedByPlayer.getHost() == player ) {
+				gamePreviouslyHostedByPlayer.setHost(null);
+			}
+
+			mapHostsToGames.put(player, game);
+		}
+		
 		game.setHost(player);
-		mapHostsToGames.put(player, game);
 	}
 
 	private static String generateGameID() {
@@ -330,7 +342,7 @@ public class GameManager {
 
 	public static void restoreGame(JSONObject aJsonObject) {
 		String gameID = aJsonObject.getString("gameID");
-		Game game = new Game(gameID, null);
+		Game game = new Game(gameID);
 		game.setStatus(GameStatus.valueOf(aJsonObject.getString("status")));
 		
 		JSONArray teamsArray = aJsonObject.getJSONArray("teams");

@@ -24,9 +24,12 @@ import com.merman.celebrity.server.logging.info.PerGameLogInfo;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 
 public class AnnotatedHandlers {
-/* If error, throw exception, ensure client knows about it and can inform the user.
- * Think about what kind of validation should be done in these methods vs in the Game object.
- */
+	/*
+	 * Quick fix for ServerTest unit test, which was written before I had much validation in these handlers,
+	 * and takes shortcuts which now result in exceptions unless the validation is disabled.
+	 */
+	public static boolean checkSetNameIndex = true;
+	
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
 		if (username == null
@@ -52,46 +55,47 @@ public class AnnotatedHandlers {
 		Player player = session.getPlayer();
 		Game game = GameManager.getGameHostedByPlayer(player);
 		
-		Class<? extends LogInfo> logInfoClass = game == null ? LogInfo.class : PerGameLogInfo.class;
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], tried to set game params when not hosting", session.getPlayer(), session ), "Error: you're not the host, you can't change the game settings" );
+		}
 		
-		if ( numRounds <= 0 || numRounds > 10 ) {
-			Log.log(logInfoClass, "Game", game, "Error: numRounds " + numRounds + ", should be 1-10");
-			return;
+		if ( numRounds == null || numRounds <= 0 || numRounds > 10 ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], numRounds [%,d], should be 1-10", session.getPlayer(), session, numRounds), "Error: the number of rounds should be 1-10");
 		}
-		if ( roundDuration <= 0 || roundDuration > 600 ) {
-			Log.log(logInfoClass, "Game", game, "roundDuration " + roundDuration + ", should be 1-600" );
-			return;
+		if ( roundDuration == null || roundDuration <= 0 || roundDuration > 600 ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], roundDuration [%,d], should be 1-10", session.getPlayer(), session, roundDuration), "Error: the round duration should be between 1 second and 10 minutes (600s)");
 		}
-		if ( numNames <= 0 || numNames > 10 ) {
-			Log.log(logInfoClass, "Game", game, "numNames " + numNames + ", should be 1-10" );
-			return;
+		if ( numNames == null || numNames <= 0 || numNames > 10 ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], numNames [%,d], should be 1-10", session.getPlayer(), session, numNames), "Error: the number of names per player should be 1-10");
 		}
 
-		
+		if (game.getNumRounds() > 0
+				|| game.getRoundDurationInSec() > 0
+				|| game.getNumNamesPerPlayer() > 0 ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], tried to set game params more than once", session.getPlayer(), session), "Error: settings have already been set, now they can't be changed for this game");
+		}
 
-		if ( game != null ) {
-			game.setNumRounds(numRounds);
-			game.setRoundDurationInSec(roundDuration);
-			game.setNumNamesPerPlayer(numNames);
-			game.fireGameEvent();
-		}
-		else {
-			Log.log(logInfoClass, "Error: " + player + " is not hosting any game, so cannot set game params" );
-		}
+		game.setNumRounds(numRounds);
+		game.setRoundDurationInSec(roundDuration);
+		game.setNumNamesPerPlayer(numNames);
+		game.fireGameEvent();
 	}
 	
 	@HTTPRequest( requestName = "allocateTeams" )
 	public static void allocateTeams(Session session) {
 		Player player = session.getPlayer();
 		Game game = GameManager.getGameHostedByPlayer(player);
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to allocate teams, but is not the host", session.getPlayer(), session, session.getPlayer().getGame()), "Error: you're not the host, you can't allocate teams");
+		}
+		
+		if (game.getStatus() != GameStatus.WAITING_FOR_PLAYERS) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to allocate teams when game is in state [%s]", session.getPlayer(), session, game, game.getStatus()), "Error: too late to reallocate teams");
+		}
 
-		if ( game != null ) {
-			Log.log(PerGameLogInfo.class, "Game", game, "allocating teams" );
-			game.allocateTeams(true);
-		}
-		else {
-			Log.log(LogInfo.class, "Error: " + player + " is not hosting any game, so can't allocate teams" );
-		}
+		Log.log(PerGameLogInfo.class, "Game", game, "allocating teams" );
+		game.allocateTeams(true);
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
@@ -123,10 +127,18 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "sendNameRequest")
 	public static void sendNameRequest(Session session) {
-		Game game = session.getPlayer().getGame();
-		if ( game != null ) {
-			game.setStatus(GameStatus.WAITING_FOR_NAMES);
+		Player player = session.getPlayer();
+		Game game = GameManager.getGameHostedByPlayer(player);
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to request names, but is not the host", session.getPlayer(), session, session.getPlayer().getGame()), "Error: you're not the host, you can't request names");
 		}
+		
+		if (game.getStatus() != GameStatus.WAITING_FOR_PLAYERS) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to request names when game is in state [%s]", session.getPlayer(), session, game, game.getStatus()), "Error: too late to request names");
+		}
+
+		game.setStatus(GameStatus.WAITING_FOR_NAMES);
 	}
 	
 	@HTTPRequest(requestName = "nameList", argNames = {"nameList"})
@@ -166,12 +178,22 @@ public class AnnotatedHandlers {
 	public static void startGame(Session session) {
 		Player player = session.getPlayer();
 		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
-		if ( gameHostedByPlayer != null
-				&& gameHostedByPlayer.getStatus() == GameStatus.WAITING_FOR_NAMES ) {
-			gameHostedByPlayer.freezeNameList();
-			gameHostedByPlayer.shuffleNames();
-			gameHostedByPlayer.startRound();
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start game, but is not the host", session.getPlayer(), session, session.getPlayer().getGame()), "Error: you're not the host, you can't start the game");
 		}
+			
+		if (gameHostedByPlayer.getStatus() != GameStatus.WAITING_FOR_NAMES) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start game in state [%s]", session.getPlayer(), session, gameHostedByPlayer, gameHostedByPlayer.getStatus()), "Error: game cannot be started at this time");
+		}
+		
+		if (gameHostedByPlayer.getNumPlayersToWaitFor() != 0) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", session.getPlayer(), session, gameHostedByPlayer, gameHostedByPlayer.getNumNamesPerPlayer()), String.format("Error: can't start game, still waiting for %,d players", gameHostedByPlayer.getNumPlayersToWaitFor()) );
+		}
+
+		gameHostedByPlayer.freezeNameList();
+		gameHostedByPlayer.shuffleNames();
+		gameHostedByPlayer.startRound();
 	}
 	
 	@HTTPRequest(requestName = "startTurn")
@@ -202,17 +224,74 @@ public class AnnotatedHandlers {
 	
 	@HTTPRequest(requestName = "startNextRound")
 	public static void startNextRound(Session session) {
-		session.getPlayer().getGame().startRound();
+		Player player = session.getPlayer();
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start round, but is not the host", session.getPlayer(), session, session.getPlayer().getGame()), "Error: you're not the host, you can't start the round");
+		}
+			
+		if (gameHostedByPlayer.getStatus() != GameStatus.READY_TO_START_NEXT_ROUND) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start round in state [%s]", session.getPlayer(), session, gameHostedByPlayer, gameHostedByPlayer.getStatus()), "Error: round cannot be started at this time");
+		}
+
+		gameHostedByPlayer.startRound();
 	}
 	
 	@HTTPRequest(requestName = "setCurrentNameIndex", argNames = {"newNameIndex"})
 	public static void setCurrentNameIndex(Session session, Integer newNameIndex ) {
-		session.getPlayer().getGame().setCurrentNameIndex(newNameIndex);
+		Player player = session.getPlayer();
+		Game game = player.getGame();
+		
+		if (newNameIndex == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to set a null currentNameIndex", player, session, game), null);
+		}
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], not part of any game", session, player), "Error: you're not in any game at the moment");
+		}
+		
+		if (game.getStatus() != GameStatus.PLAYING_A_TURN) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to set name index in state [%s]", player, session, game, game.getStatus()), "Error: no turn is being played");
+		}
+		
+		if (game.getCurrentPlayer() != player) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to set name index when player [%s] was playing", player, session, game, game.getCurrentPlayer()), "Error: it's not your turn");
+		}
+		
+		if (checkSetNameIndex
+				&& newNameIndex != game.getCurrentNameIndex() + 1) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to change name index from %,d to %,d", player, session, game, game.getCurrentNameIndex(), newNameIndex), null);
+		}
+		
+		game.setCurrentNameIndex(newNameIndex);
 	}
 	
 	@HTTPRequest(requestName = "pass", argNames = {"passNameIndex"})
 	public static Map<String, Object> pass(Session session, Integer passNameIndex) {
-		Game game = session.getPlayer().getGame();
+		Player player = session.getPlayer();
+		Game game = player.getGame();
+
+		if (passNameIndex == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to set a null passNameIndex", player, session, game), null);
+		}
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], not part of any game", session, player), "Error: you're not in any game at the moment");
+		}
+		
+		if (game.getStatus() != GameStatus.PLAYING_A_TURN) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to pass on a game in state [%s]", player, session, game, game.getStatus()), "Error: no turn is being played");
+		}
+		
+		if (game.getCurrentPlayer() != player) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to pass when player [%s] was playing", player, session, game, game.getCurrentPlayer()), "Error: it's not your turn");
+		}
+		
+		if (passNameIndex != game.getCurrentNameIndex()) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to pass on name index %,d when current name index was %,d", player, session, game, passNameIndex, game.getCurrentNameIndex()), null);
+		}
+
 		game.setPassOnNameIndex(passNameIndex);
 		
 		Map<String, Object>	responseMap = new HashMap<>();
@@ -224,62 +303,177 @@ public class AnnotatedHandlers {
 	public static void endTurn(Session session) {
 		Player player = session.getPlayer();
 		Game game = player.getGame();
-		if ( game != null ) {
-			synchronized ( game ) {
-				if ( game.getCurrentTurn() != null ) {
-					game.getCurrentTurn().stop();
-				}
-				else {
-					game.turnEnded();
-				}
+
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Session [%s], player [%s], not part of any game", session, player), "Error: you're not in any game at the moment");
+		}
+		
+		if (game.getStatus() != GameStatus.PLAYING_A_TURN) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to end the turn on a game in state [%s]", player, session, game, game.getStatus()), "Error: no turn is being played");
+		}
+		
+		if (game.getCurrentPlayer() != player) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to end the turn when player [%s] was playing", player, session, game, game.getCurrentPlayer()), "Error: it's not your turn");
+		}
+
+		synchronized ( game ) {
+			if ( game.getCurrentTurn() != null ) {
+				game.getCurrentTurn().stop();
+			}
+			else {
+				game.turnEnded();
 			}
 		}
 	}
 	
 	@HTTPRequest(requestName = "putInTeam", argNames = {"playerID", "teamIndex"})
 	public static void putPlayerInTeam(Session session, Integer playerID, Integer teamIndex) {
-		session.getPlayer().getGame().putPlayerInTeam( playerID, teamIndex );
+		Player player = session.getPlayer();
+		
+		if (playerID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null playerID", player, session), null);
+		}
+		if (teamIndex == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null teamIndex", player, session), null);
+		}
+		
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		Player playerToMove = PlayerManager.getPlayer(playerID);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] to teamIndex [%,d], but is not the host", player, session, session.getPlayer().getGame(), playerToMove, playerID, playerToMove == null ? null : playerToMove.getGame(), teamIndex), "Error: you're not the host, you can't move players");
+		}
+		if (playerToMove == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] to teamIndex [%,d], but this player doesn't exist", player, session, gameHostedByPlayer, playerID, teamIndex), "Error: unkown player");
+		}
+		if (playerToMove.getGame() != gameHostedByPlayer) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], to teamIndex [%,d], but that player is in game [%s]", player, session, gameHostedByPlayer, playerToMove, playerID, teamIndex, playerToMove.getGame()), "Error: that player is part of a different game");
+		}
+		if (teamIndex < 0
+				|| teamIndex >= gameHostedByPlayer.getTeamList().size() ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], to non-existent teamIndex [%,d]", player, session, gameHostedByPlayer, playerToMove, playerID, teamIndex), "Error: team does not exist");
+		}
+
+		gameHostedByPlayer.putPlayerInTeam( playerID, teamIndex );
 	}
 	
 	@HTTPRequest(requestName = "removeFromGame", argNames = {"playerID"})
 	public static void removePlayerFromGame(Session session, Integer playerID) {
-		Player 	player 	= session 	== null ? null : session.getPlayer();
-		Game 	game 	= player 	== null ? null : player.getGame();
-		if (game != null
-				&& ( game.getHost() == player
-						|| player.getPublicUniqueID() == playerID ) ) {
-			game.removePlayer(playerID);
+		Player player = session.getPlayer();
+		
+		if (playerID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null playerID", player, session), null);
 		}
+		
+		Player playerToMove = PlayerManager.getPlayer(playerID);
+		
+		if (playerToMove == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to remove player with ID [%,d] from game, but this player doesn't exist", player, session, player.getGame(), playerID), "Error: unkown player");
+		}
+		if (playerToMove.getGame() == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to remove player [%s] with ID [%,d] from game, but this player is not part of any game", player, session, player.getGame(), playerToMove, playerID), "Error: player is not part of any game");
+		}
+		
+		if (player != playerToMove
+				&& playerToMove.getGame().getHost() != player) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to remove player [%s], ID [%,d], from game [%s], but is not the host", player, session, player.getGame(), playerToMove, playerID, playerToMove.getGame()), "Error: you're not the host, you can't remove any player other than yourself");
+		}
+
+		playerToMove.getGame().removePlayer(playerID);
 	}
 	
 	@HTTPRequest(requestName = "moveEarlier", argNames = {"playerID"})
 	public static void movePlayerEarlier(Session session, Integer playerID) {
-		session.getPlayer().getGame().movePlayerInTeamOrder(playerID, false );
+		Player player = session.getPlayer();
+		
+		if (playerID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null playerID", player, session), null);
+		}
+		
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		Player playerToMove = PlayerManager.getPlayer(playerID);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] earlier in team, but is not the host", player, session, session.getPlayer().getGame(), playerToMove, playerID, playerToMove == null ? null : playerToMove.getGame()), "Error: you're not the host, you can't move players");
+		}
+		if (playerToMove == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] earlier in team, but this player doesn't exist", player, session, gameHostedByPlayer, playerID), "Error: unkown player");
+		}
+		if (playerToMove.getGame() != gameHostedByPlayer) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], earlier in team, but that player is in game [%s]", player, session, gameHostedByPlayer, playerToMove, playerID, playerToMove.getGame()), "Error: that player is part of a different game");
+		}
+
+		gameHostedByPlayer.movePlayerInTeamOrder(playerID, false );
 	}
 
 	@HTTPRequest(requestName = "moveLater", argNames = {"playerID"})
 	public static void movePlayerLater(Session session, Integer playerID) {
-		session.getPlayer().getGame().movePlayerInTeamOrder(playerID, true );
+		Player player = session.getPlayer();
+		
+		if (playerID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null playerID", player, session), null);
+		}
+		
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		Player playerToMove = PlayerManager.getPlayer(playerID);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] later in team, but is not the host", player, session, session.getPlayer().getGame(), playerToMove, playerID, playerToMove == null ? null : playerToMove.getGame()), "Error: you're not the host, you can't move players");
+		}
+		if (playerToMove == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] later in team, but this player doesn't exist", player, session, gameHostedByPlayer, playerID), "Error: unkown player");
+		}
+		if (playerToMove.getGame() != gameHostedByPlayer) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], later in team, but that player is in game [%s]", player, session, gameHostedByPlayer, playerToMove, playerID, playerToMove.getGame()), "Error: that player is part of a different game");
+		}
+
+		gameHostedByPlayer.movePlayerInTeamOrder(playerID, true );
 	}
 	
 	@HTTPRequest(requestName = "makeNextInTeam", argNames = {"playerID"})
 	public static void makePlayerNextInTeam(Session session, Integer playerID) {
-		session.getPlayer().getGame().makePlayerNextInTeam(playerID);
+		Player player = session.getPlayer();
+		
+		if (playerID == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null playerID", player, session), null);
+		}
+		
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		Player playerToMove = PlayerManager.getPlayer(playerID);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], game [%s] next in team, but is not the host", player, session, session.getPlayer().getGame(), playerToMove, playerID, playerToMove == null ? null : playerToMove.getGame()), "Error: you're not the host, you can't move players");
+		}
+		if (playerToMove == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to make player with ID [%,d] next in team, but this player doesn't exist", player, session, gameHostedByPlayer, playerID), "Error: unkown player");
+		}
+		if (playerToMove.getGame() != gameHostedByPlayer) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], next in team, but that player is in game [%s]", player, session, gameHostedByPlayer, playerToMove, playerID, playerToMove.getGame()), "Error: that player is part of a different game");
+		}
+
+		gameHostedByPlayer.makePlayerNextInTeam(playerID);
 	}
 	
 	@HTTPRequest(requestName = "setTeamIndex", argNames = "index")
 	public static void setTeamIndex(Session session, Integer index) {
-		Player player = session == null ? null : session.getPlayer();
-		Game game = player == null ? null : GameManager.getGameHostedByPlayer(player);
-		if (game != null
-				&& index != null
-				&& index >= 0
-				&& index < game.getTeamList().size()) {
-			game.setTeamIndex(index);
+		Player player = session.getPlayer();
+		
+		if (index == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], provided null teamIndex", player, session), null);
 		}
-		else {
-			Log.log(LogInfo.class, "Error: cannot set team index. Session", session, "Player", player, "Game", game, "Index", index);
+		
+		Game gameHostedByPlayer = GameManager.getGameHostedByPlayer(player);
+		
+		if (gameHostedByPlayer == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to make set team index to [%,d], but is not the host", player, session, session.getPlayer().getGame(), index), "Error: you're not the host, you can't change whose turn it is");
 		}
+		
+		if (index < 0
+				|| index >= gameHostedByPlayer.getTeamList().size() ) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to make non-existent teamIndex [%,d] the next team", player, session, gameHostedByPlayer, index), "Error: team does not exist");
+		}
+
+		gameHostedByPlayer.setTeamIndex(index);
 	}
 	
 	@HTTPRequest(requestName = "getRestorableGameList")
@@ -360,6 +554,5 @@ public class AnnotatedHandlers {
 		}
 		
 		GameManager.setPlayerAsHostOfGame(game, player);
-		game.fireGameEvent();
 	}
 }

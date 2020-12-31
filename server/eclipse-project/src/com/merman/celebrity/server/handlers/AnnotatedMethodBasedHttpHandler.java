@@ -17,6 +17,7 @@ import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
@@ -104,7 +105,17 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				if ( parameterType == List.class ) {
 					JSONArray			jsonArray				= (JSONArray) value;
 					List<String>		parameterValueList		= new ArrayList<>();
-					jsonArray.forEach(element -> parameterValueList.add((String) element));
+					jsonArray.forEach(element -> {
+						if (element instanceof String) {
+							parameterValueList.add((String) element);
+						}
+						else if (element == JSONObject.NULL) {
+							parameterValueList.add(null);
+						}
+						else {
+							throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s], list elements should be strings, but found [%s]", aSession.getPlayer(), aSession, getName(), argName, element == null ? null : element.getClass()), String.format("Error: value [%s] should be text", element) );
+						}
+					});
 					parameterValue = parameterValueList;
 				}
 				else if (value instanceof String
@@ -121,7 +132,10 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				
 				
 			} catch (ParseException e) {
-				throw new IOException(String.format("Cannot parse parameter %s [%s] as %s", argName, value, parameterType.getSimpleName()), e);
+				throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s] at index [%,d], cannot parse [%s] as %s", aSession.getPlayer(), aSession, getName(), argName, i, value, parameterType.getSimpleName()), String.format("Error: cannot parse \"%s\" as %s", value, parameterType.getSimpleName()));
+			}
+			catch (IllegalServerRequestException e) {
+				throw e;
 			}
 			catch (RuntimeException e) {
 				Player player = aSession == null ? null : aSession.getPlayer();
@@ -154,7 +168,8 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				e.printStackTrace();
 			}
 		} catch (IllegalAccessException | IllegalArgumentException e) {
-			e.printStackTrace();
+			Log.log(LogInfo.class, "Session", aSession, "Player", aSession.getPlayer(), "HTTPHandler", getName(), "Exception", e);
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], exception [%s]", aSession.getPlayer(), aSession, getName(), e), null);
 		}
 	}
 

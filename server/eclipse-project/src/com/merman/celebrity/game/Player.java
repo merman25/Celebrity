@@ -26,7 +26,7 @@ public class Player implements ICanExpire {
 
 	@Override
 	public String toString() {
-		return name;
+		return name == null ? "NO_NAME" : name;
 	}
 
 	public Game getGame() {

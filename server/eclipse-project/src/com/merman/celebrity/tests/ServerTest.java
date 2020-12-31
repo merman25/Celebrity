@@ -114,6 +114,8 @@ public class ServerTest {
 	}
 
 	private Game initGame(int aNumPlayers, int aNumNamesPerPlayer, int aNumRounds, int aRoundDurationInSec, int aNumTeams, boolean aAllocateTeamsAtRandom) {
+		AnnotatedHandlers.checkSetNameIndex = false;
+		
 		int numClientPlayers = aNumPlayers - 1;
 		
 		// Host and other players create their sessions

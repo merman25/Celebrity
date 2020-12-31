@@ -14,8 +14,6 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
-import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -81,8 +79,11 @@ public class HttpExchangeUtil {
 				&& jsonString.endsWith("}" ) ) {
 			JSONObject jsonObject = new JSONObject(aJSONString);
 			String[] names = JSONObject.getNames(jsonObject);
-			for (String name : names) {
-				map.put(name, jsonObject.get(name));
+			if (names != null) {
+				// Can be null if jsonString is just "{}"
+				for (String name : names) {
+					map.put(name, jsonObject.get(name));
+				}
 			}
 		}
 		else if (aJSONString != null
