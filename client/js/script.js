@@ -852,14 +852,16 @@ function createTableByColumn(firstRowIsHeader, tableColumns, attributesByColumn)
 		tableColumns.forEach((column, colIndex) => {
 			const td = document.createElement('td');
 			if (row < column.length) {
-				setAttributes(td, attributesByColumn[colIndex][row]);
 				if (attributesByColumn[colIndex][row].icon) {
+					const span = createDOMElement('span', column[row]);
+					setAttributes(span, attributesByColumn[colIndex][row]);
 					appendChildren(td,
 						createDOMElement('img', null, {src: attributesByColumn[colIndex][row].icon, alt: 'player icon'}, { height: iconSize, paddingRight: '0.25rem'}),
-						createDOMElement('span', column[row])
+						span
 					);
 				}
 				else {
+					setAttributes(td, attributesByColumn[colIndex][row]);
 					td.textContent = column[row];
 				}
 			}
