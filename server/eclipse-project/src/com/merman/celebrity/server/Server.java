@@ -96,7 +96,19 @@ public class Server {
 		server.start();
 		Log.log(LogInfo.class, "Serving HTTP requests on port " + portNumber);
 		
-		IncomingWebsocketListener websocketListener = new IncomingWebsocketListener(8001);
-		websocketListener.start();
+		/* The client computes the URL at which to open a WebSocket by looking at the URL of the current page.
+		 * Having a listener at address localhost means that local testing can always be done at
+		 * http://localhost:8000, and the request to open a WebSocket will still work.
+		 * 
+		 * If we have only the external WebSocket listener, local testing always needs to be done at the
+		 * server's IP address, which changes depending on which machine is doing the testing.
+		 * 
+		 * The external WebSocket listener handles all requests from other machines (which obviously still
+		 * need to know the server IP address or URL).
+		 */
+		IncomingWebsocketListener externalWebsocketListener = new IncomingWebsocketListener(8001, false);
+		externalWebsocketListener.start();
+		IncomingWebsocketListener localhostWebsocketListener = new IncomingWebsocketListener(8001, true);
+		localhostWebsocketListener.start();
 	}
 }

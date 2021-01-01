@@ -176,7 +176,7 @@ export const gameSpec = {
 
                 // refresh the page, to simulate losing connection, then re-join the game
                 cy.clearCookies();
-                cy.visit('http://192.168.1.17:8000');
+                cy.visit('http://localhost:8000');
                 common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
 
                 // Check I'm not in the team list

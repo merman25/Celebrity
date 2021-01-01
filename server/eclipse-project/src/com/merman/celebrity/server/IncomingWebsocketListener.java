@@ -15,6 +15,7 @@ public class IncomingWebsocketListener {
 	private volatile boolean listen;
 	private int portNumber = -1;
 	private ServerSocket serverSocket;
+	private boolean localHost;
 	
 	private class MyListenForConnectionsRunnable
 	implements Runnable {
@@ -39,8 +40,9 @@ public class IncomingWebsocketListener {
 		
 	}
 
-	public IncomingWebsocketListener(int aPortNumber) {
+	public IncomingWebsocketListener(int aPortNumber, boolean aLocalHost) {
 		setPortNumber(aPortNumber);
+		localHost = aLocalHost;
 	}
 	
 	public int getPortNumber() {
@@ -56,37 +58,47 @@ public class IncomingWebsocketListener {
 			throw new IllegalStateException("Already started");
 		}
 		
-		InetAddress inetAddressToUse = null;
-		Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-		while ( networkInterfaces.hasMoreElements() ) {
-			NetworkInterface networkInterface = networkInterfaces.nextElement();
-			if ( networkInterface.isUp()
-					&& ! networkInterface.isLoopback() ) {
-				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-				while ( inetAddresses.hasMoreElements() ) {
-					InetAddress inetAddress = inetAddresses.nextElement();
-					if ( inetAddress.getHostAddress() != null
-							&& inetAddress.getHostAddress().matches("\\d{1,3}(\\.\\d{1,3}){3}" ) ) {
-						inetAddressToUse = inetAddress;
+		InetSocketAddress inetSocketAddress = null;
+		if (isLocalHost()) {
+			inetSocketAddress = new InetSocketAddress("localhost", portNumber);
+		}
+		else {
+			InetAddress inetAddressToUse = null;
+			Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+			while ( networkInterfaces.hasMoreElements() ) {
+				NetworkInterface networkInterface = networkInterfaces.nextElement();
+				if ( networkInterface.isUp()
+						&& ! networkInterface.isLoopback() ) {
+					Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+					while ( inetAddresses.hasMoreElements() ) {
+						InetAddress inetAddress = inetAddresses.nextElement();
+						if ( inetAddress.getHostAddress() != null
+								&& inetAddress.getHostAddress().matches("\\d{1,3}(\\.\\d{1,3}){3}" ) ) {
+							inetAddressToUse = inetAddress;
+						}
 					}
 				}
 			}
+			
+			if (inetAddressToUse != null) {
+				inetSocketAddress = new InetSocketAddress(inetAddressToUse, portNumber);
+			}
 		}
 		
-		if ( inetAddressToUse == null ) {
+		if ( inetSocketAddress == null ) {
 			System.err.println("Couldn't find valid inetAddress for websocket server");
 			System.exit(-1);
 		}
 		else {
 			int portNumber = getPortNumber();
-			Thread thread = new Thread( new MyListenForConnectionsRunnable(), "IncomingWebsocketListener-" + portNumber );
+			Thread thread = new Thread( new MyListenForConnectionsRunnable(), "IncomingWebsocketListener-" + portNumber + ( localHost ? " (localhost)" : "" ) );
 			serverSocket = new ServerSocket();
 			serverSocket.setReuseAddress(true);
-			serverSocket.bind( new InetSocketAddress( inetAddressToUse, portNumber ) );
+			serverSocket.bind( inetSocketAddress );
 			listen = true;
 			thread.start();
 
-			Log.log(LogInfo.class, String.format( "Listening for websockets at address %s on port %d", inetAddressToUse, portNumber ) );
+			Log.log(LogInfo.class, String.format( "Listening for websockets at address %s on port %d", inetSocketAddress.getAddress(), portNumber ) );
 		}
 	}
 
@@ -95,5 +107,9 @@ public class IncomingWebsocketListener {
 	 */
 	public void stop() {
 		listen = false;
+	}
+
+	public boolean isLocalHost() {
+		return localHost;
 	}
 }
