@@ -12,6 +12,7 @@ import com.merman.celebrity.server.analytics.ServerAnalyticsLogger;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.Logger;
 import com.merman.celebrity.server.logging.info.AnalyticsLogInfo;
+import com.merman.celebrity.server.logging.info.HTTPRequestLogInfo;
 import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 import com.merman.celebrity.server.logging.outputters.FileOutputter;
@@ -86,6 +87,7 @@ public class CelebrityMain {
 			Log.addLogger(LogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "all.txt"))));
 			Log.addLogger(AnalyticsLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "stats.txt"))));
 			Log.addLogger(SessionLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "sessions.txt"))));
+			Log.addLogger(HTTPRequestLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "httprequests.txt"))));
 		}
 	}
 

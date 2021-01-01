@@ -21,6 +21,7 @@ import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.info.HTTPRequestLogInfo;
 import com.merman.celebrity.server.logging.info.LogInfo;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -47,6 +48,9 @@ public abstract class AHttpHandler implements IContextHandler {
 					session.resetExpiryTime();
 				}
 			}
+			
+			Log.log(HTTPRequestLogInfo.class, "context", getContextName(), "player", session == null ? null : session.getPlayer(), "session", session, "game", session == null ? null : session.getPlayer().getGame(), "request body", HttpExchangeUtil.getRequestBody(aHttpExchange));
+			
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );
 		}
