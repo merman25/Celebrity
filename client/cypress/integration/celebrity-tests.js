@@ -71,7 +71,7 @@ export function playGame(clientState) {
     checkDOMContent(DOMSpecs, clientState);
 
     // Check I and the other players are listed, ready to be put into teams
-    cy.contains('.teamlessPlayerLiClass', clientState.playerName);
+    cy.contains('.teamlessPlayerLiClass', clientState.playerName, { timeout: 20000 });
     checkTeamlessPlayerList(clientState.otherPlayers);
 
     // Set the game parameters (num rounds, num names per player, etc)
@@ -338,10 +338,10 @@ function allocateTeams() {
     cy.get('[id="teamsButton"]').should('be.visible');
 }
 
-export function checkTeamList(clientState, options = {}) {
+export function checkTeamList(clientState) {
     // Check I'm in a team
     cy.get('[id="teamList"]').contains('Teams');
-    cy.get('[id="teamList"]').contains(clientState.playerName, options);
+    cy.get('[id="teamList"]').contains(clientState.playerName);
 
     // Check everyone else is in a team
     for (const player of clientState.otherPlayers) {
