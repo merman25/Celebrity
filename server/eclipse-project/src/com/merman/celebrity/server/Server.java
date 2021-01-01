@@ -71,7 +71,7 @@ public class Server {
 						.forEach( filePath -> server.createContext("/" + filePath, new ServeFileHandler(filePath) ) );
 				}
 			}
-			if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
+			else if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
 				Log.log(LogInfo.class, "adding file", fileRelativePath);
 				String context = "/" + fileRelativePath;
 				if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
