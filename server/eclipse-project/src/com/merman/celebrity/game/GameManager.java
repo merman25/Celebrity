@@ -255,6 +255,7 @@ public class GameManager {
 				.put("name", aPlayer.getName())
 				.put("publicID", aPlayer.getPublicUniqueID())
 				.put("icon", aPlayer.getIcon())
+				.put("emoji", aPlayer.getEmoji())
 				;
 	}
 	

@@ -7,9 +7,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Map;
 
+import com.merman.celebrity.client.theme.ThemeManager;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
@@ -40,6 +40,8 @@ public class ServeFileHandler extends AHttpHandler {
 					|| aSession.getPlayer().getGame().isExpired() ) {
 				Session session = SessionManager.createSession();
 				HttpExchangeUtil.setCookieResponseHeader(session, aExchange);
+				aExchange.getResponseHeaders().add( "Set-Cookie", String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
+
 				
 				InetSocketAddress remoteAddress = aExchange.getRemoteAddress();
 				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();

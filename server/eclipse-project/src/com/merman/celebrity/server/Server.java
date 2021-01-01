@@ -28,17 +28,9 @@ public class Server {
 	private static final List<String> FILE_TO_ADD_WHITELIST = new ArrayList<>( Arrays.asList(
 			MAIN_FILE_NAME,
 			"styles.css",
-			"js/preload.js",
-			"js/script.js",
-			"js/dom-manipulation.js",
-			"js/api-calls.js",
-			"icons/happy-emoji.svg",
-			"icons/sad-emoji.svg",
-			"icons/thinking-emoji.svg",
-			"icons/exit-icon.svg"
+			"js/*",
+			"icons/*"
     ) );
-	
-	public static final List<String> ICON_LIST = new ArrayList<>();
 	
 	private int portNumber = 8000;
 
@@ -67,15 +59,18 @@ public class Server {
 		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
 		
-		Files.list( CLIENT_FILE_DIRECTORY.resolve( Paths.get( "icons", "christmas" ) ) )
-			.filter( path -> path.getFileName().toString().toLowerCase().endsWith(".svg" ) )
-			.map( path -> CLIENT_FILE_DIRECTORY.relativize( path ).toString() )
-			.map( pathString -> pathString.replace( File.separator, "/" ) )
-			.forEach( path -> ICON_LIST.add( path.toString() ) );
-		
-		FILE_TO_ADD_WHITELIST.addAll( ICON_LIST );
-
 		for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
+			if (fileRelativePath.endsWith("/*")) {
+				String directoryPath = fileRelativePath.substring(0, fileRelativePath.length() - "/*".length());
+				Path directory = CLIENT_FILE_DIRECTORY.resolve( Paths.get( directoryPath ) );
+				if ( Files.isDirectory( directory ) ) {
+					Log.log(LogInfo.class, "adding entire directory", directoryPath);
+					Files.walk( directory )
+						.filter( path -> Files.isRegularFile(path) )
+						.map( path -> CLIENT_FILE_DIRECTORY.relativize(path).toString().replace( File.separator, "/" ) )
+						.forEach( filePath -> server.createContext("/" + filePath, new ServeFileHandler(filePath) ) );
+				}
+			}
 			if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
 				Log.log(LogInfo.class, "adding file", fileRelativePath);
 				String context = "/" + fileRelativePath;

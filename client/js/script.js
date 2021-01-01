@@ -529,6 +529,8 @@ function processGameStateObject(newGameStateObject) {
 	if (serverGameState.roundIndex)
 		testBotInfo.roundIndex = serverGameState.roundIndex;
 	setTestBotInfo(testBotInfo);
+
+	applyTheme();
 }
 
 function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
@@ -563,8 +565,12 @@ function updateTeamlessPlayerList(myGameState, serverGameState) {
 		const ul = document.createElement('ul');
 
 		playerList.forEach(player => {
+			let playerName = player.name;
+			if (player.emoji) {
+				playerName = player.emoji + ' ' + playerName;
+			}
 			const li = createDOMElement('li', '', { playerID: player.publicID, classList: ['teamlessPlayerLiClass'] });
-			const span = createDOMElement('span', player.name, { classList: myGameState.iAmHosting ? ['rightClickable'] : [] });
+			const span = createDOMElement('span', playerName, { classList: myGameState.iAmHosting ? ['rightClickable'] : [] });
 
 			if (player.icon) {
 				const img = createDOMElement('img', null, {src: player.icon, alt: 'player icon'}, { height: iconSize, paddingRight: '0.25rem'});
@@ -681,7 +687,11 @@ function updateTeamTable(myGameState, serverGameState) {
 			singleAttributeColumn.push(null);
 
 			team.playerList.forEach((player, row) => {
-				singleColumn.push(player.name);
+				let playerName = player.name;
+				if (player.emoji) {
+					playerName = player.emoji + ' ' + playerName;
+				}
+					singleColumn.push(playerName);
 				const attributes = {
 					classList: ['playerInTeamTDClass'],
 					playerID: player.publicID,
@@ -1226,17 +1236,18 @@ function restoreWebsocketIfNecessary() {
 	}
 }
 
-/* Change styles based on date
-*/
-const date = new Date();
-const isChristmas = ( date.getMonth() === 11
-						&& date.getDate() >= 14 )
-					|| ( date.getMonth() === 0
-						&& date.getDate() <= 6 );
-
-if (isChristmas) {
-	document.getElementById('gameTitleH1').classList.add('christmas');
-	document.getElementById('backgroundColourGradientDiv').classList.add('christmas');
-	document.querySelector('html').classList.add('christmas');
-	document.querySelectorAll('a').forEach(element => element.classList.add('christmas'));
+function applyTheme() {
+	const theme = getCookie('theme');
+	if (theme) {
+		/* FIXME still a problem here, although it only occurs when setting the theme
+		 * to frequently change in testing. We never remove the old theme from the classList,
+		 * so it can include multiple themes.
+		*/
+		document.getElementById('gameTitleH1').classList.add(theme);
+		document.getElementById('backgroundColourGradientDiv').classList.add(theme);
+		document.querySelector('html').classList.add(theme);
+		document.querySelectorAll('a').forEach(element => element.classList.add(theme));
+	}
 }
+
+applyTheme();

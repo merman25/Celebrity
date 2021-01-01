@@ -10,6 +10,7 @@ public class Player implements ICanExpire {
 	private String sessionID;
 	private int publicUniqueID;
 	private String icon;
+	private String emoji;
 	
 	private boolean                   expired;
 	private ExpiryTime                expiryTime 				  = new ExpiryTime(CleanupHelper.defaultExpiryDurationInS);
@@ -71,5 +72,13 @@ public class Player implements ICanExpire {
 
 	public void setIcon(String aIcon) {
 		icon = aIcon;
+	}
+
+	public String getEmoji() {
+		return emoji;
+	}
+
+	public void setEmoji(String aEmoji) {
+		emoji = aEmoji;
 	}
 }

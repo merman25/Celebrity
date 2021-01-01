@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,11 +15,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.merman.celebrity.client.theme.IconType;
+import com.merman.celebrity.client.theme.Theme;
+import com.merman.celebrity.client.theme.ThemeManager;
 import com.merman.celebrity.game.events.GameEvent;
 import com.merman.celebrity.game.events.GameStateUpdateEvent;
 import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
-import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
@@ -118,26 +119,29 @@ public class Game implements ICanExpire {
 	}
 
 	private void setPlayerIconIfNecessary(Player aPlayer) {
-		if ( aPlayer.getIcon() == null ) {
-			Calendar calendar = Calendar.getInstance();
-			if ( ( calendar.get(Calendar.MONTH) == 11
-					&& calendar.get(Calendar.DAY_OF_MONTH) >= 14 )
-					|| ( calendar.get(Calendar.MONTH) == 0
-					&& calendar.get(Calendar.DAY_OF_MONTH) <= 6 ) ) {
+		if ( aPlayer.getIcon() == null
+				&& aPlayer.getEmoji() == null ) {
+			Theme theme = ThemeManager.getTheme(this);
+			List<String> iconList = theme.getIconList();
+			
 
-				Set<String> usedIcons = getAllReferencedPlayers()
-						.stream()
-						.map( player -> player.getIcon() )
-						.filter(x -> x!=null)
-						.collect(Collectors.toSet());
+			Set<String> usedIcons = getAllReferencedPlayers()
+					.stream()
+					.map( theme.getIconType() == IconType.EMOJI ? Player::getEmoji : Player::getIcon )
+					.filter(x -> x!=null)
+					.collect(Collectors.toSet());
 
-				List<String> possibleIcons = new ArrayList<>(Server.ICON_LIST);
-				if (usedIcons.size() < possibleIcons.size()) {
-					possibleIcons.removeAll(usedIcons);
+			List<String> possibleIcons = new ArrayList<>(iconList);
+			if (usedIcons.size() < possibleIcons.size()) {
+				possibleIcons.removeAll(usedIcons);
+			}
+
+			if (! possibleIcons.isEmpty()) {
+				String icon = possibleIcons.get( (int) ( Math.random() * possibleIcons.size() ) );
+				if (theme.getIconType() == IconType.EMOJI) {
+					aPlayer.setEmoji(icon);
 				}
-
-				if (! possibleIcons.isEmpty()) {
-					String icon = possibleIcons.get( (int) ( Math.random() * possibleIcons.size() ) );
+				else {
 					aPlayer.setIcon(icon);
 				}
 			}

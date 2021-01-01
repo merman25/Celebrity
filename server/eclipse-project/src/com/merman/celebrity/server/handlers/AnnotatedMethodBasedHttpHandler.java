@@ -13,6 +13,8 @@ import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.merman.celebrity.client.theme.ThemeManager;
+import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
@@ -92,6 +94,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		if (aSession == null) {
 			throw new NullSessionException();
 		}
+
 		Object[] argValues = new Object[methodArgs.size() + 1];
 		argValues[0] = aSession;
 		for (int i = 0; i < methodArgs.size(); i++) {
@@ -147,6 +150,12 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 
 		try {
 			Object responseObject = method.invoke(null, argValues);
+			
+			Game game = aSession.getPlayer().getGame();
+			if (game != null) {
+				aHttpExchange.getResponseHeaders().add( "Set-Cookie", String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
+			}
+
 			if ( responseObject == null ) {
 				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.No_Content, -1);
 				aHttpExchange.getResponseBody().close();
