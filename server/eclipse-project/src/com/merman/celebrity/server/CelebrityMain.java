@@ -148,4 +148,8 @@ public class CelebrityMain {
 	public static boolean isSysOutLogging() {
 		return sysOutLogging;
 	}
+
+	public static void setSysOutLogging(boolean aSysOutLogging) {
+		sysOutLogging = aSysOutLogging;
+	}
 }

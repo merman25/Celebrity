@@ -23,6 +23,7 @@ import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.Team;
+import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
@@ -114,6 +115,8 @@ public class ServerTest {
 	}
 
 	private Game initGame(int aNumPlayers, int aNumNamesPerPlayer, int aNumRounds, int aRoundDurationInSec, int aNumTeams, boolean aAllocateTeamsAtRandom) {
+		GameManager.createFiles = false;
+		CelebrityMain.setSysOutLogging(true);
 		int numClientPlayers = aNumPlayers - 1;
 		
 		// Host and other players create their sessions
