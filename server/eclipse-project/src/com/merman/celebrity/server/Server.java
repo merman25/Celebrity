@@ -67,9 +67,10 @@ public class Server {
 		
 		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
 		
-		Arrays.asList( new File( CLIENT_FILE_DIRECTORY.toFile(), "icons/christmas" ).listFiles( f -> f.getName().toLowerCase().endsWith(".svg") ) )
-			.stream()
-			.map( file -> CLIENT_FILE_DIRECTORY.relativize( file.toPath() ) )
+		Files.list( CLIENT_FILE_DIRECTORY.resolve( Paths.get( "icons", "christmas" ) ) )
+			.filter( path -> path.getFileName().toString().toLowerCase().endsWith(".svg" ) )
+			.map( path -> CLIENT_FILE_DIRECTORY.relativize( path ).toString() )
+			.map( pathString -> pathString.replace( File.separator, "/" ) )
 			.forEach( path -> ICON_LIST.add( path.toString() ) );
 		
 		FILE_TO_ADD_WHITELIST.addAll( ICON_LIST );
