@@ -204,6 +204,11 @@ public class GameManager {
 			if ( aGame.getNextTeamIndex() >= 0 ) {
 				jsonObject.put("nextTeamIndex", aGame.getNextTeamIndex());
 			}
+			
+			List<String> nameList = aGame.getNameList(playerRequesting);
+			if (nameList != null) {
+				jsonObject.put("submittedNameList", nameList);
+			}
 		}
 		else {
 			jsonObject

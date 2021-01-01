@@ -184,3 +184,7 @@ async function sendMakePlayerHostRequest(playerID) {
 
     return requestResult;   
 }
+
+async function sendRevokeSubmittedNamesRequest() {
+    return await sendRequest('revokeSubmittedNames');
+}

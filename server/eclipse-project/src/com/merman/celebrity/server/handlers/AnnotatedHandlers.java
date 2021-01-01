@@ -548,4 +548,20 @@ public class AnnotatedHandlers {
 		
 		GameManager.setPlayerAsHostOfGame(game, player);
 	}
+	
+	@HTTPRequest( requestName = "revokeSubmittedNames" )
+	public static void revokeSubmittedNames(Session aSession) {
+		Player player = aSession.getPlayer();
+		Game game = player.getGame();
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], tried to revoke submitted names when not part of any game", player, aSession), null);
+		}
+		
+		if (game.getStatus() != GameStatus.WAITING_FOR_NAMES) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to revoke submitted names when in state [%s]", player, aSession, game.getStatus()), "Error: you can't change your names at this time");
+		}
+		
+		game.removeNameList(player);
+	}
 }

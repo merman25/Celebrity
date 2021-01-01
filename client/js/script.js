@@ -11,12 +11,12 @@ const myGameState = {
 	willJoin: false,
 	gameParamsSubmitted: false,
 	namesRequested: false,
-	namesSubmitted: false,
 	statusAtLastUpdate: 'WAITING_FOR_PLAYERS',
 	currentNameIndex: 0,
 	iAmPlaying: false,
 	myPlayerID: null,
 	teamsAllocated: false,
+	mySubmittedNameList: null,
 
 	sentStartTurn: false,
 	sentStartRound: false,
@@ -340,6 +340,11 @@ addServerRequestClickListener(
 	}
 );
 
+addServerRequestClickListener(
+	document.getElementById('changeNameListButton'),
+	sendRevokeSubmittedNamesRequest,
+);
+
 document.getElementById('exitGameButton').addEventListener('click', async () => {
 	const answer = confirm('Are you sure you want to exit the game?');
 	if (answer) {
@@ -481,6 +486,7 @@ function processGameStateObject(newGameStateObject) {
 	myGameState.iAmPlaying = iAmCurrentPlayer();
 	myGameState.iAmHosting = iAmHost();
 	myGameState.myName = serverGameState.yourName;
+	myGameState.mySubmittedNameList = serverGameState.submittedNameList;
 
 	if (!myGameState.iAmPlaying) {
 		clearTestTrigger();
@@ -505,6 +511,7 @@ function processGameStateObject(newGameStateObject) {
 	}
 	updateTeamlessPlayerList(myGameState, serverGameState);
 	updateDOMForWaitingForNames(myGameState, serverGameState);
+	updateMySubmittedNameList(myGameState, serverGameState);
 	updateTeamTable(myGameState, serverGameState);
 	updateCurrentPlayerInfo(myGameState, serverGameState);
 	updateScoresForRound(serverGameState);
@@ -1001,6 +1008,27 @@ function updateTotalScores(serverGameState) {
 	}
 }
 
+function updateMySubmittedNameList(myGameState) {
+	removeChildren('mySubmittedNamesOL');
+	if (myGameState.mySubmittedNameList) {
+		for (let i = 0; i < myGameState.mySubmittedNameList.length; i++) {
+			const submittedName = myGameState.mySubmittedNameList[i];
+			const li = createDOMElement('li', submittedName);
+			document.getElementById('mySubmittedNamesOL').appendChild(li);
+
+			/* Put names back into the text fields - handy if a refresh
+			* has cleared the fields, means the user doesn't have to re-type
+			* everything if they only want to change one name
+			*/
+			const textFieldID = `name${i+1}`;
+			const textField = document.getElementById(textFieldID);
+			if (textField) {
+				textField.value = submittedName;
+			}
+		}
+	}
+}
+
 function iAmCurrentPlayer() {
 	return serverGameState.currentPlayer
 		&& serverGameState.currentPlayer.publicID === serverGameState.publicIDOfRecipient;
@@ -1108,7 +1136,7 @@ function addNameRequestForm() {
 
 			return [nameArr];
 		},
-		(_, myGameState) => myGameState.namesSubmitted = true,
+		null,
 		null,
 		(nameArr) => {
 			for (name of nameArr) {

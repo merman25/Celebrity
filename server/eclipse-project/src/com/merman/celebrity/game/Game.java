@@ -232,6 +232,15 @@ public class Game implements ICanExpire {
 		}
 	}
 	
+	public synchronized List<String> getNameList(Player aPlayer) {
+		return mapPlayersToNameLists.get(aPlayer);
+	}
+	
+	public synchronized void removeNameList(Player aPlayer) {
+		mapPlayersToNameLists.remove(aPlayer);
+		fireGameEvent();
+	}
+	
 	public synchronized void allowNextPlayerToStartNextTurn() {
 		setStatus(GameStatus.READY_TO_START_NEXT_TURN);
 	}

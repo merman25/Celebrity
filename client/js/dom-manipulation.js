@@ -73,11 +73,15 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#nameList',
-		styleFn: (myGameState, serverGameState) => serverGameState.status === 'WAITING_FOR_NAMES' && !myGameState.namesSubmitted,
+		styleFn: (myGameState, serverGameState) => serverGameState.status === 'WAITING_FOR_NAMES' && !myGameState.mySubmittedNameList,
 	},
 	{
 		selector: '#exitGameButton',
 		styleFn: (myGameState, serverGameState) => serverGameState.gameID,
+	},
+	{
+		selector: '#mySubmittedNamesDiv',
+		styleFn: (myGameState, serverGameState) => myGameState.mySubmittedNameList,
 	},
 ];
 

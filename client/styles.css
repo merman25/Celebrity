@@ -133,6 +133,10 @@ th, td {
     vertical-align: middle;
 }
 
+#changeNameListButton {
+    margin-left: 2rem;
+}
+
 .clear {
     clear: both;
 }
