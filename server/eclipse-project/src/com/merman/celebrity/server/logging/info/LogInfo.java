@@ -4,11 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class LogInfo {
 	private static ThreadLocal<DateFormat>		threadLocalDateFormat		= new ThreadLocal<DateFormat>() {
@@ -31,7 +31,18 @@ public class LogInfo {
 	}
 	
 	public String formatArgs(Object... aArgs) {
-		List<String> argStringList = Arrays.asList( aArgs ).stream().map(x -> format(x)).collect(Collectors.toList());
+		List<String> argStringList = IntStream.range(0, aArgs.length)
+		.mapToObj( i -> {
+			String formattedArg = format( aArgs[i] );
+			if (i % 2 == 1) {
+				formattedArg = "[" + formattedArg + "]";
+				if (i < aArgs.length) {
+					formattedArg += ",";
+				}
+			}
+			return formattedArg;
+		})
+		.collect( Collectors.toList() );
 		return String.join(" ", argStringList);
 	}
 	
