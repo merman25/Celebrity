@@ -70,4 +70,8 @@ public class LogInfo {
 		
 		return logString;
 	}
+
+	public Object[] getArgs() {
+		return args;
+	}
 }

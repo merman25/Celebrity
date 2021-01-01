@@ -20,7 +20,6 @@ import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.info.LogInfo;
-import com.merman.celebrity.server.logging.info.PerGameLogInfo;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 
 public class AnnotatedHandlers {
@@ -37,7 +36,7 @@ public class AnnotatedHandlers {
 	@HTTPRequest(requestName = "hostNewGame")
 	public static Map<String, String> hostNewGame(Session session) {
 		Game game = GameManager.createGame(session.getPlayer());
-		Log.log(PerGameLogInfo.class, "Player", session.getPlayer(), "Session", session, "hosting game", game);
+		Log.log(LogInfo.class, "Player", session.getPlayer(), "Session", session, "hosting game", game);
 		
 		HashMap<String, String>		responseMap		= new HashMap<>();
 		responseMap.put("gameID", game.getID());
@@ -88,7 +87,7 @@ public class AnnotatedHandlers {
 			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to allocate teams when game is in state [%s]", session.getPlayer(), session, game, game.getStatus()), "Error: too late to reallocate teams");
 		}
 
-		Log.log(PerGameLogInfo.class, "Game", game, "allocating teams" );
+		Log.log(LogInfo.class, "Game", game, "allocating teams" );
 		game.allocateTeams(true);
 	}
 	
@@ -106,7 +105,7 @@ public class AnnotatedHandlers {
 			responseMap.put("GameID", gameID);
 		}
 		else if ( game != null ) {
-			Log.log(PerGameLogInfo.class, "Adding player", session.getPlayer(), "session", session, "to game", game);
+			Log.log(LogInfo.class, "Adding player", session.getPlayer(), "session", session, "to game", game);
 			game.addPlayer(session.getPlayer());
 			responseMap.put("GameResponse", "OK");
 			responseMap.put("GameID", game.getID());

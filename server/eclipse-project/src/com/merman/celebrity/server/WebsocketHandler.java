@@ -85,7 +85,7 @@ public class WebsocketHandler {
 						byte lengthMagnitudeIndicator = (byte) ( nextByte - LENGTH_BYTE_SUBTRACTION_CONSTANT );
 						lengthByteArray[0] = lengthMagnitudeIndicator;
 						if ( lengthMagnitudeIndicator < 0 ) {
-							Log.log(LogInfo.class, String.format( "Error: Illegal magnitude indicator [%d] from byte [%d]", lengthMagnitudeIndicator, lengthByteArray[0] ));
+							log( "Error: Illegal magnitude indicator", lengthMagnitudeIndicator, "from byte", lengthByteArray[0] );
 						}
 						else {
 							if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
@@ -111,7 +111,7 @@ public class WebsocketHandler {
 										lastSeenTimeMillis = System.currentTimeMillis();
 									}
 									else {
-										Log.log(LogInfo.class, "zero-length message received" );
+										log( "zero-length message received" );
 									}
 								}
 								else {
@@ -142,7 +142,7 @@ public class WebsocketHandler {
 										enqueueMessage("gotcha");
 									}
 									else {
-										Log.log(LogInfo.class, "Session", getSession(), "Player", getSession() == null ? null : getSession().getPlayer(), "Message from socket: " + message );
+										log("Message from socket", message );
 									}
 								}
 							}
@@ -150,20 +150,19 @@ public class WebsocketHandler {
 					}
 					else {
 						stopSoon();
-						Log.log(LogInfo.class, "Unexpected byte: " + bytesToHex(nextByte));
+						log("Unexpected byte", bytesToHex(nextByte));
 					}
 					
 					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, Long::sum);
 				}
 			}
 			catch ( SocketException e ) {
-				Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) no longer listening: %s", getSession(), getSession() == null ? null : getSession().getPlayer(), e.getMessage()));
+				log("Handler no longer listening", e.getMessage());
 			}
 			catch ( IOException e ) {
 				e.printStackTrace();
 			}
 		}
-		
 	}
 	
 	private class MyOutputStreamRunnable
@@ -182,10 +181,10 @@ public class WebsocketHandler {
 
 				}
 				catch ( InterruptedException e ) {
-					Log.log(LogInfo.class, String.format("Output handler for session [%s] interrupted", getSession()));
+					log(LogInfo.class, "Output handler interrupted");
 				}
 				catch ( SocketException e ) {
-					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
+					log("Handler can no longer write", e.getMessage());
 					stop();
 				}
 				catch (IOException e) {
@@ -220,7 +219,7 @@ public class WebsocketHandler {
 					CelebrityMain.bytesSent.incrementAndGet();
 				}
 				catch ( SocketException e ) {
-					Log.log(LogInfo.class, String.format("Handler for session [%s] (%s) can no longer write: %s", getSession(), getSession().getPlayer(), e.getMessage()));
+					log("Handler can no longer write", e.getMessage());
 					stop();
 				}
 				catch (IOException e) {
@@ -352,7 +351,7 @@ public class WebsocketHandler {
 			try {
 				socket.close();
 			} catch (IOException e) {
-				Log.log(LogInfo.class, "IOException when closing socket of WebsocketHandler. Session", session, "Player", player, "Exception", e);
+				log("IOException when closing socket of WebsocketHandler", e);
 			}
 		}
 		if ( pingTimer != null ) {
@@ -430,7 +429,7 @@ public class WebsocketHandler {
 				CelebrityMain.bytesSent.accumulateAndGet(data.getBytes().length, Long::sum);
 				
 				SessionManager.putSocket( session, WebsocketHandler.this );
-				Log.log(LogInfo.class, String.format( "Opened websocket with session %s [%s] from IP %s", session.getSessionID(), session.getPlayer(), socket.getRemoteSocketAddress() ));
+				log("Opened websocket to IP address", socket.getRemoteSocketAddress() );
 
 				return true;
 			}
@@ -495,5 +494,31 @@ public class WebsocketHandler {
 
 	public boolean isListening() {
 		return listen;
+	}
+	
+	private Game getGame() {
+		Player player = getPlayer();
+		if (player == null) {
+			return null;
+		}
+		else {
+			return player.getGame();
+		}
+	}
+	
+	private Player getPlayer() {
+		if (session == null) {
+			return null;
+		}
+		else {
+			return session.getPlayer();
+		}
+	}
+	
+	private void log(Object... aArgs) {
+		Object[] logArgs = new Object[ aArgs.length + 6 ];
+		System.arraycopy( new Object[] { "Player", getPlayer(), "session", session, "game", getGame() }, 0, logArgs, 0, 6);
+		System.arraycopy(aArgs, 0, logArgs, 6, aArgs.length);
+		Log.log(LogInfo.class, logArgs );
 	}
 }

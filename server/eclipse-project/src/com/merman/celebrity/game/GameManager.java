@@ -23,7 +23,8 @@ import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.Logger;
-import com.merman.celebrity.server.logging.info.PerGameLogInfo;
+import com.merman.celebrity.server.logging.PerGameLogFilter;
+import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.logging.outputters.FileOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
@@ -41,14 +42,14 @@ public class GameManager {
 		@Override
 		public void remove(Game aGame) {
 			synchronized (GameManager.class) {
-				Log.log(PerGameLogInfo.class, "Removing game", aGame);
+				Log.log(LogInfo.class, "Removing game", aGame);
 				gamesMap.remove(aGame.getID());
 				if (aGame.getHost() != null)
 					mapHostsToGames.remove(aGame.getHost());
 
 				Logger gameLogger = mapGamesToLoggers.get(aGame);
 				if (gameLogger != null) {
-					Log.removeLogger(PerGameLogInfo.class, gameLogger);
+					Log.removeLogger(LogInfo.class, gameLogger);
 				}
 			}
 		}
@@ -96,9 +97,9 @@ public class GameManager {
 			}
 			
 			if ( ! CelebrityMain.isSysOutLogging() ) {
-				Logger logger = new Logger(logInfo -> ((PerGameLogInfo) logInfo).getGame() == game, new FileOutputter(new File(file, "log.txt")));
+				Logger logger = new Logger(new PerGameLogFilter(game), new FileOutputter(new File(file, "log.txt")));
 				mapGamesToLoggers.put(game, logger);
-				Log.addLogger(PerGameLogInfo.class, logger);
+				Log.addLogger(LogInfo.class, logger);
 			}
 		}
 		
@@ -291,7 +292,7 @@ public class GameManager {
 		
 		game.freezeNameList();
 		for ( int roundIndex = 0; roundIndex < numRounds; roundIndex++ ) {
-			Log.log(PerGameLogInfo.class, "Game", game, "playing round " + roundIndex );
+			Log.log(LogInfo.class, "Game", game, "playing round " + roundIndex );
 			game.shuffleNames();
 			game.startRound();
 			
