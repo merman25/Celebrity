@@ -97,9 +97,12 @@ addServerRequestClickListener(
 			return false;
 		}
 		const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
-		const usernameAccepted = !usernameLooksLikeGameID || confirm(`Is ${username} really your name?`);
+		if (usernameLooksLikeGameID) {
+			alert('Names that look like game IDs are not allowed');
+			return false;
+		}
 
-		return usernameAccepted;
+		return true;
 	}
 );
 
