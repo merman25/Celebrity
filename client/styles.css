@@ -32,7 +32,7 @@ html {
 }
 
 @media screen and (max-width: 500px) {
-    h1.christmas {
+    h1.theme_christmas {
         /* Try to give space to still have title on one line, even with extra characters */
         font-size: 1.5em;
     }
@@ -234,14 +234,14 @@ th, td {
     font-size: 0.8rem;
 }
   
-h1.christmas::before { content: '🎄 ';}
-h1.christmas::after  { content: ' 🎄';}
-html.christmas {
+h1.theme_christmas::before { content: '🎄 ';}
+h1.theme_christmas::after  { content: ' 🎄';}
+html.theme_christmas {
     --colour-gradient-start: #A80010;
     --colour-gradient-end: #A80710;
     color: #FFFFFF;
 }
 
-a.christmas {
+a.theme_christmas {
     color: cyan;
 }

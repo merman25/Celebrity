@@ -1239,14 +1239,21 @@ function restoreWebsocketIfNecessary() {
 function applyTheme() {
 	const theme = getCookie('theme');
 	if (theme) {
-		/* FIXME still a problem here, although it only occurs when setting the theme
-		 * to frequently change in testing. We never remove the old theme from the classList,
-		 * so it can include multiple themes.
-		*/
-		document.getElementById('gameTitleH1').classList.add(theme);
-		document.getElementById('backgroundColourGradientDiv').classList.add(theme);
-		document.querySelector('html').classList.add(theme);
-		document.querySelectorAll('a').forEach(element => element.classList.add(theme));
+		const themePrefix = 'theme_';
+		const replaceTheme = element => {
+			for (let i=0; i<element.classList.length; i++) {
+				const cssClass = element.classList.item(i);
+				if (cssClass.startsWith(themePrefix)) {
+					element.classList.remove(cssClass);
+					i--;
+				}
+			}
+			element.classList.add(themePrefix + theme);
+		};
+		replaceTheme(document.getElementById('gameTitleH1'));
+		replaceTheme(document.getElementById('backgroundColourGradientDiv'));
+		replaceTheme(document.querySelector('html'));
+		document.querySelectorAll('a').forEach(replaceTheme);
 	}
 }
 
