@@ -17,7 +17,7 @@ public class FileOutputter extends PrintStreamOutputter {
 	public synchronized PrintStream getPrintStream() {
 		try {
 			if (printStream == null) {
-				printStream = new PrintStream(new FileOutputStream(file));
+				printStream = new PrintStream(new FileOutputStream(file, true));
 			}
 			return printStream;
 		}
