@@ -24,12 +24,6 @@ import com.merman.celebrity.server.logging.info.PerGameLogInfo;
 import com.merman.celebrity.server.logging.info.SessionLogInfo;
 
 public class AnnotatedHandlers {
-	/*
-	 * Quick fix for ServerTest unit test, which was written before I had much validation in these handlers,
-	 * and takes shortcuts which now result in exceptions unless the validation is disabled.
-	 */
-	public static boolean checkSetNameIndex = true;
-	
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
 		if (username == null
@@ -259,8 +253,7 @@ public class AnnotatedHandlers {
 			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to set name index when player [%s] was playing", player, session, game, game.getCurrentPlayer()), "Error: it's not your turn");
 		}
 		
-		if (checkSetNameIndex
-				&& newNameIndex != game.getCurrentNameIndex() + 1) {
+		if (newNameIndex != game.getCurrentNameIndex() + 1) {
 			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to change name index from %,d to %,d", player, session, game, game.getCurrentNameIndex(), newNameIndex), null);
 		}
 		
