@@ -36,7 +36,7 @@ public class LogInfo {
 			String formattedArg = format( aArgs[i] );
 			if (i % 2 == 1) {
 				formattedArg = "[" + formattedArg + "]";
-				if (i < aArgs.length) {
+				if (i < aArgs.length-1) {
 					formattedArg += ",";
 				}
 			}
