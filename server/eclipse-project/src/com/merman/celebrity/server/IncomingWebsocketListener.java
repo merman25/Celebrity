@@ -9,7 +9,8 @@ import java.net.Socket;
 import java.util.Enumeration;
 
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class IncomingWebsocketListener {
 	private volatile boolean listen;
@@ -29,12 +30,12 @@ public class IncomingWebsocketListener {
 						WebsocketHandler handler = new WebsocketHandler(clientSocket);
 						handler.start();
 					} catch (IOException e) {
-						Log.log(LogInfo.class, "Exception in websocket listener", e);
+						Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception in websocket listener", e);
 					}
 				}
 			}
 			catch (RuntimeException e) {
-				Log.log(LogInfo.class, "Exception in websocket listener", e);
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception in websocket listener", e);
 			}
 		}
 		
@@ -98,7 +99,7 @@ public class IncomingWebsocketListener {
 			listen = true;
 			thread.start();
 
-			Log.log(LogInfo.class, String.format( "Listening for websockets at address %s on port %d", inetSocketAddress.getAddress(), portNumber ) );
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Listening for websockets at address", inetSocketAddress.getAddress(), "on port", portNumber );
 		}
 	}
 

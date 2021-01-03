@@ -19,8 +19,8 @@ import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
-import com.merman.celebrity.server.logging.info.SessionLogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class AnnotatedHandlers {
 	@HTTPRequest(requestName = "username", argNames = {"username"})
@@ -29,14 +29,14 @@ public class AnnotatedHandlers {
 				|| username.trim().isEmpty() ) {
 			throw new IllegalServerRequestException( String.format("Session [%s], illegal user name [%s]", session, username), null);
 		}
-		Log.log(SessionLogInfo.class, "Session", session, "Username", username);
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", session, "Username", username);
 		session.getPlayer().setName(username);
 	}
 	
 	@HTTPRequest(requestName = "hostNewGame")
 	public static Map<String, String> hostNewGame(Session session) {
 		Game game = GameManager.createGame(session.getPlayer());
-		Log.log(LogInfo.class, "Player", session.getPlayer(), "Session", session, "hosting game", game);
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Player", session.getPlayer(), "Session", session, "hosting game", game);
 		
 		HashMap<String, String>		responseMap		= new HashMap<>();
 		responseMap.put("gameID", game.getID());
@@ -87,7 +87,7 @@ public class AnnotatedHandlers {
 			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to allocate teams when game is in state [%s]", session.getPlayer(), session, game, game.getStatus()), "Error: too late to reallocate teams");
 		}
 
-		Log.log(LogInfo.class, "Game", game, "allocating teams" );
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", game, "allocating teams" );
 		game.allocateTeams(true);
 	}
 	
@@ -105,13 +105,13 @@ public class AnnotatedHandlers {
 			responseMap.put("GameID", gameID);
 		}
 		else if ( game != null ) {
-			Log.log(LogInfo.class, "Adding player", session.getPlayer(), "session", session, "to game", game);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Adding player", session.getPlayer(), "session", session, "to game", game);
 			game.addPlayer(session.getPlayer());
 			responseMap.put("GameResponse", "OK");
 			responseMap.put("GameID", game.getID());
 		}
 		else {
-			Log.log(LogInfo.class, "Error: game not found: " + gameID);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game not found", gameID);
 			responseMap.put("GameResponse", "NotFound");
 		}
 
@@ -558,7 +558,7 @@ public class AnnotatedHandlers {
 		}
 		
 		if (game.getStatus() != GameStatus.WAITING_FOR_NAMES) {
-			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to revoke submitted names when in state [%s]", player, aSession, game.getStatus()), "Error: you can't change your names at this time");
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to revoke submitted names when in state [%s]", player, aSession, game, game.getStatus()), "Error: you can't change your names at this time");
 		}
 		
 		game.removeNameList(player);

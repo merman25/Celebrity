@@ -1,6 +1,5 @@
 package com.merman.celebrity.server;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -10,7 +9,8 @@ import java.util.UUID;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.SessionLogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class SessionManager {
 	private static Map<String, Session>					sessionsMap		= new HashMap<>();
@@ -21,7 +21,7 @@ public class SessionManager {
 		@Override
 		public void remove(Session aSession) {
 			synchronized (SessionManager.class) {
-				Log.log(SessionLogInfo.class, "Removing session", aSession);
+				Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Removing session", aSession);
 				sessionsMap.remove(aSession.getSessionID());
 				WebsocketHandler websocketHandler = socketsMap.get(aSession);
 				if (websocketHandler != null) {

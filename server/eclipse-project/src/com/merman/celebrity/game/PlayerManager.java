@@ -9,7 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.SessionLogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class PlayerManager {
 	private static AtomicInteger     maxPublicUniqueID = new AtomicInteger();
@@ -19,7 +20,7 @@ public class PlayerManager {
 	implements IExpiredEntityRemover<Player> {
 		@Override
 		public void remove(Player aPlayer) {
-			Log.log(SessionLogInfo.class, "Removing player", aPlayer);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Removing player", aPlayer);
 			synchronized (PlayerManager.class) {
 				playerMap.remove(aPlayer.getPublicUniqueID());
 			}

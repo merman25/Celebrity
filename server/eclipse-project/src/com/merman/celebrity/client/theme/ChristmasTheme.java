@@ -10,7 +10,8 @@ import java.util.List;
 
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class ChristmasTheme
 extends Theme {
@@ -29,7 +30,7 @@ extends Theme {
 			themeLoadedOK = true;
 		}
 		catch (IOException e) {
-			Log.log(LogInfo.class, "Exception when trying to load Christmas icons", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception when trying to load Christmas icons", e);
 		}
 	}
 

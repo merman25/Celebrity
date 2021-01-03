@@ -22,34 +22,37 @@ import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.logging.Logger;
 import com.merman.celebrity.server.logging.PerGameLogFilter;
-import com.merman.celebrity.server.logging.info.LogInfo;
 import com.merman.celebrity.server.logging.outputters.FileOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class GameManager {
-	private static Map<String, Game> gamesMap          = new HashMap<String, Game>();
-	private static Map<Player, Game> mapHostsToGames   = new HashMap<Player, Game>();
-	private static Map<Game, Logger> mapGamesToLoggers = new HashMap<>();
-	private static List<String>      testStringList;
-	
-	public static boolean deleteExisting;
-	public static boolean createFiles;
+	private static Map<String, Game>       gamesMap          = new HashMap<String, Game>();
+	private static Map<Player, Game>       mapHostsToGames   = new HashMap<Player, Game>();
+	private static Map<Game, List<Logger>> mapGamesToLoggers = new HashMap<>();
+	private static List<String>            testStringList;
+
+	public static boolean                  deleteExisting;
+	public static boolean                  createFiles;
 	
 	private static class MyExpiredGameRemover
 	implements IExpiredEntityRemover<Game> {
 		@Override
 		public void remove(Game aGame) {
 			synchronized (GameManager.class) {
-				Log.log(LogInfo.class, "Removing game", aGame);
+				Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Removing game", aGame);
 				gamesMap.remove(aGame.getID());
 				if (aGame.getHost() != null)
 					mapHostsToGames.remove(aGame.getHost());
 
-				Logger gameLogger = mapGamesToLoggers.get(aGame);
-				if (gameLogger != null) {
-					Log.removeLogger(LogInfo.class, gameLogger);
+				List<Logger> gameLoggerList = mapGamesToLoggers.get(aGame);
+				if (gameLoggerList != null) {
+					for (Logger gameLogger : gameLoggerList) {
+						Log.removeLogger(LogMessageSubject.GENERAL, gameLogger);
+					}
 				}
 			}
 		}
@@ -97,9 +100,12 @@ public class GameManager {
 			}
 			
 			if ( ! CelebrityMain.isSysOutLogging() ) {
-				Logger logger = new Logger(new PerGameLogFilter(game), new FileOutputter(new File(file, "log.txt")));
-				mapGamesToLoggers.put(game, logger);
-				Log.addLogger(LogInfo.class, logger);
+				PerGameLogFilter logFilter = new PerGameLogFilter(game);
+				Logger highLevelLogger = new Logger(LogMessageType.INFO, logFilter, new FileOutputter(new File(file, "log.txt")));
+				Logger detailLogger = new Logger(logFilter, new FileOutputter(new File(file, "detail_log.txt")));
+				mapGamesToLoggers.put(game, Arrays.asList(highLevelLogger, detailLogger));
+				Log.addLogger(LogMessageSubject.GENERAL, highLevelLogger);
+				Log.addLogger(LogMessageSubject.GENERAL, detailLogger);
 			}
 		}
 		
@@ -292,7 +298,7 @@ public class GameManager {
 		
 		game.freezeNameList();
 		for ( int roundIndex = 0; roundIndex < numRounds; roundIndex++ ) {
-			Log.log(LogInfo.class, "Game", game, "playing round " + roundIndex );
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", game, "playing round " + roundIndex );
 			game.shuffleNames();
 			game.startRound();
 			

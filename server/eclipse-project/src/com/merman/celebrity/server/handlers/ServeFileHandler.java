@@ -18,7 +18,8 @@ import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.analytics.Browser;
 import com.merman.celebrity.server.analytics.UserAgentUtil;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.SessionLogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.HttpExchange;
 
 public class ServeFileHandler extends AHttpHandler {
@@ -55,7 +56,7 @@ public class ServeFileHandler extends AHttpHandler {
 					operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
 				}
 				
-				Log.log(SessionLogInfo.class, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
+				Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
 			}
 			else {
 				WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(aSession);

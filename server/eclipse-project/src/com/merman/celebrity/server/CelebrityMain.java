@@ -10,11 +10,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.analytics.ServerAnalyticsLogger;
 import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.logging.Logger;
-import com.merman.celebrity.server.logging.info.AnalyticsLogInfo;
-import com.merman.celebrity.server.logging.info.HTTPRequestLogInfo;
-import com.merman.celebrity.server.logging.info.LogInfo;
-import com.merman.celebrity.server.logging.info.SessionLogInfo;
 import com.merman.celebrity.server.logging.outputters.FileOutputter;
 import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
@@ -77,17 +75,17 @@ public class CelebrityMain {
 	private static void initLogging() {
 		System.setErr(System.out);
 		if (sysOutLogging) {
-			Log.addLogger(LogInfo.class, new Logger(null, new PrintStreamOutputter(System.out)));
+			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new PrintStreamOutputter(System.out)));
 		}
 		else {
 			File logDir = new File("logs");
 			if ( ! logDir.exists() ) {
 				logDir.mkdir();
 			}
-			Log.addLogger(LogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "all.txt"))));
-			Log.addLogger(AnalyticsLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "stats.txt"))));
-			Log.addLogger(SessionLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "sessions.txt"))));
-			Log.addLogger(HTTPRequestLogInfo.class, new Logger(null, new FileOutputter(new File(logDir, "httprequests.txt"))));
+			Log.addLogger(LogMessageSubject.GENERAL, new Logger(LogMessageType.INFO, null, new FileOutputter(new File(logDir, "general.txt"))));
+			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new FileOutputter(new File(logDir, "all.txt"))));
+			Log.addLogger(LogMessageSubject.ANALYTICS, new Logger(null, new FileOutputter(new File(logDir, "stats.txt"))));
+			Log.addLogger(LogMessageSubject.HTTP_REQUESTS, new Logger(null, new FileOutputter(new File(logDir, "httprequests.txt"))));
 		}
 	}
 

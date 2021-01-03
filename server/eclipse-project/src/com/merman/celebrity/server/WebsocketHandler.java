@@ -24,7 +24,8 @@ import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
 import com.merman.celebrity.server.handlers.HttpExchangeUtil;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class WebsocketHandler {
 	private static final byte            MESSAGE_START_BYTE                = (byte) 0x81;                         // -127
@@ -85,7 +86,7 @@ public class WebsocketHandler {
 						byte lengthMagnitudeIndicator = (byte) ( nextByte - LENGTH_BYTE_SUBTRACTION_CONSTANT );
 						lengthByteArray[0] = lengthMagnitudeIndicator;
 						if ( lengthMagnitudeIndicator < 0 ) {
-							log( "Error: Illegal magnitude indicator", lengthMagnitudeIndicator, "from byte", lengthByteArray[0] );
+							log( LogMessageType.ERROR, LogMessageSubject.GENERAL, "Illegal magnitude indicator", lengthMagnitudeIndicator, "from byte", lengthByteArray[0] );
 						}
 						else {
 							if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
@@ -111,7 +112,7 @@ public class WebsocketHandler {
 										lastSeenTimeMillis = System.currentTimeMillis();
 									}
 									else {
-										log( "zero-length message received" );
+										log( LogMessageType.INFO, LogMessageSubject.GENERAL, "zero-length message received" );
 									}
 								}
 								else {
@@ -142,7 +143,7 @@ public class WebsocketHandler {
 										enqueueMessage("gotcha");
 									}
 									else {
-										log("Message from socket", message );
+										log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Message from socket", message );
 									}
 								}
 							}
@@ -150,16 +151,17 @@ public class WebsocketHandler {
 					}
 					else {
 						stopSoon();
-						log("Unexpected byte", bytesToHex(nextByte));
+						log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Unexpected byte", bytesToHex(nextByte));
 					}
 					
 					CelebrityMain.bytesReceived.accumulateAndGet(bytesReceived, Long::sum);
 				}
 			}
 			catch ( SocketException e ) {
-				log("Handler no longer listening", e.getMessage());
+				log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Handler no longer listening", e.getMessage());
 			}
 			catch ( IOException e ) {
+				log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
 				e.printStackTrace();
 			}
 		}
@@ -181,14 +183,14 @@ public class WebsocketHandler {
 
 				}
 				catch ( InterruptedException e ) {
-					log(LogInfo.class, "Output handler interrupted");
+					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Output handler interrupted");
 				}
 				catch ( SocketException e ) {
-					log("Handler can no longer write", e.getMessage());
+					log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Handler can no longer write", e.getMessage());
 					stop();
 				}
 				catch (IOException e) {
-					e.printStackTrace();
+					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
 				}
 			}
 		}
@@ -219,12 +221,11 @@ public class WebsocketHandler {
 					CelebrityMain.bytesSent.incrementAndGet();
 				}
 				catch ( SocketException e ) {
-					log("Handler can no longer write", e.getMessage());
+					log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Handler can no longer write", e.getMessage());
 					stop();
 				}
 				catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
 				}
 			}
 		}
@@ -351,7 +352,7 @@ public class WebsocketHandler {
 			try {
 				socket.close();
 			} catch (IOException e) {
-				log("IOException when closing socket of WebsocketHandler", e);
+				log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when closing socket of WebsocketHandler", e);
 			}
 		}
 		if ( pingTimer != null ) {
@@ -408,7 +409,7 @@ public class WebsocketHandler {
 				}
 				
 				if (session == null) {
-					Log.log(LogInfo.class, String.format( "Unknown session ID [%s], refusing handshake", sessionID));
+					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Unknown session ID", sessionID, "refusing handshake" );
 					// Don't recognise this session, refuse this websocket
 					stop();
 					return false;
@@ -429,15 +430,15 @@ public class WebsocketHandler {
 				CelebrityMain.bytesSent.accumulateAndGet(data.getBytes().length, Long::sum);
 				
 				SessionManager.putSocket( session, WebsocketHandler.this );
-				log("Opened websocket to IP address", socket.getRemoteSocketAddress() );
+				log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Opened websocket to IP address", socket.getRemoteSocketAddress(), "player", session.getPlayer(), "session", session );
 
 				return true;
 			}
 		}
 		catch ( Exception e ) {
-			Log.log(LogInfo.class, "Exception during websocket handshake", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception during websocket handshake", e);
 		}
-		Log.log(LogInfo.class, "Websocket handshake failed. IP", socket.getInetAddress());
+		Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Websocket handshake failed. IP", socket.getInetAddress());
 		stop();
 		return false;
 	}
@@ -515,10 +516,10 @@ public class WebsocketHandler {
 		}
 	}
 	
-	private void log(Object... aArgs) {
+	private void log(LogMessageType aType, LogMessageSubject aSubject, Object... aArgs) {
 		Object[] logArgs = new Object[ aArgs.length + 6 ];
 		System.arraycopy( new Object[] { "Player", getPlayer(), "session", session, "game", getGame() }, 0, logArgs, 0, 6);
 		System.arraycopy(aArgs, 0, logArgs, 6, aArgs.length);
-		Log.log(LogInfo.class, logArgs );
+		Log.log(aType, aSubject, logArgs );
 	}
 }

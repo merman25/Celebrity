@@ -22,7 +22,8 @@ import com.merman.celebrity.server.annotations.HTTPRequest;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -142,7 +143,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			}
 			catch (RuntimeException e) {
 				Player player = aSession == null ? null : aSession.getPlayer();
-				Log.log(LogInfo.class, "Session", aSession, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Session", aSession, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
 			}
 		}
 
@@ -177,7 +178,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				e.printStackTrace();
 			}
 		} catch (IllegalAccessException | IllegalArgumentException e) {
-			Log.log(LogInfo.class, "Session", aSession, "Player", aSession.getPlayer(), "HTTPHandler", getName(), "Exception", e);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", aSession, "Player", aSession.getPlayer(), "HTTPHandler", getName(), "Exception", e);
 			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], exception [%s]", aSession.getPlayer(), aSession, getName(), e), null);
 		}
 	}

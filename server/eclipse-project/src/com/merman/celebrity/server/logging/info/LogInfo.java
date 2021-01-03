@@ -10,6 +10,9 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
+
 public class LogInfo {
 	private static ThreadLocal<DateFormat>		threadLocalDateFormat		= new ThreadLocal<DateFormat>() {
 
@@ -24,9 +27,13 @@ public class LogInfo {
 
 	private String logString;
 	private Date timeStamp = new Date();
+	private LogMessageType type;
+	private LogMessageSubject subject;
 	private Object[] args;
 	
-	public LogInfo(Object... aArgs) {
+	public LogInfo(LogMessageType aType, LogMessageSubject aSubject, Object... aArgs) {
+		type = aType;
+		subject = aSubject;
 		args = aArgs;
 	}
 	
@@ -65,7 +72,7 @@ public class LogInfo {
 	public String toString() {
 		if (logString == null) {
 			String timeStampString = threadLocalDateFormat.get().format(timeStamp);
-			logString = String.format("%s %s", timeStampString, formatArgs(args));
+			logString = String.format("%s %s [%s] [%s] %s", timeStampString, type, subject, Thread.currentThread().getName(), formatArgs(args));
 		}
 		
 		return logString;
@@ -73,5 +80,13 @@ public class LogInfo {
 
 	public Object[] getArgs() {
 		return args;
+	}
+
+	public LogMessageType getType() {
+		return type;
+	}
+
+	public LogMessageSubject getSubject() {
+		return subject;
 	}
 }

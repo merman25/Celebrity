@@ -10,7 +10,8 @@ import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.AnalyticsLogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class ServerAnalyticsLogger {
 	private Server server;
@@ -44,15 +45,15 @@ public class ServerAnalyticsLogger {
 	}
 	
 	private static void log(Server aServer) {
-		Log.log(AnalyticsLogInfo.class, String.format("%,d games, %,d players, %,d sessions, %s mem used, %,d threads, %s sent, %s received",
-				GameManager.getNumGames(),
-				PlayerManager.getNumPlayers(),
-				SessionManager.getNumSessions(),
-				humanReadableByteCount(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(), false),
-				ManagementFactory.getThreadMXBean().getThreadCount(),
-				humanReadableByteCount(CelebrityMain.bytesSent.get(), false),
-				humanReadableByteCount(CelebrityMain.bytesReceived.get(), false)
-				));
+		Log.log(LogMessageType.INFO, LogMessageSubject.ANALYTICS,
+				"games", GameManager.getNumGames(),
+				"players", PlayerManager.getNumPlayers(),
+				"sessions", SessionManager.getNumSessions(),
+				"mem used", humanReadableByteCount(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory(), false),
+				"threads", ManagementFactory.getThreadMXBean().getThreadCount(),
+				"sent", humanReadableByteCount(CelebrityMain.bytesSent.get(), false),
+				"received", humanReadableByteCount(CelebrityMain.bytesReceived.get(), false)
+				);
 	}
 	
 	  /**

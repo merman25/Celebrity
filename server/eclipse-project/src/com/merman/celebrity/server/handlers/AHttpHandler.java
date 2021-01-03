@@ -21,8 +21,8 @@ import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.HTTPRequestLogInfo;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -49,7 +49,7 @@ public abstract class AHttpHandler implements IContextHandler {
 				}
 			}
 			
-			Log.log(HTTPRequestLogInfo.class, "context", getContextName(), "player", session == null ? null : session.getPlayer(), "session", session, "game", session == null ? null : session.getPlayer().getGame(), "request body", HttpExchangeUtil.getRequestBody(aHttpExchange));
+			Log.log(LogMessageType.DEBUG, LogMessageSubject.HTTP_REQUESTS, "context", getContextName(), "player", session == null ? null : session.getPlayer(), "session", session, "game", session == null ? null : session.getPlayer().getGame(), "request body", HttpExchangeUtil.getRequestBody(aHttpExchange));
 			
 			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
 			_handle( session, requestBodyAsMap, aHttpExchange );
@@ -58,20 +58,20 @@ public abstract class AHttpHandler implements IContextHandler {
 			sendErrorResponse(aHttpExchange, ServerErrors.NO_SESSION);
 		}
 		catch (IllegalServerRequestException e) {
-			Log.log(LogInfo.class, e.getClass().getName(), "==>", e.getMessage());
+			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, e.getClass().getName(), "==>", e.getMessage());
 			sendErrorResponse(aHttpExchange, ServerErrors.ILLEGAL_REQUEST, e.getEndUserMessage());
 		}
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, e.getMessage());
+			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, e.getMessage());
 		}
 		catch (JSONException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, "JSONException", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Session", session, "Player", player, "Handler", getContextName(), "IP", address, "JSONException", e);
 		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogInfo.class, "Session", session, "Player", player, "Handler", getContextName(), "Request body", HttpExchangeUtil.getRequestBody(aHttpExchange), "IP", address, "Exception on HTTP request", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Session", session, "Player", player, "Handler", getContextName(), "Request body", HttpExchangeUtil.getRequestBody(aHttpExchange), "IP", address, "Exception on HTTP request", e);
 		}
 	}
 

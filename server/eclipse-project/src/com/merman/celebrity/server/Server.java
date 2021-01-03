@@ -19,7 +19,8 @@ import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.server.handlers.AnnotatedMethodBasedHttpHandler;
 import com.merman.celebrity.server.handlers.ServeFileHandler;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.HttpServer;
 
 public class Server {
@@ -64,7 +65,7 @@ public class Server {
 				String directoryPath = fileRelativePath.substring(0, fileRelativePath.length() - "/*".length());
 				Path directory = CLIENT_FILE_DIRECTORY.resolve( Paths.get( directoryPath ) );
 				if ( Files.isDirectory( directory ) ) {
-					Log.log(LogInfo.class, "adding entire directory", directoryPath);
+					Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding entire directory", directoryPath);
 					Files.walk( directory )
 						.filter( path -> Files.isRegularFile(path) )
 						.map( path -> CLIENT_FILE_DIRECTORY.relativize(path).toString().replace( File.separator, "/" ) )
@@ -72,7 +73,7 @@ public class Server {
 				}
 			}
 			else if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
-				Log.log(LogInfo.class, "adding file", fileRelativePath);
+				Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding file", fileRelativePath);
 				String context = "/" + fileRelativePath;
 				if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
 					context = "/";
@@ -83,13 +84,13 @@ public class Server {
 
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
-			Log.log(LogInfo.class, "adding context", handler.getContextName());
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding context", handler.getContextName());
 			server.createContext("/" + handler.getContextName(), handler);
 		}
 		
 		server.setExecutor( Executors.newFixedThreadPool(10) );
 		server.start();
-		Log.log(LogInfo.class, "Serving HTTP requests on port " + portNumber);
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Serving HTTP requests on port", portNumber);
 		
 		/* The client computes the URL at which to open a WebSocket by looking at the URL of the current page.
 		 * Having a listener at address localhost means that local testing can always be done at

@@ -28,7 +28,8 @@ import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.ExpiryTime;
 import com.merman.celebrity.server.cleanup.ICanExpire;
 import com.merman.celebrity.server.logging.Log;
-import com.merman.celebrity.server.logging.info.LogInfo;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.util.SharedRandom;
 
 public class Game implements ICanExpire {
@@ -76,7 +77,7 @@ public class Game implements ICanExpire {
 
 	public synchronized void setStatus(GameStatus aStatus) {
 		status = aStatus;
-		Log.log(LogInfo.class, "Game", this, String.format("Setting status to %s", aStatus) );
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", this, String.format("Setting status to %s", aStatus) );
 		fireGameEvent();
 	}
 
@@ -106,7 +107,7 @@ public class Game implements ICanExpire {
 		playersWithoutTeams.add(aPlayer);
 		aPlayer.setGame(this);
 		if ( host == null ) {
-			Log.log(LogInfo.class, "Game", this, String.format("Game %s had no host, setting %s as the host", getID(), aPlayer) );
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", this, String.format("Game %s had no host, setting %s as the host", getID(), aPlayer) );
 			GameManager.setPlayerAsHostOfGame(this, aPlayer);
 			currentPlayer = aPlayer;
 		}
@@ -316,7 +317,7 @@ public class Game implements ICanExpire {
 	}
 	
 	public synchronized void startRound() {
-		Log.log(LogInfo.class, "Game", this, String.format("Starting round %d", roundIndex+1));
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", this, String.format("Starting round %d", roundIndex+1));
 		mapTeamsToAchievedNames.clear();
 		allowNextPlayerToStartNextTurn();
 	}
@@ -383,7 +384,7 @@ public class Game implements ICanExpire {
 		List<String>		namesAchieved		= new ArrayList<>(shuffledNameList.subList(previousNameIndex, currentNameIndex));
 		mapTeamsToAchievedNames.computeIfAbsent(currentTeam, t -> new ArrayList<>()).addAll(namesAchieved);
 		
-		Log.log(LogInfo.class, "Game", this, String.format("%s got %d names for %s", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName()));
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", this, String.format("%s got %d names for %s", getCurrentPlayer(), namesAchieved.size(), currentTeam.getTeamName()));
 		
 		previousNameIndex = currentNameIndex;
 	}
