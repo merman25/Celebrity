@@ -22,6 +22,7 @@ import com.merman.celebrity.game.events.GameEvent;
 import com.merman.celebrity.game.events.GameStateUpdateEvent;
 import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
+import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.cleanup.CleanupHelper;
@@ -363,7 +364,7 @@ public class Game implements ICanExpire {
 		}
 
 		if ( GameManager.createFiles ) {
-			File gameDir = new File("games/" + getID());
+			File gameDir = new File(CelebrityMain.DATA_DIRECTORY + "/games/" + getID());
 			if ( gameDir.isDirectory() ) {
 				int numFiles = gameDir.listFiles().length;
 				File fileToCreate;

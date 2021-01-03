@@ -17,6 +17,9 @@ public class FileOutputter extends PrintStreamOutputter {
 	public synchronized PrintStream getPrintStream() {
 		try {
 			if (printStream == null) {
+				if (! file.getParentFile().exists()) {
+					file.getParentFile().mkdirs();
+				}
 				printStream = new PrintStream(new FileOutputStream(file, true));
 			}
 			return printStream;

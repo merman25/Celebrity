@@ -18,6 +18,7 @@ import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class CelebrityMain {
+	public static final String DATA_DIRECTORY = "../../../.celebrity";
 	public static AtomicLong bytesReceived = new AtomicLong();
 	public static AtomicLong bytesSent = new AtomicLong();
 	
@@ -78,7 +79,7 @@ public class CelebrityMain {
 			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new PrintStreamOutputter(System.out)));
 		}
 		else {
-			File logDir = new File("logs");
+			File logDir = new File(DATA_DIRECTORY + "/logs");
 			if ( ! logDir.exists() ) {
 				logDir.mkdir();
 			}
