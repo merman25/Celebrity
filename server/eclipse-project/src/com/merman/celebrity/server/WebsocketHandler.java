@@ -179,7 +179,8 @@ public class WebsocketHandler {
 					if ( STOP.equals(message) ) {
 						continue;
 					}
-					sendMessage(MESSAGE_START_BYTE, message);
+					byte messageStartByte = message.isEmpty() ? (byte) PING_BYTE : MESSAGE_START_BYTE;
+					sendMessage(messageStartByte, message);
 
 				}
 				catch ( InterruptedException e ) {
@@ -191,6 +192,9 @@ public class WebsocketHandler {
 				}
 				catch (IOException e) {
 					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
+				}
+				catch (RuntimeException e) {
+					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "RuntimeException in handler", e);
 				}
 			}
 		}
@@ -216,17 +220,7 @@ public class WebsocketHandler {
 		public void run() {
 			waitForHandshake();
 			if ( listen ) {
-				try {
-					outputStreamRunnable.sendMessage((byte) PING_BYTE, "");
-					CelebrityMain.bytesSent.incrementAndGet();
-				}
-				catch ( SocketException e ) {
-					log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Handler can no longer write", e.getMessage());
-					stop();
-				}
-				catch (IOException e) {
-					log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
-				}
+				enqueueMessage("");
 			}
 		}
 	}
