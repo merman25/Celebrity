@@ -27,4 +27,8 @@ public class Logger {
 	public LogMessageType getMaxDetailLogType() {
 		return maxDetailLogType;
 	}
+
+	public void close() {
+		logOutputter.close();
+	}
 }

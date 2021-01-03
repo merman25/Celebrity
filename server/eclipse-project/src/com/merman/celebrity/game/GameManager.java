@@ -52,6 +52,7 @@ public class GameManager {
 				if (gameLoggerList != null) {
 					for (Logger gameLogger : gameLoggerList) {
 						Log.removeLogger(LogMessageSubject.GENERAL, gameLogger);
+						gameLogger.close();
 					}
 				}
 			}

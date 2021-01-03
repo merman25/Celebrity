@@ -26,4 +26,11 @@ public class FileOutputter extends PrintStreamOutputter {
 			return null;
 		}
 	}
+
+	@Override
+	public void close() {
+		if (printStream != null) {
+			printStream.close();
+		}
+	}
 }

@@ -9,5 +9,9 @@ public interface ILogOutputter extends Consumer<String> {
 	default void accept(String aString) {
 		output(aString);
 	}
+
+	default public void close() {
+		// Do nothing by default (e.g. not needed for a sysout logger)
+	}
 	
 }

@@ -23,11 +23,4 @@ public class PrintStreamOutputter implements ILogOutputter {
 	public PrintStream getPrintStream() {
 		return printStream;
 	}
-	
-	public void close() {
-		PrintStream printStream = getPrintStream();
-		if (printStream != null) {
-			printStream.close();
-		}
-	}
 }
