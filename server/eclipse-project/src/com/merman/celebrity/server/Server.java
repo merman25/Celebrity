@@ -83,8 +83,8 @@ public class Server {
 		}
 
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding", handlers.size(), "method-based contexts");
 		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
-			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding context", handler.getContextName());
 			server.createContext("/" + handler.getContextName(), handler);
 		}
 		

@@ -69,7 +69,7 @@ public class CelebrityMain {
 
 		readVersion();
 		initLogging();
-		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Celebrity Server Version", getVersion());
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Starting Celebrity Server Version", getVersion());
 		
 		Server server;
 		if (overridePort >= 0 ) {
@@ -94,7 +94,7 @@ public class CelebrityMain {
 			}
 		}
 		
-		System.out.format("Celebrity Server Version %s\n", getVersion());
+		System.out.format("Starting Celebrity Server Version %s\n", getVersion());
 		dataDirectory = Paths.get(DATA_DIRECTORY_ROOT, getVersion());
 	}
 
