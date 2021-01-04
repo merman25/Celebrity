@@ -75,7 +75,7 @@
 		</jar>
 
 
-		<junit printsummary="on">
+		<junit printsummary="on" haltonfailure="yes">
 			<classpath>
 				<fileset dir="${lib_dir}" />
 				<fileset file="${build_dir}/${jarname}" />
