@@ -88,7 +88,7 @@ public class GameManager {
 		if ( ( createFiles
 				|| ! CelebrityMain.isSysOutLogging() )
 			&& ! aGameID.toLowerCase().startsWith("test") ) {
-			File file = new File(CelebrityMain.DATA_DIRECTORY + "/games/" + aGameID );
+			File file = new File(CelebrityMain.getDataDirectory().toString() + "/games/" + aGameID );
 			if ( file.isDirectory() ) {
 				if ( deleteExisting ) {
 					for ( File subFile : file.listFiles() ) {

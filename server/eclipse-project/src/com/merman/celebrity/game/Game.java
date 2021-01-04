@@ -364,7 +364,7 @@ public class Game implements ICanExpire {
 		}
 
 		if ( GameManager.createFiles ) {
-			File gameDir = new File(CelebrityMain.DATA_DIRECTORY + "/games/" + getID());
+			File gameDir = new File(CelebrityMain.getDataDirectory().toString() + "/games/" + getID());
 			if ( gameDir.isDirectory() ) {
 				int numFiles = gameDir.listFiles().length;
 				File fileToCreate;

@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.Assert;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;

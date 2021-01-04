@@ -2,9 +2,14 @@ package com.merman.celebrity.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.merman.celebrity.game.GameManager;
@@ -18,12 +23,14 @@ import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class CelebrityMain {
-	public static final String DATA_DIRECTORY = "../../../.celebrity";
+	private static final String DATA_DIRECTORY_ROOT = "../../../.celebrity";
 	public static AtomicLong bytesReceived = new AtomicLong();
 	public static AtomicLong bytesSent = new AtomicLong();
 	
 	private static int overridePort = -1;
 	private static boolean sysOutLogging;
+	private static String version = "NO_VERSION";
+	private static Path dataDirectory;
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -60,7 +67,9 @@ public class CelebrityMain {
 		}
 		GameManager.deleteExisting = GameManager.deleteExisting && ( gameFileList == null || gameFileList.isEmpty() || gameFileList.stream().noneMatch(file -> file.exists()) );
 
+		readVersion();
 		initLogging();
+		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Celebrity Server Version", getVersion());
 		
 		Server server;
 		if (overridePort >= 0 ) {
@@ -73,13 +82,29 @@ public class CelebrityMain {
 		new ServerAnalyticsLogger(server).start();
 	}
 
+	private static void readVersion() {
+		URL resource = CelebrityMain.class.getResource("/build_info.properties");
+		if (resource != null) {
+			Properties properties = new Properties();
+			try {
+				properties.load(new InputStreamReader(resource.openStream()));
+				version = properties.getProperty("build_date");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		System.out.format("Celebrity Server Version %s\n", getVersion());
+		dataDirectory = Paths.get(DATA_DIRECTORY_ROOT, getVersion());
+	}
+
 	private static void initLogging() {
 		System.setErr(System.out);
 		if (sysOutLogging) {
 			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new PrintStreamOutputter(System.out)));
 		}
 		else {
-			File logDir = new File(DATA_DIRECTORY + "/logs");
+			File logDir = new File(dataDirectory.toFile(), "/logs");
 			if ( ! logDir.exists() ) {
 				logDir.mkdir();
 			}
@@ -152,5 +177,13 @@ public class CelebrityMain {
 
 	public static void setSysOutLogging(boolean aSysOutLogging) {
 		sysOutLogging = aSysOutLogging;
+	}
+
+	public static String getVersion() {
+		return version;
+	}
+
+	public static Path getDataDirectory() {
+		return dataDirectory;
 	}
 }

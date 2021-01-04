@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     4 Jan 2021                                                        
+
+     Build file for Celebrity server                                                        
+     ====================================================================== -->
+<project name="celebrity" default="build">
+	<description>
+            Builds Celebrity server
+    </description>
+
+	<property name="build_dir" value="./build" />
+	<property name="bin_dir" value="${build_dir}/bin" />
+	<property name="src_dir" value="./src" />
+	<property name="lib_dir" value="./lib" />
+	<property name="jarname" value="celebrity.jar" />
+	<property name="manifest" value="${build_dir}/MANIFEST.MF" />
+	<property name="build_info_file" value="${build_dir}/build_info.properties" />
+
+	<tstamp>
+		<format property="build_time_stamp" pattern="yyyy-MM-dd_HHmm" timezone="UTC" />
+	</tstamp>
+
+
+	<!-- ================================= 
+          target: default              
+         ================================= -->
+	<target name="build" description="description">
+		<delete dir="${build_dir}" />
+		<mkdir dir="${build_dir}" />
+		<mkdir dir="${bin_dir}" />
+		<javac srcdir="${src_dir}" destdir="${bin_dir}" debug="on">
+			<classpath>
+				<fileset dir="${lib_dir}">
+					<include name="**/*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+
+		<java classname="com.merman.celebrity.util.GITInfoForAnt" outputproperty="commit_id" errorproperty="commit_id_error" classpath="${bin_dir}">
+			<arg value="COMMIT" />
+		</java>
+		<java classname="com.merman.celebrity.util.GITInfoForAnt" outputproperty="commit_date" errorproperty="commit_date_error" classpath="${bin_dir}">
+			<arg value="DATE" />
+		</java>
+		<fail message="${commit_id_error}">
+			<condition>
+				<not>
+					<equals arg1="${commit_id_error}" arg2="" />
+				</not>
+			</condition>
+		</fail>
+		<fail message="${commit_date_error}">
+			<condition>
+				<not>
+					<equals arg1="${commit_date_error}" arg2="" />
+				</not>
+			</condition>
+		</fail>
+
+		<manifest file="${manifest}">
+			<attribute name="Main-Class" value="com.merman.celebrity.server.CelebrityMain" />
+			<attribute name="Class-Path" value="lib/json-20190722.jar" />
+		</manifest>
+
+		<propertyfile file="${build_info_file}" comment="This file was created during a build, and contains info about that build">
+			<entry key="build_date" value="${build_time_stamp}" />
+			<entry key="commit" value="${commit_id}" />
+			<entry key="commit_date" value="${commit_date}" />
+		</propertyfile>
+
+		<jar destfile="${build_dir}/${jarname}" manifest="${manifest}" level="9">
+			<fileset dir="${bin_dir}" />
+			<fileset file="${build_info_file}" />
+		</jar>
+
+
+		<junit printsummary="on">
+			<classpath>
+				<fileset dir="${lib_dir}" />
+				<fileset file="${build_dir}/${jarname}" />
+			</classpath>
+
+			<batchtest todir="${build_dir}/junit">
+				<fileset dir="${bin_dir}">
+					<include name="com/merman/celebrity/tests/**/*Test.class" />
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<delete file="${jarname}" />
+		<move file="${build_dir}/${jarname}" todir="." />
+		<delete dir="${build_dir}" />
+	</target>
+</project>
