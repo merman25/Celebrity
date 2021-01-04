@@ -23,7 +23,7 @@ import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class CelebrityMain {
-	private static final String DATA_DIRECTORY_ROOT = "../../../.celebrity";
+	private static final String DATA_DIRECTORY_ROOT = "../.celebrity";
 	public static AtomicLong bytesReceived = new AtomicLong();
 	public static AtomicLong bytesSent = new AtomicLong();
 	
