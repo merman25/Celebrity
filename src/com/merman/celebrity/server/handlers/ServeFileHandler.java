@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.Map;
 
 import com.merman.celebrity.client.theme.ThemeManager;
+import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
@@ -82,6 +83,9 @@ public class ServeFileHandler extends AHttpHandler {
 		byte[] responseBytes;
 		if ( file.exists() ) {
 			responseBytes = Files.readAllBytes(file.toPath());
+		}
+		else if ( "version".equals( aRelativePath ) ) {
+			responseBytes = ( "Version: " + CelebrityMain.getVersion() ).getBytes(StandardCharsets.UTF_8);
 		}
 		else {
 			responseBytes = ( "File does not exist: " + aRelativePath ).getBytes(StandardCharsets.UTF_8);

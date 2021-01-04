@@ -81,6 +81,7 @@ public class Server {
 				server.createContext(context, new ServeFileHandler(fileRelativePath));
 			}
 		}
+		server.createContext("/version", new ServeFileHandler("version"));
 
 		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding", handlers.size(), "method-based contexts");
