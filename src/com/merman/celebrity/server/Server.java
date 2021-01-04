@@ -24,7 +24,7 @@ import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.HttpServer;
 
 public class Server {
-	public static final Path CLIENT_FILE_DIRECTORY = new File( "../../client" ).toPath();
+	public static final Path CLIENT_FILE_DIRECTORY = new File( "./client" ).toPath();
 	public static final String MAIN_FILE_NAME = "celebrity.html";
 	private static final List<String> FILE_TO_ADD_WHITELIST = new ArrayList<>( Arrays.asList(
 			MAIN_FILE_NAME,
