@@ -29,7 +29,7 @@
 		<delete dir="${build_dir}" />
 		<mkdir dir="${build_dir}" />
 		<mkdir dir="${bin_dir}" />
-		<javac srcdir="${src_dir}" destdir="${bin_dir}" debug="on">
+		<javac srcdir="${src_dir}" destdir="${bin_dir}" debug="on" encoding="utf8">
 			<classpath>
 				<fileset dir="${lib_dir}">
 					<include name="**/*.jar" />
