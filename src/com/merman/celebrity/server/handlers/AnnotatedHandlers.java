@@ -181,7 +181,7 @@ public class AnnotatedHandlers {
 		}
 		
 		if (gameHostedByPlayer.getNumPlayersToWaitFor() != 0) {
-			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", session.getPlayer(), session, gameHostedByPlayer, gameHostedByPlayer.getNumNamesPerPlayer()), String.format("Error: can't start game, still waiting for %,d players", gameHostedByPlayer.getNumPlayersToWaitFor()) );
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", session.getPlayer(), session, gameHostedByPlayer, gameHostedByPlayer.getNumPlayersToWaitFor()), String.format("Error: can't start game, still waiting for %,d players", gameHostedByPlayer.getNumPlayersToWaitFor()) );
 		}
 
 		gameHostedByPlayer.freezeNameList();

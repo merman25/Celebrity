@@ -2,6 +2,7 @@ package com.merman.celebrity.tests;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.util.SharedRandom;
 
@@ -154,7 +156,7 @@ public class ServerTest {
 		// Host sets game parameters and allocates teams
 		AnnotatedHandlers.setGameParams(hostSession, aNumRounds, aRoundDurationInSec, aNumNamesPerPlayer);
 		Assert.assertEquals(aNumRounds, game.getNumRounds());
-		Assert.assertEquals(60, game.getRoundDurationInSec());
+		Assert.assertEquals(aRoundDurationInSec, game.getRoundDurationInSec());
 		Assert.assertEquals(aNumNamesPerPlayer, game.getNumNamesPerPlayer());
 		
 		if ( aAllocateTeamsAtRandom ) {
@@ -646,5 +648,378 @@ public class ServerTest {
 			e.printStackTrace();
 			Assert.assertFalse("Threads interrupted", true);
 		}
+	}
+	
+	@Test
+	public void testTurnEnds() {
+		Game game = initGame(2, 1, 1, 1, 2, false);
+		Player player0 = game.getTeamList().get(0).getPlayerList().get(0);
+		Player player1 = game.getTeamList().get(1).getPlayerList().get(0);
+		Session session0 = SessionManager.getSession(player0.getSessionID());
+		Session session1 = SessionManager.getSession(player1.getSessionID());
+
+		AnnotatedHandlers.startTurn(session0);
+		Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
+
+		try {
+			Thread.sleep(1100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Assert.assertTrue("Shouldn't get interrupted exception", false);
+		}
+
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
+
+		AnnotatedHandlers.startTurn(session1);
+		Assert.assertEquals(GameStatus.PLAYING_A_TURN, game.getStatus());
+
+		try {
+			Thread.sleep(1100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Assert.assertTrue("Shouldn't get interrupted exception", false);
+		}
+
+		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
+	}
+	
+	@Test
+	public void testIllegalServerRequestExceptions() {
+		// Every IllegalServerRequestException should be tested, to ensure String.format args are correct
+		Session hostSession = SessionManager.createSession();
+		Player host = hostSession.getPlayer();
+		Session playerSession = SessionManager.createSession();
+		Player player = playerSession.getPlayer();
+		Session nonPlayerSession = SessionManager.createSession();
+		Player nonPlayer = nonPlayerSession.getPlayer();
+		
+		// Illegal user names
+		assertThrows(() -> AnnotatedHandlers.setUsername(hostSession, null), 												IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setUsername(hostSession, ""), 													IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setUsername(hostSession, "  "), 												IllegalServerRequestException.class);
+		AnnotatedHandlers.setUsername(hostSession, "host");
+		AnnotatedHandlers.setUsername(playerSession, "player");
+		AnnotatedHandlers.setUsername(nonPlayerSession, "nonPlayer");
+
+		// Set game and have other player join
+		Map<String, String> gameResponse = AnnotatedHandlers.hostNewGame(hostSession);
+		String gameID = gameResponse.get("gameID");
+		Game game = GameManager.getGame(gameID);
+		
+		assertThrows(() -> AnnotatedHandlers.askGameIDResponse(playerSession, null), 										IllegalServerRequestException.class);
+		
+		AnnotatedHandlers.askGameIDResponse(playerSession, gameID);
+		
+		// Set game params
+		assertThrows(() -> AnnotatedHandlers.setGameParams(playerSession, 1, 1, 1), 										IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, null, 1, 1), 										IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 0, 1, 1), 											IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 11, 1, 1), 											IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, null, 1), 										IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 0, 1), 											IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 601, 1), 										IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 1, null), 										IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 1, 0), 											IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 1, 11), 											IllegalServerRequestException.class);
+		
+		AnnotatedHandlers.setGameParams(hostSession, 2, 1, 1);
+		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 1, 1), 											IllegalServerRequestException.class);
+
+		// Allocate teams (host can do it multiple times)
+		assertThrows(() -> AnnotatedHandlers.allocateTeams(playerSession), 													IllegalServerRequestException.class);
+		AnnotatedHandlers.allocateTeams(hostSession);
+		AnnotatedHandlers.allocateTeams(hostSession);
+		
+		// Things you can't do in this state
+		assertThrows(() -> AnnotatedHandlers.startGame(hostSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start game in state [%s]", host, hostSession, game, GameStatus.WAITING_FOR_PLAYERS));
+		assertThrows(() -> AnnotatedHandlers.sendNameRequest(playerSession), 												IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList("0")), 								IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to provide names when game is in state", hostSession, host, GameStatus.WAITING_FOR_PLAYERS));
+		
+		// Request names
+		AnnotatedHandlers.sendNameRequest(hostSession);
+
+		// Things you can't do in this state
+		assertThrows(() -> AnnotatedHandlers.sendNameRequest(hostSession), 													IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.allocateTeams(hostSession), 													IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.startGame(hostSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", host, hostSession, game, 2));
+		
+		// Provide names
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, null), 												IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided null name list", hostSession, host, game));
+		assertThrows(() -> AnnotatedHandlers.provideNames(nonPlayerSession, Arrays.asList()), 								IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to provide names when game is null", nonPlayerSession, nonPlayer));
+
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList("0", "1")), 							IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided [%,d] names instead of [%,d]. Full list: %s", hostSession, host, game, 2, 1, Arrays.asList("0", "1")));
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList()), 									IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided [%,d] names instead of [%,d]. Full list: %s", hostSession, host, game, 0, 1, Collections.EMPTY_LIST));
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList(new String[] { null })), 				IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided null or empty names. Full list: %s", hostSession, host, game, Arrays.asList(new String[] { null }) ));
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList("")), 									IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided null or empty names. Full list: %s", hostSession, host, game, Arrays.asList("")));
+		assertThrows(() -> AnnotatedHandlers.provideNames(hostSession, Arrays.asList("  ")), 								IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], game [%s], provided null or empty names. Full list: %s", hostSession, host, game, Arrays.asList("  ")));
+		
+		AnnotatedHandlers.provideNames(hostSession, Arrays.asList("0"));
+		assertThrows(() -> AnnotatedHandlers.startGame(hostSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", host, hostSession, game, 1));
+		AnnotatedHandlers.provideNames(playerSession, Arrays.asList("1"));
+		assertThrows(() -> AnnotatedHandlers.provideNames(nonPlayerSession, Arrays.asList("2")), 							IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to provide names when game is null", nonPlayerSession, nonPlayer));
+
+
+		// Other players try and fail to start game
+		assertThrows(() -> AnnotatedHandlers.startGame(playerSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start game, but is not the host", player, playerSession, game));
+		assertThrows(() -> AnnotatedHandlers.startGame(nonPlayerSession), 													IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start game, but is not the host", nonPlayer, nonPlayerSession, null));
+
+		// Host can't start turn before game has started
+		assertThrows(() -> AnnotatedHandlers.startTurn(hostSession), 														IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to start turn in game [%s], but its state is [%s]", hostSession, host, game, GameStatus.WAITING_FOR_NAMES));
+		
+		// Revoke submitted names, then submit them again
+		assertThrows(() -> AnnotatedHandlers.revokeSubmittedNames(nonPlayerSession), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], tried to revoke submitted names when not part of any game", nonPlayer, nonPlayerSession));
+		
+		AnnotatedHandlers.revokeSubmittedNames(playerSession);
+		AnnotatedHandlers.provideNames(playerSession, Arrays.asList("1"));
+		
+		// Start game
+		AnnotatedHandlers.startGame(hostSession);
+		
+		// Can't revoke names after game has started
+		assertThrows(() -> AnnotatedHandlers.revokeSubmittedNames(playerSession), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to revoke submitted names when in state [%s]", player, playerSession, game, GameStatus.READY_TO_START_NEXT_TURN));
+
+		// Players outside the game can't start turns
+		assertThrows(() -> AnnotatedHandlers.startTurn(nonPlayerSession), 													IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], not part of any game", nonPlayerSession, nonPlayer));
+		
+		// Check which player is which
+		Player currentPlayer = game.getCurrentPlayer();
+		Player otherPlayer = currentPlayer == host ? player : host;
+		Session currentSession = currentPlayer == host ? hostSession : playerSession;
+		Session otherSession = currentPlayer == host ?  playerSession: hostSession;
+		
+		// Can't start turn when it's not your turn
+		assertThrows(() -> AnnotatedHandlers.startTurn(otherSession), 														IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to start turn in game [%s], but current player is [%s]", otherSession, otherPlayer, game, currentPlayer));
+
+		// Things you can't do in this state
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(currentSession, 1), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to set name index in state [%s]", currentPlayer, currentSession, game, GameStatus.READY_TO_START_NEXT_TURN));
+		assertThrows(() -> AnnotatedHandlers.pass(currentSession, 1), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to pass on a game in state [%s]", currentPlayer, currentSession, game, GameStatus.READY_TO_START_NEXT_TURN));
+		assertThrows(() -> AnnotatedHandlers.endTurn(currentSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to end the turn on a game in state [%s]", currentPlayer, currentSession, game, GameStatus.READY_TO_START_NEXT_TURN));
+		
+		// Start turn
+		AnnotatedHandlers.startTurn(currentSession);
+		assertThrows(() -> AnnotatedHandlers.startTurn(currentSession), 													IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], trying to start turn in game [%s], but its state is [%s]", currentSession, currentPlayer, game, GameStatus.PLAYING_A_TURN));
+		
+		// Things you can't do in this state
+		assertThrows(() -> AnnotatedHandlers.startNextRound(playerSession), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round, but is not the host", player, playerSession, game));
+		assertThrows(() -> AnnotatedHandlers.startNextRound(nonPlayerSession), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round, but is not the host", nonPlayer, nonPlayerSession, null));
+		assertThrows(() -> AnnotatedHandlers.startNextRound(hostSession), 													IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round in state [%s]", host, hostSession, game, GameStatus.PLAYING_A_TURN));
+		
+		// Set current name index (got name)
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(currentSession, null), 									IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to set a null currentNameIndex", currentPlayer, currentSession, game));
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(nonPlayerSession, 1), 										IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], not part of any game", nonPlayerSession, nonPlayer));
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(otherSession, 1), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to set name index when player [%s] was playing", otherPlayer, otherSession, game, currentPlayer));
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(currentSession, 0), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to change name index from %,d to %,d", currentPlayer, currentSession, game, 0, 0));
+		assertThrows(() -> AnnotatedHandlers.setCurrentNameIndex(currentSession, 2), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to change name index from %,d to %,d", currentPlayer, currentSession, game, 0, 2));
+		AnnotatedHandlers.setCurrentNameIndex(currentSession, 1);
+
+		// Pass
+		assertThrows(() -> AnnotatedHandlers.pass(currentSession, null), 													IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to set a null passNameIndex", currentPlayer, currentSession, game));
+		assertThrows(() -> AnnotatedHandlers.pass(nonPlayerSession, 1), 													IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], not part of any game", nonPlayerSession, nonPlayer));
+		assertThrows(() -> AnnotatedHandlers.pass(otherSession, 1), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to pass when player [%s] was playing", otherPlayer, otherSession, game, currentPlayer));
+		assertThrows(() -> AnnotatedHandlers.pass(currentSession, 0), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to pass on name index %,d when current name index was %,d", currentPlayer, currentSession, game, 0, 1));
+		assertThrows(() -> AnnotatedHandlers.pass(currentSession, 2), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to pass on name index %,d when current name index was %,d", currentPlayer, currentSession, game, 2, 1));
+		AnnotatedHandlers.pass(currentSession, 1);
+
+		// End turn
+		assertThrows(() -> AnnotatedHandlers.endTurn(nonPlayerSession), 													IllegalServerRequestException.class,
+				String.format("Session [%s], player [%s], not part of any game", nonPlayerSession, nonPlayer));
+		assertThrows(() -> AnnotatedHandlers.endTurn(otherSession), 														IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to end the turn when player [%s] was playing", otherPlayer, otherSession, game, currentPlayer));
+		AnnotatedHandlers.endTurn(currentSession);
+		
+		Player currentPlayer2 = otherPlayer;
+		Session currentSession2 = otherSession;
+		Player otherPlayer2 = currentPlayer;
+		Session otherSession2 = currentSession;
+		
+		// Put player in another team
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, null, null), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null playerID", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, 1, null), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null teamIndex", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(playerSession, currentPlayer2.getPublicUniqueID(), 1), 		IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] to teamIndex [%,d], but is not the host", player, playerSession, game, currentPlayer2, currentPlayer2.getPublicUniqueID(), game, 1));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, -1, 1), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] to teamIndex [%,d], but this player doesn't exist", host, hostSession, game, -1, 1));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, nonPlayer.getPublicUniqueID(), 1), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], to teamIndex [%,d], but that player is in game [%s]", host, hostSession, game, nonPlayer, nonPlayer.getPublicUniqueID(), 1, null));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), -1), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], to non-existent teamIndex [%,d]", host, hostSession, game, player, player.getPublicUniqueID(), -1));
+		assertThrows(() -> AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), 2), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], to non-existent teamIndex [%,d]", host, hostSession, game, player, player.getPublicUniqueID(), 2));
+		
+		int correctTeamIndex = game.getTeamList().get(0).getPlayerList().contains(player) ? 0 : 1;
+		int incorrectTeamIndex = correctTeamIndex == 0 ? 1 : 0;
+		AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), incorrectTeamIndex);
+		AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), correctTeamIndex);
+
+		// Remove player from game
+		assertThrows(() -> AnnotatedHandlers.removePlayerFromGame(hostSession, null), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null playerID", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.removePlayerFromGame(playerSession, host.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to remove player [%s], ID [%,d], from game [%s], but is not the host", player, playerSession, game, host, host.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.removePlayerFromGame(hostSession, -1), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to remove player with ID [%,d] from game, but this player doesn't exist", host, hostSession, game, -1));
+		assertThrows(() -> AnnotatedHandlers.removePlayerFromGame(hostSession, nonPlayer.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to remove player [%s] with ID [%,d] from game, but this player is not part of any game", host, hostSession, game, nonPlayer, nonPlayer.getPublicUniqueID()));
+
+		Game otherGame = initGame(1, 1, 1, 1, 1, false);
+		Player playerOfOtherGame = otherGame.getTeamList().get(0).getPlayerList().get(0);
+		assertThrows(() -> AnnotatedHandlers.removePlayerFromGame(hostSession, playerOfOtherGame.getPublicUniqueID()), 		IllegalServerRequestException.class, String.format("Player [%s], session [%s], game [%s], tried to remove player [%s], ID [%,d], from game [%s], but is not the host", host, hostSession, game, playerOfOtherGame, playerOfOtherGame.getPublicUniqueID(), otherGame));
+		
+		// Host can remove any player
+		AnnotatedHandlers.removePlayerFromGame(hostSession, player.getPublicUniqueID());
+		AnnotatedHandlers.askGameIDResponse(playerSession, gameID);
+		AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), correctTeamIndex);
+		
+		// Player can remove himself
+		AnnotatedHandlers.removePlayerFromGame(playerSession, player.getPublicUniqueID());
+		AnnotatedHandlers.askGameIDResponse(playerSession, gameID);
+		AnnotatedHandlers.putPlayerInTeam(hostSession, player.getPublicUniqueID(), correctTeamIndex);
+
+		// Move player earlier
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(hostSession, null), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null playerID", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(playerSession, host.getPublicUniqueID()), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] earlier in team, but is not the host", player, playerSession, game, host, host.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(playerSession, player.getPublicUniqueID()), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] earlier in team, but is not the host", player, playerSession, game, player, player.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(hostSession, -1), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] earlier in team, but this player doesn't exist", host, hostSession, game, -1));
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(hostSession, playerOfOtherGame.getPublicUniqueID()), 		IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], earlier in team, but that player is in game [%s]", host, hostSession, game, playerOfOtherGame, playerOfOtherGame.getPublicUniqueID(), otherGame));
+		assertThrows(() -> AnnotatedHandlers.movePlayerEarlier(hostSession, nonPlayer.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], earlier in team, but that player is in game [%s]", host, hostSession, game, nonPlayer, nonPlayer.getPublicUniqueID(), null));
+		AnnotatedHandlers.movePlayerEarlier(hostSession, host.getPublicUniqueID());
+		AnnotatedHandlers.movePlayerEarlier(hostSession, player.getPublicUniqueID());
+
+		// Move player later
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(hostSession, null), 											IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null playerID", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(playerSession, host.getPublicUniqueID()), 						IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] later in team, but is not the host", player, playerSession, game, host, host.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(playerSession, player.getPublicUniqueID()), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], game [%s] later in team, but is not the host", player, playerSession, game, player, player.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(hostSession, -1), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player with ID [%,d] later in team, but this player doesn't exist", host, hostSession, game, -1));
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(hostSession, playerOfOtherGame.getPublicUniqueID()), 			IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], later in team, but that player is in game [%s]", host, hostSession, game, playerOfOtherGame, playerOfOtherGame.getPublicUniqueID(), otherGame));
+		assertThrows(() -> AnnotatedHandlers.movePlayerLater(hostSession, nonPlayer.getPublicUniqueID()), 					IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to move player [%s], ID [%,d], later in team, but that player is in game [%s]", host, hostSession, game, nonPlayer, nonPlayer.getPublicUniqueID(), null));
+		AnnotatedHandlers.movePlayerLater(hostSession, host.getPublicUniqueID());
+		AnnotatedHandlers.movePlayerLater(hostSession, player.getPublicUniqueID());
+
+		// Make player next in team
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(hostSession, null), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null playerID", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(playerSession, host.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], game [%s] next in team, but is not the host", player, playerSession, game, host, host.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(playerSession, player.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], game [%s] next in team, but is not the host", player, playerSession, game, player, player.getPublicUniqueID(), game));
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(hostSession, -1), 										IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make player with ID [%,d] next in team, but this player doesn't exist", host, hostSession, game, -1));
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(hostSession, playerOfOtherGame.getPublicUniqueID()), 		IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], next in team, but that player is in game [%s]", host, hostSession, game, playerOfOtherGame, playerOfOtherGame.getPublicUniqueID(), otherGame));
+		assertThrows(() -> AnnotatedHandlers.makePlayerNextInTeam(hostSession, nonPlayer.getPublicUniqueID()), 				IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make player [%s], ID [%,d], next in team, but that player is in game [%s]", host, hostSession, game, nonPlayer, nonPlayer.getPublicUniqueID(), null));
+		AnnotatedHandlers.makePlayerNextInTeam(hostSession, host.getPublicUniqueID());
+		AnnotatedHandlers.makePlayerNextInTeam(hostSession, player.getPublicUniqueID());
+
+		// Set team index
+		assertThrows(() -> AnnotatedHandlers.setTeamIndex(hostSession, null), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], provided null teamIndex", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.setTeamIndex(playerSession, 1), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make set team index to [%,d], but is not the host", player, playerSession, game, 1));
+		assertThrows(() -> AnnotatedHandlers.setTeamIndex(hostSession, -1), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make non-existent teamIndex [%,d] the next team", host, hostSession, game, -1));
+		assertThrows(() -> AnnotatedHandlers.setTeamIndex(hostSession, 2), 													IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to make non-existent teamIndex [%,d] the next team", host, hostSession, game, 2));
+		AnnotatedHandlers.setTeamIndex(hostSession, 0);
+		AnnotatedHandlers.setTeamIndex(hostSession, 1);
+
+		// Make other player host
+		assertThrows(() -> AnnotatedHandlers.makePlayerHost(playerSession, host.getPublicUniqueID()), 						IllegalServerRequestException.class,
+				String.format("Player [%s], Session [%s], public ID of other player [%,d], Non-host tried to give hosting duties to other player", player, playerSession, host.getPublicUniqueID() ));
+		assertThrows(() -> AnnotatedHandlers.makePlayerHost(hostSession, null), 											IllegalServerRequestException.class,
+				String.format("Player [%s], Session [%s], public ID of other player was null", host, hostSession));
+		assertThrows(() -> AnnotatedHandlers.makePlayerHost(hostSession, -1), 												IllegalServerRequestException.class,
+				String.format("Player [%s], Session [%s], Unknown public ID of other player [%,d]", host, hostSession, -1));
+		assertThrows(() -> AnnotatedHandlers.makePlayerHost(hostSession, playerOfOtherGame.getPublicUniqueID()), 			IllegalServerRequestException.class,
+				String.format("Player [%s], Session [%s], other player [%s], is part of game [%s], can't be made host of game [%s]", host, hostSession, playerOfOtherGame, otherGame, game ));
+		AnnotatedHandlers.makePlayerHost(hostSession, player.getPublicUniqueID());
+		AnnotatedHandlers.makePlayerHost(playerSession, host.getPublicUniqueID());
+		
+		// Complete round so that we can check startNextRound
+		assertThrows(() -> AnnotatedHandlers.startNextRound(hostSession), 													IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round in state [%s]", host, hostSession, game, GameStatus.READY_TO_START_NEXT_TURN));
+		AnnotatedHandlers.startTurn(currentSession2);
+		AnnotatedHandlers.setCurrentNameIndex(currentSession2, 2);
+		assertThrows(() -> AnnotatedHandlers.startNextRound(playerSession), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round, but is not the host", player, playerSession, game));
+		assertThrows(() -> AnnotatedHandlers.startNextRound(nonPlayerSession), 												IllegalServerRequestException.class,
+				String.format("Player [%s], session [%s], game [%s], tried to start round, but is not the host", nonPlayer, nonPlayerSession, null));
+		AnnotatedHandlers.startNextRound(hostSession);
+	}
+
+	private void assertThrows(Runnable aRunnable, Class<? extends Throwable> aThrowable) {
+		assertThrows(aRunnable, aThrowable, null);
+	}
+	
+	private void assertThrows(Runnable aRunnable, Class<? extends Throwable> aThrowable, String aMessage) {
+		try {
+			aRunnable.run();
+		}
+		catch (Throwable t) {
+			if (aThrowable.isInstance(t)) {
+				if ( aMessage == null
+						|| ( aMessage.equals( t.getMessage() ) ) ) {
+					return;
+				}
+				else {
+					throw new AssertionError(String.format("Expected exception message [%s] but got [%s]", aMessage, t.getMessage()));
+				}
+			}
+			else {
+				throw new AssertionError(String.format("Expected [%s] but got [%s]", aThrowable, t.getClass()), t);
+			}
+		}
+		
+		throw new AssertionError(String.format("Expected [%s] but no exception was thrown", aThrowable));
 	}
 }
