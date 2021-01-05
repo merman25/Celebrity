@@ -5,6 +5,7 @@ import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 
 let allCelebNames = null;
 let fastMode = false;
+export let URL = 'http://localhost:8000';
 if (Cypress.env('FAST_MODE')) {
     fastMode = true;
 }
@@ -22,7 +23,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
     const gameSpec = gameSpecs[i];
     describe(`Player ${gameSpec.index + 1}`, () => {
         it(`Plays spec ${i}: ${gameSpec.description}`, () => {
-            cy.visit('http://localhost:8000');
+            cy.visit(URL);
 
             if (gameSpec.index !== 0) {
                 // Since the player at index 0 is hard-coded to be the host, make sure they have time to join the game first.
