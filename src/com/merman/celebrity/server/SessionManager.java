@@ -45,7 +45,7 @@ public class SessionManager {
 		CleanupHelper.registerForRegularCleanup(new MySessionIterable(), new MyExpiredSessionRemover());
 	}
 	
-	public static Session createSession() {
+	public static synchronized Session createSession() {
 		String sessionID = UUID.randomUUID().toString();
 		Session session = new Session(sessionID);
 		sessionsMap.put(sessionID, session);
@@ -53,11 +53,11 @@ public class SessionManager {
 		return session;
 	}
 
-	public static Session getSession(String aSessionID) {
+	public static synchronized Session getSession(String aSessionID) {
 		return sessionsMap.get(aSessionID);
 	}
 
-	public static void putSocket(Session aSession, WebsocketHandler aWebsocketHandler) {
+	public static synchronized void putSocket(Session aSession, WebsocketHandler aWebsocketHandler) {
 		WebsocketHandler oldWebsocketHandler = socketsMap.get(aSession);
 		if (oldWebsocketHandler != null) {
 			oldWebsocketHandler.stop();
@@ -65,11 +65,11 @@ public class SessionManager {
 		socketsMap.put(aSession, aWebsocketHandler);
 	}
 	
-	public static WebsocketHandler getWebsocketHandler(Session aSession) {
+	public static synchronized WebsocketHandler getWebsocketHandler(Session aSession) {
 		return socketsMap.get(aSession);
 	}
 	
-	public static int getNumSessions() {
+	public static synchronized int getNumSessions() {
 		return sessionsMap.size();
 	}
 }
