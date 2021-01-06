@@ -5,12 +5,22 @@ import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 
 let allCelebNames = null;
 let fastMode = false;
+let includeRestoredGames = false;
 export let URL = 'http://localhost:8000';
+const testTempFile = 'temp_test_data.txt';
+let createdTestTempFile = false;
+
 if (Cypress.env('FAST_MODE')) {
     fastMode = true;
 }
-const testTempFile = 'temp_test_data.txt';
-let createdTestTempFile = false;
+if (Cypress.env('INC_RESTORED')) {
+    includeRestoredGames = true;
+}
+const envURL = Cypress.env('URL');
+if (envURL
+    && envURL !== '') {
+    URL = envURL;
+}
 
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
@@ -18,7 +28,11 @@ describe('Initialisation', () => {
     });
 });
 
-const gameSpecs = [spec4Players.gameSpec, specRestoredMiddle.gameSpec, specRestoredEnd.gameSpec];
+const gameSpecs = [spec4Players.gameSpec];
+if (includeRestoredGames) {
+  gameSpecs.push(specRestoredMiddle.gameSpec);
+  gameSpecs.push(specRestoredEnd.gameSpec);
+}
 
 for (let i = 0; i < gameSpecs.length; i++) {
     const gameSpec = gameSpecs[i];
