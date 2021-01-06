@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.logging.Log;
@@ -42,7 +43,7 @@ extends Theme {
 	@Override
 	public boolean useTheme() {
 		if (themeLoadedOK) {
-			Calendar calendar = Calendar.getInstance();
+			Calendar calendar = Calendar.getInstance( TimeZone.getTimeZone("UTC") );
 			boolean closeToChristmas =  ( calendar.get(Calendar.MONTH) == 11
 											&& calendar.get(Calendar.DAY_OF_MONTH) >= 14 )
 										|| ( calendar.get(Calendar.MONTH) == 0
