@@ -135,16 +135,10 @@ export function playGame(clientState) {
             const allPlayers = [clientState.playerName, ...clientState.otherPlayers];
 
             for (let i = 0; i < allPlayers.length; i++) {
-                if(i > 0) {
-                    // give time for it to process that it has changed somebody's team, otherwise it'll try to right-click on the next player's old table cell,
-                    // instead of the new one that appears after the teams table is re-rendered.
-                    let reRenderWaitTimeMillis = 500;
-                    cy.wait(reRenderWaitTimeMillis);
-                }
                 const player = allPlayers[i];
                 selectContextMenuItemForPlayer(player, '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', `changeToTeam${i % 2}`);
+                cy.get('[id="teamList"]').contains(player);
             }
-
         }
     }
     checkDOMContent(DOMSpecs, clientState);

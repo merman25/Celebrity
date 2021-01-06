@@ -68,7 +68,7 @@ export const DOMSpecs = [
     {
         selector: '[id="gameInfoDiv"]',
         containsWhen: [{
-            predicate: (testBotInfo, clientState) => ! testBotInfo.teamsAllocated,
+            predicate: (testBotInfo, clientState) => testBotInfo.teamsAllocated === false,
             text: 'Waiting for others to join...'
         }],
     },
