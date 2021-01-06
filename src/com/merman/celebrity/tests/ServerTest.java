@@ -263,24 +263,25 @@ public class ServerTest {
 		Assert.assertEquals(game.getCurrentPlayer(), allSessions.get(0).getPlayer());
 		
 		// play a few turns
+		int currentNameIndex = 1;
 		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 4) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 4) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 8) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 8) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
 		Assert.assertEquals("player1", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 12) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 12) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -313,15 +314,15 @@ public class ServerTest {
 		// play a few more turns
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 15) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 15) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
 		Assert.assertEquals("player2", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 21) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 21) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
@@ -331,8 +332,8 @@ public class ServerTest {
 
 		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 25) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 25) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -360,17 +361,17 @@ public class ServerTest {
 		// play to the end of the round
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 31) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 31) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
 		Assert.assertEquals("player1", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() != 0) {
-			// currentNameIndex gets reset to 0 after reaching end of list so 'index != 0' is the condition to check to make sure we get every name
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 37) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
+		currentNameIndex = 1;
 		
 		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName());
@@ -407,8 +408,8 @@ public class ServerTest {
 		AnnotatedHandlers.startNextRound(hostSession);
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 8) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 8) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		Assert.assertEquals("player2", game.getCurrentPlayer().getName() );
@@ -438,8 +439,8 @@ public class ServerTest {
 		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(2).getPlayer().getPublicUniqueID());
 		Assert.assertEquals("player2", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 11) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 11) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -469,16 +470,16 @@ public class ServerTest {
 		AnnotatedHandlers.makePlayerNextInTeam(hostSession, allSessions.get(5).getPlayer().getPublicUniqueID());
 		Assert.assertEquals("player5", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 17) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 17) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
 		// Let's have player 3 lose connection while player 0's in the middle of a turn
 		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 21) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 21) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
@@ -501,8 +502,8 @@ public class ServerTest {
 
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 25) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 25) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
@@ -511,8 +512,8 @@ public class ServerTest {
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(3).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(4).getPlayer().getPublicUniqueID());
-		while (game.getCurrentNameIndex() < 28) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 28) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(5).getPlayer().getPublicUniqueID());
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
@@ -537,15 +538,15 @@ public class ServerTest {
 	
 		Assert.assertEquals("player4", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 30) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 30) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 
 		Assert.assertEquals("player2", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 32) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 32) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -553,8 +554,8 @@ public class ServerTest {
 		AnnotatedHandlers.removePlayerFromGame(hostSession, allSessions.get(1).getPlayer().getPublicUniqueID());
 		Assert.assertEquals("player5", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 34) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 34) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -562,10 +563,10 @@ public class ServerTest {
 		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_TURN, game.getStatus());
 		Assert.assertEquals("player0", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() != 0) {
-			// currentNameIndex gets reset to 0 after reaching end of list so 'index != 0' is the condition to check to make sure we get every name
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 37) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
+		currentNameIndex = 1;
 		
 		Assert.assertEquals(GameStatus.READY_TO_START_NEXT_ROUND, game.getStatus());
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
@@ -580,8 +581,8 @@ public class ServerTest {
 		AnnotatedHandlers.startNextRound(hostSession);
 		Assert.assertEquals("player3", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 3) {
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+		while (currentNameIndex < 3) {
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		AnnotatedHandlers.endTurn(				SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
 		
@@ -596,9 +597,9 @@ public class ServerTest {
 
 		Assert.assertEquals("player1", game.getCurrentPlayer().getName() );
 		AnnotatedHandlers.startTurn(			SessionManager.getSession(game.getCurrentPlayer().getSessionID())		);
-		while (game.getCurrentNameIndex() < 36) {
+		while (currentNameIndex < 37) {
 			// currentNameIndex does not get reset to 0 at end of game, so 'index < 36' is the condition to check rather than 'index != 0'.
-			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), game.getCurrentNameIndex() + 1 );
+			AnnotatedHandlers.setCurrentNameIndex(	SessionManager.getSession(game.getCurrentPlayer().getSessionID()), currentNameIndex++ );
 		}
 		
 		// Check scores for the round are consistent
