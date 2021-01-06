@@ -1,12 +1,13 @@
 #!/usr/bin/bash
 
 print_usage() {
-    printf "USAGE: $0 [-hfjrwx] [-u URL]\n"
+    printf "USAGE: $0 [-fhjrswx] [-u URL]\n"
     printf "\n"
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
     printf "\t-j:\t\tRun from jar (default off)\n"
     printf "\t-r:\t\tInclude tests of restored games (default off)\n"
+    printf "\t-s:\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
     printf "\t-w:\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\tExit browser at end of test (default off)\n"
     printf "\t-u URL:\t\tSpecify URL to use\n"
@@ -51,7 +52,8 @@ FROM_JAR="false"
 INC_RESTORED="false"
 HEAD="--headless"
 EXIT="--no-exit"
-while getopts "hfjrwxu:" OPT; do
+START_SERVER="true"
+while getopts "hfjrswxu:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -65,6 +67,9 @@ while getopts "hfjrwxu:" OPT; do
 	    ;;
 	r)
 	    INC_RESTORED="true"
+	    ;;
+	s)
+	    START_SERVER="false"
 	    ;;
 	w)
 	    HEAD="--headed"
@@ -97,19 +102,21 @@ else
 fi
 
 if [ "$URL" == "" ]; then
-    if [ "$FROM_JAR" == "true" ]; then
-	server_command='java -Xmx256m -jar celebrity.jar'
-    else
-	if is_cygwin; then
-	    CLASSPATH='bin;lib/json-20190722.jar'
+    if [ "$START_SERVER" == "true" ]; then
+	if [ "$FROM_JAR" == "true" ]; then
+	    server_command='java -Xmx256m -jar celebrity.jar'
 	else
-	    CLASSPATH='bin:lib/json-20190722.jar'
-	fi
+	    if is_cygwin; then
+		CLASSPATH='bin;lib/json-20190722.jar'
+	    else
+		CLASSPATH='bin:lib/json-20190722.jar'
+	    fi
 	
-	server_command="java -Xmx256m -cp $CLASSPATH com.merman.celebrity.server.CelebrityMain"
-    fi
+	    server_command="java -Xmx256m -cp $CLASSPATH com.merman.celebrity.server.CelebrityMain"
+	fi
 
-    exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 &
+	exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 &
+    fi
 fi
 
 sleep 1
