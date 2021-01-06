@@ -1,12 +1,14 @@
 #!/usr/bin/bash
 
 print_usage() {
-    printf "USAGE: $0 [-hfjr] [-u URL]\n"
+    printf "USAGE: $0 [-hfjrwx] [-u URL]\n"
     printf "\n"
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
     printf "\t-j:\t\tRun from jar (default off)\n"
     printf "\t-r:\t\tInclude tests of restored games (default off)\n"
+    printf "\t-w:\t\tOpen browser windows (default off)\n"
+    printf "\t-x:\t\tExit browser at end of test (default off)\n"
     printf "\t-u URL:\t\tSpecify URL to use\n"
 }
 
@@ -47,7 +49,9 @@ exec_command_in_new_max_window() {
 FAST_MODE="false"
 FROM_JAR="false"
 INC_RESTORED="false"
-while getopts "hfjru:" OPT; do
+HEAD="--headless"
+EXIT="--no-exit"
+while getopts "hfjrwxu:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -61,6 +65,12 @@ while getopts "hfjru:" OPT; do
 	    ;;
 	r)
 	    INC_RESTORED="true"
+	    ;;
+	w)
+	    HEAD="--headed"
+	    ;;
+	x)
+	    EXIT=""
 	    ;;
 	u)
 	    URL="$OPTARG"
@@ -127,10 +137,10 @@ else
     OS="linux"
 fi
 
-exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS --headed -p 10000 '>' "results-$test_type/player1-report" &
-exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS --headed -p 10001 '>' "results-$test_type/player2-report" &
-exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS --headed -p 10002 '>' "results-$test_type/player3-report" &
-exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS --headed -p 10003 '>' "results-$test_type/player4-report" &
+exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
+exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
+exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
+exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10003 '>' "results-$test_type/player4-report" &
 
 sleep 5
 exec_command_in_new_window Dashboard bash dashboard.sh &
