@@ -3,6 +3,7 @@ package com.merman.celebrity.game;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,26 +85,47 @@ public class GameManager {
 		setPlayerAsHostOfGame(game, aHost);
 		game.addPlayer(aHost);
 		gamesMap.put(aGameID, game);
+		Session session = SessionManager.getSession(aHost.getSessionID());
+		if (session != null
+				&& session.isTestSession()) {
+			game.setTestGame(true);
+		}
 		
 		if ( ( createFiles
 				|| ! CelebrityMain.isSysOutLogging() )
 			&& ! aGameID.toLowerCase().startsWith("test") ) {
-			File file = new File(CelebrityMain.getDataDirectory().toString() + "/games/" + aGameID );
-			if ( file.isDirectory() ) {
+			Path gameLoggingDirectory = CelebrityMain.getLoggingDirectory(game);
+			if ( Files.isDirectory(gameLoggingDirectory) ) {
 				if ( deleteExisting ) {
-					for ( File subFile : file.listFiles() ) {
-						subFile.delete();
+					try {
+						Files.walk(gameLoggingDirectory)
+						.forEach(path ->  {
+							try {
+								Files.delete(path);
+							}
+							catch (IOException e) {
+								Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to delete file", path, "exception", e);
+							}
+						});
+					}
+					catch (IOException e) {
+						Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to walk directory", gameLoggingDirectory, "exception", e);
 					}
 				}
 			}
-			else if ( ! file.exists() ) {
-				file.mkdirs();
+			else if ( ! Files.exists(gameLoggingDirectory) ) {
+				try {
+					Files.createDirectories(gameLoggingDirectory);
+				}
+				catch (IOException e) {
+					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to create directory", gameLoggingDirectory, "exception", e);
+				}
 			}
 			
 			if ( ! CelebrityMain.isSysOutLogging() ) {
 				PerGameLogFilter logFilter = new PerGameLogFilter(game);
-				Logger highLevelLogger = new Logger(LogMessageType.INFO, logFilter, new FileOutputter(new File(file, "log.txt")));
-				Logger detailLogger = new Logger(logFilter, new FileOutputter(new File(file, "detail_log.txt")));
+				Logger highLevelLogger = new Logger(LogMessageType.INFO, logFilter, new FileOutputter(new File(gameLoggingDirectory.toFile(), "log.txt")));
+				Logger detailLogger = new Logger(logFilter, new FileOutputter(new File(gameLoggingDirectory.toFile(), "detail_log.txt")));
 				mapGamesToLoggers.put(game, Arrays.asList(highLevelLogger, detailLogger));
 				Log.addLogger(LogMessageSubject.GENERAL, highLevelLogger);
 				Log.addLogger(LogMessageSubject.GENERAL, detailLogger);

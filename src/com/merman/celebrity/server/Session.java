@@ -18,6 +18,9 @@ public class Session implements ICanExpire {
 	private boolean                   expired;
 	private ExpiryTime                expiryTime 				  = new ExpiryTime(CleanupHelper.defaultExpiryDurationInS);
 	
+	// Set true by an HTTP request for which there is no visible button - only test bots set it to true
+	private boolean                   testSession;
+	
 	Session(String aSessionID) {
 		sessionID = aSessionID;
 		player = PlayerManager.createPlayer();
@@ -66,5 +69,13 @@ public class Session implements ICanExpire {
 
 	public ExpiryTime getExpiryTime() {
 		return expiryTime;
+	}
+
+	public boolean isTestSession() {
+		return testSession;
+	}
+
+	public void setTestSession(boolean aTestSession) {
+		testSession = aTestSession;
 	}
 }

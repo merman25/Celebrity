@@ -563,4 +563,9 @@ public class AnnotatedHandlers {
 		
 		game.removeNameList(player);
 	}
+	
+	@HTTPRequest( requestName = "setTesting" )
+	public static void setTesting(Session aSession) {
+		aSession.setTestSession(true);
+	}
 }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.analytics.ServerAnalyticsLogger;
 import com.merman.celebrity.server.logging.Log;
@@ -23,14 +24,17 @@ import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
 public class CelebrityMain {
-	private static final String DATA_DIRECTORY_ROOT = "../.celebrity";
-	public static AtomicLong bytesReceived = new AtomicLong();
-	public static AtomicLong bytesSent = new AtomicLong();
-	
-	private static int overridePort = -1;
-	private static boolean sysOutLogging;
-	private static String version = "NO_VERSION";
-	private static Path dataDirectory;
+	private static final String DATA_DIRECTORY_ROOT          = "../.celebrity";
+	private static final String GAME_LOG_DIRECTORY_NAME      = "games";
+	private static final String TEST_GAME_LOG_DIRECTORY_NAME = "test_games";
+
+	public static AtomicLong    bytesReceived                = new AtomicLong();
+	public static AtomicLong    bytesSent                    = new AtomicLong();
+
+	private static int          overridePort                 = -1;
+	private static boolean      sysOutLogging;
+	private static String       version                      = "NO_VERSION";
+	private static Path         dataDirectory;
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -185,5 +189,13 @@ public class CelebrityMain {
 
 	public static Path getDataDirectory() {
 		return dataDirectory;
+	}
+	
+	public static Path getLoggingDirectory(Game aGame) {
+		String gameDirectoryName = GAME_LOG_DIRECTORY_NAME;
+		if ( aGame.isTestGame() ) {
+			gameDirectoryName = TEST_GAME_LOG_DIRECTORY_NAME;
+		}
+		return getDataDirectory().resolve(gameDirectoryName).resolve( aGame.getID() );
 	}
 }

@@ -343,6 +343,7 @@ function getNames(clientState) {
 }
 
 function startHostingNewGame(playerName, gameID) {
+    cy.request(`${URL}/setTesting`);
     cy.get('[id="nameField"]').type(playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session

@@ -3,6 +3,8 @@ package com.merman.celebrity.game;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,6 +69,9 @@ public class Game implements ICanExpire {
 	
 	// Useful for E2E testing. Value is supplied to the testBots, so they can tell if they're taking their turn at the proper time.
 	private int                       turnCount;
+	
+	// Set true by an HTTP request for which there is no visible button - only test bots set it to true
+	private boolean                   testGame;
 	
 	public Game(String aID) {
 		ID = aID;
@@ -379,11 +384,11 @@ public class Game implements ICanExpire {
 		}
 
 		if ( GameManager.createFiles ) {
-			File gameDir = new File(CelebrityMain.getDataDirectory().toString() + "/games/" + getID());
-			if ( gameDir.isDirectory() ) {
-				int numFiles = gameDir.listFiles().length;
+			Path gameDir = CelebrityMain.getLoggingDirectory(this);
+			if ( Files.isDirectory(gameDir)) {
+				int numFiles = gameDir.toFile().listFiles().length;
 				File fileToCreate;
-				while ( ( fileToCreate = new File(gameDir, "" + ++numFiles) ).exists() );
+				while ( ( fileToCreate = new File(gameDir.toFile(), "" + ++numFiles) ).exists() );
 
 				try ( PrintWriter p = new PrintWriter(fileToCreate) ) {
 					p.print(GameManager.serialise(this, null, false));
@@ -713,5 +718,13 @@ public class Game implements ICanExpire {
 		mapPlayersToTeams.clear();
 		mapPlayersToNameLists.clear();
 		GameManager.setPlayerAsHostOfGame(this, null);
+	}
+
+	public boolean isTestGame() {
+		return testGame;
+	}
+
+	public void setTestGame(boolean aTestGame) {
+		testGame = aTestGame;
 	}
 }
