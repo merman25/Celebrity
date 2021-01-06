@@ -21,10 +21,12 @@ if (envURL
     && envURL !== '') {
     URL = envURL;
 }
+const OS = Cypress.env('OS');
 
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
+        assert(OS === 'linux' || OS === 'win', 'OS should be set to \'linux\' or \'win\'');
     });
 });
 
@@ -72,7 +74,13 @@ for (let i = 0; i < gameSpecs.length; i++) {
             if (createdTestTempFile
                 && testTempFile
                 && testTempFile !== '') {
-                cy.exec(`rm ${testTempFile}`);
+                if (OS === 'linux') {
+                    cy.exec(`rm ${testTempFile}`);
+                }
+                else if (OS === 'win') {
+                    // file deletion fails on windows for some reason
+                    // cy.exec(`del ${testTempFile}`);
+                }
             }
         });
     });
