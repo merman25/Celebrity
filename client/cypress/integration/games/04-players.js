@@ -9,7 +9,6 @@ export const gameSpec = {
     index: index,
     restoredGame: false,
     playerNames: ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2'],
-    gameID: '4795',
     celebrityNames: [
         ['Neil Armstrong', 'Marilyn Monroe', 'John F. Kennedy', 'Audrey Hepburn', 'Paul McCartney', 'Rosa Parks'],
         ['Hippolyta', 'Alexander the Great', 'Hypatia', 'Xerxes', 'Helen of Troy', 'Plato'],

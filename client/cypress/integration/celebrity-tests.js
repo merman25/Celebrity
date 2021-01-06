@@ -9,7 +9,8 @@ export let URL = 'http://localhost:8000';
 if (Cypress.env('FAST_MODE')) {
     fastMode = true;
 }
-
+const testTempFile = 'temp_test_data.txt';
+let createdTestTempFile = false;
 
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
@@ -53,6 +54,12 @@ for (let i = 0; i < gameSpecs.length; i++) {
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
             playGame(clientState);
+
+            if (createdTestTempFile
+                && testTempFile
+                && testTempFile !== '') {
+                cy.exec(`rm ${testTempFile}`);
+            }
         });
     });
 }
@@ -62,12 +69,11 @@ export function playGame(clientState) {
     if (!clientState.iAmHosting
         || clientState.restoredGame) {
         joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+        createdTestTempFile = false;
     }
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID);
-        // give time for websocket to transmit game state before checking DOM content. Without this, it sometimes incorrectly thinks
-        // Allocate Teams button should not be visible.
-        cy.wait(500);
+        createdTestTempFile = true;
     }
     checkDOMContent(DOMSpecs, clientState);
 
@@ -320,6 +326,21 @@ function startHostingNewGame(playerName, gameID) {
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
     cy.get('[id=host]').click();
+
+    cy.get('[id=gameIDDiv]')
+        .children()
+        .contains('Game ID: ')
+        .then(elements => {
+            const gameIDText = elements[0].innerText;
+            const prefixString = 'Game ID: ';
+            assert(gameIDText.startsWith(prefixString), 'game ID text starts with prefix');
+
+            const gameID = gameIDText.substring(prefixString.length);
+
+            assert(/^[0-9]{4}/.test(gameID), 'game ID is 4 digits');
+
+            cy.writeFile(testTempFile, gameID)
+        });
 }
 
 function checkTeamlessPlayerList(otherPlayers) {
@@ -392,9 +413,17 @@ export function joinGame(playerName, gameID, hostName) {
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
-
     cy.get('[id="join"]').click();
-    cy.get('[id="gameIDField"]').type(gameID);
+
+    if (gameID) {
+        cy.get('[id="gameIDField"]').type(gameID);
+    }
+    else {
+        // read gameID from file, if it's not specified in the specs
+        cy.readFile(testTempFile)
+            .then(content => cy.get('[id="gameIDField"]').type(content));
+    }
+
     cy.get('[id="gameIDSubmitButton"]').click();
 }
 
