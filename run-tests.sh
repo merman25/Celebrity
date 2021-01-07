@@ -143,16 +143,10 @@ if [ ! -d results-full ]; then
 fi
 rm -f "results-$test_type"/*
 
-if is_cygwin; then
-    OS="win"
-else
-    OS="linux"
-fi
-
-exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
-exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
-exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
-exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED,OS=$OS $HEAD $EXIT -p 10003 '>' "results-$test_type/player4-report" &
+exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
+exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
+exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
+exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10003 '>' "results-$test_type/player4-report" &
 
 sleep 5
 exec_command_in_new_window Dashboard bash dashboard.sh &

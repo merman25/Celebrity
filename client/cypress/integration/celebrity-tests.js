@@ -7,8 +7,6 @@ let allCelebNames = null;
 let fastMode = false;
 let includeRestoredGames = false;
 export let URL = 'http://localhost:8000';
-const testTempFile = 'temp_test_data.txt';
-let createdTestTempFile = false;
 
 if (Cypress.env('FAST_MODE')) {
     fastMode = true;
@@ -21,12 +19,10 @@ if (envURL
     && envURL !== '') {
     URL = envURL;
 }
-const OS = Cypress.env('OS');
 
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
-        assert(OS === 'linux' || OS === 'win', 'OS should be set to \'linux\' or \'win\'');
     });
 });
 
@@ -70,18 +66,6 @@ for (let i = 0; i < gameSpecs.length; i++) {
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
             playGame(clientState);
-
-            if (createdTestTempFile
-                && testTempFile
-                && testTempFile !== '') {
-                if (OS === 'linux') {
-                    cy.exec(`rm ${testTempFile}`);
-                }
-                else if (OS === 'win') {
-                    // file deletion fails on windows for some reason
-                    // cy.exec(`del ${testTempFile}`);
-                }
-            }
         });
     });
 }
@@ -91,11 +75,9 @@ export function playGame(clientState) {
     if (!clientState.iAmHosting
         || clientState.restoredGame) {
         joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
-        createdTestTempFile = false;
     }
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID);
-        createdTestTempFile = true;
     }
     checkDOMContent(DOMSpecs, clientState);
 
@@ -177,6 +159,8 @@ function waitForWakeUpTrigger(clientState) {
         .then(elements => {
             const triggerElement = elements[0];
 
+            console.log(formatTime(), `found test trigger ${triggerElement.innerText}`);
+
             checkDOMContent(DOMSpecs, clientState);
 
             // If custom actions need to be taken, take them.
@@ -227,8 +211,9 @@ function waitForWakeUpTrigger(clientState) {
                     cy.get('[id="startNextRoundButton"]').click();
                 }
                 else {
+                    console.log(formatTime(), 'waiting for ready-to-start-next-round to clear');
                     // Non-host just waits until the trigger text isn't there any more, to avoid endlessly re-entering this method
-                    cy.get('.testTriggerClass').not(':contains("bot-ready-to-start-next-round")', { timeout: 10000 });
+                    cy.get('.testTriggerClass').contains('bot-ready-to-start-next-round', { timeout: 60000 }).should('not.exist');
                 }
                 waitForWakeUpTrigger(clientState);
             }
@@ -356,7 +341,7 @@ function startHostingNewGame(playerName, gameID) {
 
             assert(/^[0-9]{4}/.test(gameID), 'game ID is 4 digits');
 
-            cy.writeFile(testTempFile, gameID)
+            cy.writeFile('temp_files/gameID', gameID)
         });
 }
 
@@ -437,7 +422,7 @@ export function joinGame(playerName, gameID, hostName) {
     }
     else {
         // read gameID from file, if it's not specified in the specs
-        cy.readFile(testTempFile)
+        cy.readFile('temp_files/gameID')
             .then(content => cy.get('[id="gameIDField"]').type(content));
     }
 
@@ -548,4 +533,35 @@ function checkFinalScoreForRound(clientState) {
                 });
 
         });
+}
+
+function formatTime() {
+	const date = new Date();
+	const hours = addLeadingZeroes(date.getHours(), 2);
+	const mins = addLeadingZeroes(date.getMinutes(), 2);
+	const secs = addLeadingZeroes(date.getSeconds(), 2);
+	return `${hours}:${mins}:${secs}`;
+}
+
+function addLeadingZeroes(number, minDigits) {
+	let formattedNumber;
+	if (number === 0) {
+		formattedNumber = '0'.repeat(minDigits);
+	}
+	else if (number < 0) {
+		formattedNumber = '-' + addLeadingZeroes(-number, minDigits);
+	}
+	else {
+		const limit 		= 10 ** (minDigits - 1);
+		const log10 		= Math.floor(Math.log(number) / Math.log(10));
+		const numDigits		= log10 + 1;
+		if (numDigits < minDigits) {
+			formattedNumber = '0'.repeat(minDigits - numDigits) + number.toString();
+		}
+		else {
+			formattedNumber = number.toString();
+		}
+	}
+
+	return formattedNumber;
 }

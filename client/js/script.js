@@ -1106,6 +1106,7 @@ function setGameStatus(newStatus) {
 }
 
 function addTestTrigger(text) {
+	console.log(formatTime(), `adding test trigger ${text}`);
 	const testTriggerDiv = document.getElementById('testTriggerDiv');
 	testTriggerDiv.textContent = text;
 
@@ -1115,6 +1116,7 @@ function addTestTrigger(text) {
 }
 
 function clearTestTrigger() {
+	console.log(formatTime(), 'clearing test trigger');
 	const testTriggerDiv = document.getElementById('testTriggerDiv');
 	testTriggerDiv.textContent = '';
 	testTriggerDiv.classList.remove('testTriggerClass');
@@ -1258,3 +1260,34 @@ function applyTheme() {
 }
 
 applyTheme();
+
+function formatTime() {
+	const date = new Date();
+	const hours = addLeadingZeroes(date.getHours(), 2);
+	const mins = addLeadingZeroes(date.getMinutes(), 2);
+	const secs = addLeadingZeroes(date.getSeconds(), 2);
+	return `${hours}:${mins}:${secs}`;
+}
+
+function addLeadingZeroes(number, minDigits) {
+	let formattedNumber;
+	if (number === 0) {
+		formattedNumber = '0'.repeat(minDigits);
+	}
+	else if (number < 0) {
+		formattedNumber = '-' + addLeadingZeroes(-number, minDigits);
+	}
+	else {
+		const limit 		= 10 ** (minDigits - 1);
+		const log10 		= Math.floor(Math.log(number) / Math.log(10));
+		const numDigits		= log10 + 1;
+		if (numDigits < minDigits) {
+			formattedNumber = '0'.repeat(minDigits - numDigits) + number.toString();
+		}
+		else {
+			formattedNumber = number.toString();
+		}
+	}
+
+	return formattedNumber;
+}
