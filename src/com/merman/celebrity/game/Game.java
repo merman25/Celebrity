@@ -20,10 +20,19 @@ import java.util.stream.Collectors;
 import com.merman.celebrity.client.theme.IconType;
 import com.merman.celebrity.client.theme.Theme;
 import com.merman.celebrity.client.theme.ThemeManager;
+import com.merman.celebrity.game.events.AddPlayerGameEvent;
+import com.merman.celebrity.game.events.AllocateTeamsGameEvent;
 import com.merman.celebrity.game.events.GameEvent;
-import com.merman.celebrity.game.events.GameStateUpdateEvent;
 import com.merman.celebrity.game.events.IGameEventListener;
 import com.merman.celebrity.game.events.NotifyClientGameEventListener;
+import com.merman.celebrity.game.events.RemoveNameListGameEvent;
+import com.merman.celebrity.game.events.RemovePlayerGameEvent;
+import com.merman.celebrity.game.events.SetCurrentNameIndexGameEvent;
+import com.merman.celebrity.game.events.SetHostGameEvent;
+import com.merman.celebrity.game.events.SetNameListGameEvent;
+import com.merman.celebrity.game.events.SetPassOnNameIndexGameEvent;
+import com.merman.celebrity.game.events.SetStatusGameEvent;
+import com.merman.celebrity.game.events.UpdateCurrentPlayerGameEvent;
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
@@ -84,7 +93,7 @@ public class Game implements ICanExpire {
 	public synchronized void setStatus(GameStatus aStatus) {
 		status = aStatus;
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", this, "Setting status to", aStatus );
-		fireGameEvent();
+		fireGameEvent(new SetStatusGameEvent(this, aStatus));
 	}
 
 	public synchronized List<Team> getTeamList() {
@@ -106,7 +115,7 @@ public class Game implements ICanExpire {
 	public synchronized void setHost(Player aHost) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setHost", aHost);
 		host = aHost;
-		fireGameEvent();
+		fireGameEvent(new SetHostGameEvent(this, aHost));
 	}
 
 	public synchronized void addPlayer(Player aPlayer) {
@@ -124,7 +133,7 @@ public class Game implements ICanExpire {
 		if ( websocketHandler != null ) {
 			addGameEventListener(new NotifyClientGameEventListener( websocketHandler ) );
 		}
-		fireGameEvent();
+		fireGameEvent(new AddPlayerGameEvent(this, aPlayer));
 	}
 
 	private void setPlayerIconIfNecessary(Player aPlayer) {
@@ -232,14 +241,14 @@ public class Game implements ICanExpire {
 		nextTeamIndex = -1;
 		incrementPlayer();
 		
-		fireGameEvent();
+		fireGameEvent(new AllocateTeamsGameEvent(this));
 	}
 
 	public synchronized void setNameList(Player aPlayer, List<String> aCelebNameList) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setNameList", aPlayer, "List", aCelebNameList);
 		if ( mapPlayersToTeams.containsKey(aPlayer) ) {
 			mapPlayersToNameLists.put(aPlayer, aCelebNameList);
-			fireGameEvent();
+			fireGameEvent(new SetNameListGameEvent(this, aPlayer));
 		}
 	}
 	
@@ -250,7 +259,7 @@ public class Game implements ICanExpire {
 	public synchronized void removeNameList(Player aPlayer) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "removeNameList", aPlayer);
 		mapPlayersToNameLists.remove(aPlayer);
-		fireGameEvent();
+		fireGameEvent(new RemoveNameListGameEvent(this, aPlayer));
 	}
 	
 	public synchronized void allowNextPlayerToStartNextTurn() {
@@ -306,7 +315,7 @@ public class Game implements ICanExpire {
 		
 		currentPlayer = player;
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "currentPlayer", currentPlayer);
-		fireGameEvent();
+		fireGameEvent( new UpdateCurrentPlayerGameEvent(this, player));
 		return player;
 	}
 
@@ -431,7 +440,7 @@ public class Game implements ICanExpire {
 				stopTurn();
 			}
 			else {
-				fireGameEvent();
+				fireGameEvent(new SetCurrentNameIndexGameEvent(this, aCurrentNameIndex));
 			}
 		}
 	}
@@ -459,7 +468,7 @@ public class Game implements ICanExpire {
 			shuffledNameList.addAll(achievedNames);
 			shuffledNameList.addAll(remainingNames);
 
-			fireGameEvent();
+			fireGameEvent(new SetPassOnNameIndexGameEvent(this, aPassNameIndex));
 		}
 	}
 
@@ -519,7 +528,7 @@ public class Game implements ICanExpire {
 			playersWithoutTeams.remove(player);
 			mapPlayersToTeams.remove(player);
 			mapPlayersToNameLists.remove(player);
-			fireGameEvent();
+			fireGameEvent(new RemovePlayerGameEvent(this, player));
 		}
 	}
 
@@ -609,10 +618,6 @@ public class Game implements ICanExpire {
 				listenerIterator.remove();
 			}
 		}
-	}
-	
-	public void fireGameEvent() {
-		fireGameEvent(new GameStateUpdateEvent(this));
 	}
 	
 	public synchronized void fireGameEvent(GameEvent aGameEvent) {

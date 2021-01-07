@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPResponseConstants;
@@ -23,6 +22,7 @@ import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
+import com.merman.celebrity.util.JSONUtil;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -122,7 +122,7 @@ public abstract class AHttpHandler implements IContextHandler {
 		if ( aErrorMessage != null ) {
 			responseObject.put("Message", aErrorMessage);
 		}
-		String responseString = serialiseMap(responseObject);
+		String responseString = JSONUtil.serialiseMap(responseObject);
 		
 		/* You would think we would send HTTPResponseConstants.Bad_Request (400) here.
 		 * If we do that, we enter the 'catch' block of the 'fetch' request. However,
@@ -134,12 +134,5 @@ public abstract class AHttpHandler implements IContextHandler {
 		 * Try using https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_modal_bottom
 		 */
 		sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
-	}
-	
-	protected String serialiseMap( Map<?, ?> aMap ) {
-		JSONObject		jsonObject		= new JSONObject();
-		aMap.entrySet().forEach( entry -> jsonObject.put(entry.getKey().toString(), entry.getValue() ) );
-		
-		return jsonObject.toString();
 	}
 }

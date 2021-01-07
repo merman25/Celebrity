@@ -1,5 +1,8 @@
 package com.merman.celebrity.game.events;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.merman.celebrity.game.Game;
 
 public class GameEvent {
@@ -11,5 +14,9 @@ public class GameEvent {
 
 	public Game getGame() {
 		return game;
+	}
+	
+	public Map<String, String> toPropertyMap() {
+		return new HashMap<>();
 	}
 }

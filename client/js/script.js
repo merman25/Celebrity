@@ -455,17 +455,38 @@ function tryToOpenSocket() {
 				}
 			}
 
-			if (message.indexOf('GameState=') === 0) {
+			if (message.indexOf('JSON=') === 0) {
+				const jsonString = message.substring('JSON='.length, message.length);
+				const messageObject = JSON.parse(jsonString);
+				if (messageObject.GameState) {
+					if (serverGameState.testing) {
+						const keyValStringArr = [`Type [${messageObject.Type}]`];
+						Object.entries(messageObject)
+							.filter(entry => entry[0] !== 'GameState' && entry[0] !== 'Type')
+							.map(([key, value]) => `${key} [${value}]`)
+							.forEach(text => keyValStringArr.push(text));
+						console.log(util.formatTime(), 'Game event', keyValStringArr.join(', '));
+					}
+					const gameObj = JSON.parse(messageObject.GameState);
+					processGameStateObject(gameObj);
+				}
+				else if (messageObject.Type === 'TurnTimeRemaining') {
+					const millisRemainingString = messageObject.MillisRemaining;
+					const millisRemaining = parseInt(millisRemainingString);
+					const secondsRemaining = Math.ceil(millisRemaining / 1000);
+
+					updateCountdownClock(secondsRemaining);
+				}
+				else {
+					console.log('object received', messageObject);
+				}
+			}
+
+			else if (message.indexOf('GameState=') === 0) {
+				// Happens when we refresh
 				const gameStateString = message.substring('GameState='.length, message.length);
 				const gameObj = JSON.parse(gameStateString);
 				processGameStateObject(gameObj);
-			}
-			else if (message.indexOf('MillisRemaining=') === 0) {
-				const millisRemainingString = message.substring('MillisRemaining='.length, message.length);
-				const millisRemaining = parseInt(millisRemainingString);
-				const secondsRemaining = Math.ceil(millisRemaining / 1000);
-
-				updateCountdownClock(secondsRemaining);
 			}
 			else if (message !== 'gotcha') {
 				console.log(`message: ${evt.data}`);

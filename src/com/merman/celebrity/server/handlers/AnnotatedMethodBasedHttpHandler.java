@@ -25,6 +25,7 @@ import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
+import com.merman.celebrity.util.JSONUtil;
 import com.sun.net.httpserver.HttpExchange;
 
 public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
@@ -166,7 +167,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				sendResponse(aHttpExchange, HTTPResponseConstants.OK, (String) responseObject);
 			}
 			else if ( responseObject instanceof Map ) {
-				String responseString = serialiseMap( (Map) responseObject );
+				String responseString = JSONUtil.serialiseMap( (Map) responseObject );
 				sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
 			}
 		} catch (InvocationTargetException e) {

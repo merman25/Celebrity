@@ -13,6 +13,7 @@ import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.GameStatus;
 import com.merman.celebrity.game.Player;
 import com.merman.celebrity.game.PlayerManager;
+import com.merman.celebrity.game.events.SetGameParamsGameEvent;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
@@ -71,7 +72,7 @@ public class AnnotatedHandlers {
 		game.setNumRounds(numRounds);
 		game.setRoundDurationInSec(roundDuration);
 		game.setNumNamesPerPlayer(numNames);
-		game.fireGameEvent();
+		game.fireGameEvent(new SetGameParamsGameEvent(game, numRounds, roundDuration, numNames));
 	}
 	
 	@HTTPRequest( requestName = "allocateTeams" )
