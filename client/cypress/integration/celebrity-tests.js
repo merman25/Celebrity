@@ -40,11 +40,6 @@ for (let i = 0; i < gameSpecs.length; i++) {
             cy.visit(URL);
             cy.request(`${URL}/setTesting`);
 
-            if (gameSpec.index !== 0) {
-                // Since the player at index 0 is hard-coded to be the host, make sure they have time to join the game first.
-                cy.wait(10000);
-            }
-
             const index = gameSpec.index;
             const playerName = gameSpec.playerNames[index];
             const clientState = {
@@ -63,9 +58,8 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
             }
             if (gameSpec.customActions)
-                clientState.customActions = gameSpec.customActions;
-
-
+                clientState.customActions = gameSpec.customActions;   
+    
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
             playGame(clientState);
@@ -77,7 +71,21 @@ for (let i = 0; i < gameSpecs.length; i++) {
 export function playGame(clientState) {
     if (!clientState.iAmHosting
         || clientState.restoredGame) {
+
+        if (clientState.restoredGame) {
+            // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
+            if (clientState.index !== 0) {
+                cy.readFile(`temp_files/host_joined_game_${clientState.gameID}`);
+            }
+        }
+
         joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+        if (clientState.restoredGame) {
+            // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
+            if (clientState.index === 0) {
+                cy.writeFile(`temp_files/host_joined_game_${clientState.gameID}`, '0');
+            }
+        }
     }
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID);
