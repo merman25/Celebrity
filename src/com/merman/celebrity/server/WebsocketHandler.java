@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONObject;
+
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.game.Player;
@@ -396,7 +398,10 @@ public class WebsocketHandler {
 						Player player = session.getPlayer();
 						Game game = player == null ? null : player.getGame();
 						if (game != null) {
-							enqueueMessage("GameState=" + GameManager.serialise(game, session.getSessionID(), true));
+							JSONObject jsonObject = GameManager.toJSONObject(game, session.getSessionID(), true);
+							jsonObject.put("GameEventType", "Refresh WebSocket");
+							String jsonString = jsonObject.toString();
+							enqueueMessage("JSON=" + jsonString);
 							game.addGameEventListener(new NotifyClientGameEventListener(WebsocketHandler.this));
 						}
 					}

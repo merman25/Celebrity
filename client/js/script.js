@@ -2,6 +2,7 @@ import * as util from './util.js';
 
 let webSocket = null;
 let firstSocketMessage = true;
+let gameEventLogging = false;
 
 let serverGameState = {};
 
@@ -458,20 +459,19 @@ function tryToOpenSocket() {
 			if (message.indexOf('JSON=') === 0) {
 				const jsonString = message.substring('JSON='.length, message.length);
 				const messageObject = JSON.parse(jsonString);
-				if (messageObject.GameState) {
-					if (serverGameState.testing) {
-						const keyValStringArr = [`Type [${messageObject.Type}]`];
+				if (messageObject.isGameState) {
+					if (gameEventLogging) {
+						const keyValStringArr = [`Type [${messageObject.GameEventType}]`];
 						Object.entries(messageObject)
-							.filter(entry => entry[0] !== 'GameState' && entry[0] !== 'Type')
-							.map(([key, value]) => `${key} [${value}]`)
+							.filter(entry => entry[0].indexOf('GameEvent') === 0 && entry[0] !== 'GameEventType')
+							.map(([key, value]) => `${key.substring('GameEvent'.length)} [${value}]`)
 							.forEach(text => keyValStringArr.push(text));
 						console.log(util.formatTime(), 'Game event', keyValStringArr.join(', '));
 					}
-					const gameObj = JSON.parse(messageObject.GameState);
-					processGameStateObject(gameObj);
+					processGameStateObject(messageObject);
 				}
-				else if (messageObject.Type === 'TurnTimeRemaining') {
-					const millisRemainingString = messageObject.MillisRemaining;
+				else if (messageObject.GameEventType === 'TurnTimeRemaining') {
+					const millisRemainingString = messageObject.GameEventMillisRemaining;
 					const millisRemaining = parseInt(millisRemainingString);
 					const secondsRemaining = Math.ceil(millisRemaining / 1000);
 
@@ -510,6 +510,10 @@ function processGameStateObject(newGameStateObject) {
 	myGameState.iAmHosting = iAmHost();
 	myGameState.myName = serverGameState.yourName;
 	myGameState.mySubmittedNameList = serverGameState.submittedNameList;
+
+	if (serverGameState.testing) {
+		gameEventLogging = true;
+	}
 
 	if (!myGameState.iAmPlaying) {
 		clearTestTrigger();

@@ -170,6 +170,13 @@ public class GameManager {
 	}
 	
 	public static String serialise( Game aGame, String aSessionIDOfRequester, boolean aForClient ) {
+		JSONObject jsonObject = toJSONObject(aGame, aSessionIDOfRequester, aForClient);
+		
+		
+		return jsonObject.toString();
+	}
+
+	public static JSONObject toJSONObject(Game aGame, String aSessionIDOfRequester, boolean aForClient) {
 		Integer publicIDOfRequester = null;
 		Player playerRequesting = null;
 		Session sessionRequesting = null;
@@ -184,6 +191,7 @@ public class GameManager {
 		// TODO should synchronize on aGame?
 		
 		JSONObject jsonObject = new JSONObject()
+				.put( "isGameState", true )
                 .put( "gameID", aGame.getID() )
 				.put( "status", aGame.getStatus() )
                 .put( "teams", aGame.getTeamList().stream()
@@ -273,9 +281,7 @@ public class GameManager {
 			jsonObject.put( "secondsRemaining", 0 );
 	          
 		}
-		
-		
-		return jsonObject.toString();
+		return jsonObject;
 	}
 	
 	private static JSONObject toJSON( Player aPlayer ) {
