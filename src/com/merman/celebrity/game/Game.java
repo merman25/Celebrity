@@ -324,7 +324,7 @@ public class Game implements ICanExpire {
 	}
 
 	public synchronized void shuffleNames() {
-		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "shuffleName");
+		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "shuffleNames");
 		previousNameIndex = 0;
 		currentNameIndex = 0;
 		shuffledNameList.clear();
