@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.json.JSONObject;
 
@@ -32,6 +33,8 @@ public class Server {
 			"js/*",
 			"icons/*"
     ) );
+	
+	private static AtomicInteger httpServerThreadCounter = new AtomicInteger();
 	
 	private int portNumber = 8000;
 
@@ -89,7 +92,7 @@ public class Server {
 			server.createContext("/" + handler.getContextName(), handler);
 		}
 		
-		server.setExecutor( Executors.newFixedThreadPool(10) );
+		server.setExecutor( Executors.newFixedThreadPool(10, runnable -> new Thread(runnable, "HTTPServer-" + httpServerThreadCounter.incrementAndGet()) ));
 		server.start();
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Serving HTTP requests on port", portNumber);
 		
