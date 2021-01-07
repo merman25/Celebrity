@@ -59,7 +59,8 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 turns: gameSpec.turns,
                 restoredGame: gameSpec.restoredGame,
                 namesSeen: [],
-                fastMode: fastMode
+                fastMode: fastMode,
+                fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
@@ -163,7 +164,9 @@ function waitForWakeUpTrigger(clientState) {
 
             console.log(util.formatTime(), `found test trigger ${triggerElement.innerText}`);
 
-            checkDOMContent(DOMSpecs, clientState);
+            if (clientState.fullChecksWhenNotInFastMode) {
+                checkDOMContent(DOMSpecs, clientState);
+            }
 
             // If custom actions need to be taken, take them.
             let tookAction = false;
@@ -181,7 +184,7 @@ function waitForWakeUpTrigger(clientState) {
             }
             else if (triggerElement.innerText === 'bot-game-over') {
                 // Finished game, stop here
-                if (!fastMode) {
+                if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
                 console.log('Finished!!');
@@ -201,13 +204,13 @@ function waitForWakeUpTrigger(clientState) {
                 // Ready to start a new round.
                 // Only the host needs to click something now, but all players will see the same trigger text.
 
-                if (!fastMode) {
+                if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
 
                 if (clientState.iAmHosting) {
                     // Host clicks the start next round button
-                    if (!fastMode) {
+                    if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
                         cy.wait(5000); // Give player who finished the round time to check the scores div
                     }
                     cy.get('[id="startNextRoundButton"]').click();
@@ -248,13 +251,13 @@ function getNames(clientState) {
     // should('be.visible') to make sure we at least wait for the button to appear.
 
     // options = {force: true};
-    if (!fastMode || options.force) {
+    if (( !fastMode && clientState.fullChecksWhenNotInFastMode) || options.force) {
         cy.get('[id="gotNameButton"]').should('be.visible');
         cy.get('[id="passButton"]').should('be.visible');
         cy.get('[id="endTurnButton"]').should('be.visible');
     }
 
-    if (!fastMode) {
+    if ( !fastMode && clientState.fullChecksWhenNotInFastMode ) {
         // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
         // We also check that the names we see are elements of the celebName list rather than other strings
         retrieveTestBotInfo()

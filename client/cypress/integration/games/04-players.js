@@ -16,6 +16,7 @@ export const gameSpec = {
         ['Emily Blunt', 'Emma Thompson', 'Judi Dench', 'Carey Mulligan', 'Cate Blanchett', 'Rhea Seehorn']
     ],
     turnIndexOffset: 0,
+    fullChecksWhenNotInFastMode: true,
 
     // 24 total
     turns: [
