@@ -124,6 +124,11 @@ cd client
 rm -fr cypress/screenshots/*
 rm -fr cypress/videos/*
 
+if [ -d temp_files ]; then
+    rm -fr temp_files
+fi
+mkdir temp_files
+
 
 test_type="full"
 if [ "$FAST_MODE" == "true" ]; then

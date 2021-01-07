@@ -70,21 +70,38 @@ export const gameSpec = {
 
             // Moves himself to Team1
             common.selectContextMenuItemForPlayer(clientState.playerName, '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam1');
+            // Each time we move a player, we check that they were successfully moved. This doesn't only check the move itself, but
+            // also ensures there was time to re-render the DOM - without that, for the next right-click, it may try to click on
+            // the player's old table cell (the one that's going to be removed during re-render), instead of the new one.
+            cy.get('.playerInTeamTDClass').contains(clientState.playerName)
+                .then(elements => {
+                    const element = elements[0];
+                    expect(element.getAttribute('teamindex'), `${clientState.playerName} new team index`).to.equal('1');
+                });
 
-            // give time for it to process that Marvin has changed teams, otherwise it'll try to right-click on Johnny 5's old table cell (at index 1),
-            // instead of the new one (at index 0) that appears after the teams table is re-rendered.
-            let reRenderWaitTimeMillis=500;
-            cy.wait(reRenderWaitTimeMillis);
 
             // Moves Johnny 5 to Team1 and Bender to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam1');
+            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[1])
+                .then(elements => {
+                    const element = elements[0];
+                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[1]} new team index`).to.equal('1');
+                });
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
+            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[0])
+                .then(elements => {
+                    const element = elements[0];
+                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[0]} new team index`).to.equal('0');
+                });
 
-            // give time to re-render the table
-            cy.wait(reRenderWaitTimeMillis);
 
             // Moves R2D2 to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
+            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[2])
+                .then(elements => {
+                    const element = elements[0];
+                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[2]} new team index`).to.equal('0');
+                });
 
             // Moves Johnny 5 up, moves Bender down
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveUp');
@@ -92,28 +109,39 @@ export const gameSpec = {
 
             if (!clientState.fastMode) {
                 cy.get('.playerInTeamTDClass').first().contains(clientState.otherPlayers[2]);
-                cy.wait(2000); // give the others time to verify
+                // the others report that they've verified by writing a file
+                cy.readFile('temp_files/1.1', {timeout: 10000});
+                cy.readFile('temp_files/1.2', {timeout: 10000});
+                cy.readFile('temp_files/1.3', {timeout: 10000});
 
                 cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
-                cy.wait(4000); // give the others time to verify
+                cy.readFile('temp_files/2.1', {timeout: 10000});
+                cy.readFile('temp_files/2.2', {timeout: 10000});
+                cy.readFile('temp_files/2.3', {timeout: 10000});
 
                 // Johnny 5 refreshes his browser as part of his custom actions, and will need to be put back in the team.
                 // This removes his old session from the game
                 common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'removePlayerInTeamFromGame')
                 cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`);
-                cy.wait(4000); // give the others time to verify
+                cy.readFile('temp_files/3.1', {timeout: 10000});
+                cy.readFile('temp_files/3.2', {timeout: 10000});
+                cy.readFile('temp_files/3.3', {timeout: 10000});
 
                 // Put teamless Johnny 5, his new session, into Team1 and move him down
                 // (actually he's already at the bottom of the list, so this moves him to the top since it wraps around)
                 common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.teamlessPlayerLiClass', 'contextMenuForTeamlessPlayer', 'changeToTeam1');
                 common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
                 cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`);
-                cy.wait(4000); // give the others time to verify
+                cy.readFile('temp_files/4.1', {timeout: 10000});
+                cy.readFile('temp_files/4.2', {timeout: 10000});
+                cy.readFile('temp_files/4.3', {timeout: 10000});
 
                 // Make Bender next in Team0
                 common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
                 cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[0]} to start turn`);
-                cy.wait(4000); // give the others time to verify
+                cy.readFile('temp_files/5.1', {timeout: 10000});
+                cy.readFile('temp_files/5.2', {timeout: 10000});
+                cy.readFile('temp_files/5.3', {timeout: 10000});
 
                 // Make R2D2 next in Team0
                 common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
@@ -121,7 +149,9 @@ export const gameSpec = {
             }
             else {
                 // give the others time to verify
-                cy.wait(4000);
+                cy.readFile('temp_files/1.1', {timeout: 10000});
+                cy.readFile('temp_files/1.2', {timeout: 10000});
+                cy.readFile('temp_files/1.3', {timeout: 10000});
             }
 
             // Put the correct teamIndex and playerIndex values into clientState
@@ -138,18 +168,23 @@ export const gameSpec = {
             if (!clientState.fastMode) {
                 // Check R2D2 is at [0,0] in the table, after everyone has been initially put back into their teams
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.1', '0');
 
                 // Check Johnny 5 is listed as a teamless player, after he was removed and re-entered the game
                 cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1], { timeout: 20000 });
+                cy.writeFile('temp_files/2.1', '0');
 
                 // Check Johnny 5 isn't in the team list
                 cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[1]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/3.1', '0');
 
                 // Check he's back, at [1,0]
                 cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/4.1', '0');
 
                 // Check it gets set to my (Bender's) turn
                 cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 20000 });
+                cy.writeFile('temp_files/5.1', '0');
 
                 // Check it gets set to R2D2's turn
                 cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
@@ -157,6 +192,7 @@ export const gameSpec = {
             else {
                 // Check I (Bender) am at [0,1], which is the end state of all the team manipulations.
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.playerName}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.1', '0');
             }
 
             // Put the correct teamIndex and playerIndex values into clientState
@@ -173,20 +209,25 @@ export const gameSpec = {
             if (!clientState.fastMode) {
                 // Check R2D2 is at [0,0] in the table, after everyone has been initially put back into their teams
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.2', '0');
 
                 // refresh the page, to simulate losing connection, then re-join the game
                 cy.clearCookies();
                 cy.visit(common.URL);
                 common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+                cy.writeFile('temp_files/2.2', '0');
 
                 // Check I'm not in the team list
                 cy.get('[id="teamList"]').not(`:contains("${clientState.playerName}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/3.2', '0');
 
                 // Check I'm back, at [1,0]
                 cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/4.2', '0');
 
                 // Check it gets set to Bender's turn
                 cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 20000 });
+                cy.writeFile('temp_files/5.2', '0');
 
                 // Check it gets set to R2D2's turn
                 cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
@@ -194,6 +235,7 @@ export const gameSpec = {
             else {
                 // Check Bender is at [0,1], which is the end state of all the team manipulations.
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.2', '0');
             }
 
             // Put the correct teamIndex and playerIndex values into clientState
@@ -210,18 +252,23 @@ export const gameSpec = {
             if (!clientState.fastMode) {
                 // Check I'm at [0,0] in the table, after everyone has been initially put back into their teams
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.playerName}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.3', '0');
 
                 // Check Johnny 5 is listed as a teamless player, after he was removed and re-entered the game
                 cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[2], { timeout: 20000 });
+                cy.writeFile('temp_files/2.3', '0');
 
                 // Check Johnny 5 isn't in the team list
                 cy.get('[id="teamList"]').not(`:contains("${clientState.otherPlayers[2]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/3.3', '0');
 
                 // Check he's back, at [1,0]
                 cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="0"]:contains("${clientState.otherPlayers[2]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/4.3', '0');
 
                 // Check it gets set to Bender's turn
                 cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 20000 });
+                cy.writeFile('temp_files/5.3', '0');
 
                 // Check it gets set to my (R2D2's) turn
                 cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 20000 });
@@ -229,6 +276,7 @@ export const gameSpec = {
             else {
                 // Check Bender is at [0,1], which is the end state of all the team manipulations.
                 cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.otherPlayers[1]}")`, { timeout: 20000 });
+                cy.writeFile('temp_files/1.3', '0');
             }
 
             // Put the correct teamIndex and playerIndex values into clientState
