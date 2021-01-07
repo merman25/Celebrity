@@ -2,6 +2,7 @@ import { DOMSpecs } from "./dom-specs";
 import * as spec4Players from "./games/04-players"
 import * as specRestoredMiddle from "./games/rejoin-restored-game-middle-of-round"
 import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
+import * as util from "./util.js"
 
 let allCelebNames = null;
 let fastMode = false;
@@ -37,6 +38,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
     describe(`Player ${gameSpec.index + 1}`, () => {
         it(`Plays spec ${i}: ${gameSpec.description}`, () => {
             cy.visit(URL);
+            cy.request(`${URL}/setTesting`);
 
             if (gameSpec.index !== 0) {
                 // Since the player at index 0 is hard-coded to be the host, make sure they have time to join the game first.
@@ -159,7 +161,7 @@ function waitForWakeUpTrigger(clientState) {
         .then(elements => {
             const triggerElement = elements[0];
 
-            console.log(formatTime(), `found test trigger ${triggerElement.innerText}`);
+            console.log(util.formatTime(), `found test trigger ${triggerElement.innerText}`);
 
             checkDOMContent(DOMSpecs, clientState);
 
@@ -211,7 +213,7 @@ function waitForWakeUpTrigger(clientState) {
                     cy.get('[id="startNextRoundButton"]').click();
                 }
                 else {
-                    console.log(formatTime(), 'waiting for ready-to-start-next-round to clear');
+                    console.log(util.formatTime(), 'waiting for ready-to-start-next-round to clear');
                     // Non-host just waits until the trigger text isn't there any more, to avoid endlessly re-entering this method
                     cy.get('.testTriggerClass').contains('bot-ready-to-start-next-round', { timeout: 60000 }).should('not.exist');
                 }
@@ -322,7 +324,6 @@ function getNames(clientState) {
 }
 
 function startHostingNewGame(playerName, gameID) {
-    cy.request(`${URL}/setTesting`);
     cy.get('[id="nameField"]').type(playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
@@ -533,35 +534,4 @@ function checkFinalScoreForRound(clientState) {
                 });
 
         });
-}
-
-function formatTime() {
-	const date = new Date();
-	const hours = addLeadingZeroes(date.getHours(), 2);
-	const mins = addLeadingZeroes(date.getMinutes(), 2);
-	const secs = addLeadingZeroes(date.getSeconds(), 2);
-	return `${hours}:${mins}:${secs}`;
-}
-
-function addLeadingZeroes(number, minDigits) {
-	let formattedNumber;
-	if (number === 0) {
-		formattedNumber = '0'.repeat(minDigits);
-	}
-	else if (number < 0) {
-		formattedNumber = '-' + addLeadingZeroes(-number, minDigits);
-	}
-	else {
-		const limit 		= 10 ** (minDigits - 1);
-		const log10 		= Math.floor(Math.log(number) / Math.log(10));
-		const numDigits		= log10 + 1;
-		if (numDigits < minDigits) {
-			formattedNumber = '0'.repeat(minDigits - numDigits) + number.toString();
-		}
-		else {
-			formattedNumber = number.toString();
-		}
-	}
-
-	return formattedNumber;
 }

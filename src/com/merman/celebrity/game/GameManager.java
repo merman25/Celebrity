@@ -224,7 +224,9 @@ public class GameManager {
 			;
 			
 			if (sessionRequesting != null) {
-				jsonObject.put( "sessionMaxAge", sessionRequesting.getExpiryTime().getDurationToExpirySeconds());
+				jsonObject
+				.put( "testing", sessionRequesting.isTestSession() )
+				.put( "sessionMaxAge", sessionRequesting.getExpiryTime().getDurationToExpirySeconds());
 			}
 			
 			if ( aGame.getCurrentPlayer() != null ) {
