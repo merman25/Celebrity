@@ -210,13 +210,6 @@ public class Game implements ICanExpire {
 			mapPlayersToTeams.put(playerList.get(0), team1);
 		}
 		else {
-
-			/* Start from top, and work down. This ensures that if there's an odd
-			 * number of players, Team 1 always has more than Team 2. Most importantly,
-			 * this means that if there's only 1 player (for testing only), he goes in
-			 * Team 1. If the only player is in Team 2, the client gets confused and
-			 * doesn't give him a turn.
-			 */
 			for (int i = 0; i < limit; i++) {
 				Player player = playerList.get(i);
 				team1.addPlayer(player);
