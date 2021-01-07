@@ -73,35 +73,19 @@ export const gameSpec = {
             // Each time we move a player, we check that they were successfully moved. This doesn't only check the move itself, but
             // also ensures there was time to re-render the DOM - without that, for the next right-click, it may try to click on
             // the player's old table cell (the one that's going to be removed during re-render), instead of the new one.
-            cy.get('.playerInTeamTDClass').contains(clientState.playerName)
-                .then(elements => {
-                    const element = elements[0];
-                    expect(element.getAttribute('teamindex'), `${clientState.playerName} new team index`).to.equal('1');
-                });
+            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="2"]:contains("${clientState.playerName}")`);
 
 
             // Moves Johnny 5 to Team1 and Bender to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam1');
-            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[1])
-                .then(elements => {
-                    const element = elements[0];
-                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[1]} new team index`).to.equal('1');
-                });
+            cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="3"]:contains("${clientState.otherPlayers[1]}")`);
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
-            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[0])
-                .then(elements => {
-                    const element = elements[0];
-                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[0]} new team index`).to.equal('0');
-                });
+            cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[0]}")`);
 
 
             // Moves R2D2 to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
-            cy.get('.playerInTeamTDClass').contains(clientState.otherPlayers[2])
-                .then(elements => {
-                    const element = elements[0];
-                    expect(element.getAttribute('teamindex'), `${clientState.otherPlayers[2]} new team index`).to.equal('0');
-                });
+            cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="1"]:contains("${clientState.otherPlayers[2]}")`);
 
             // Moves Johnny 5 up, moves Bender down
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveUp');
