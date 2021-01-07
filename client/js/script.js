@@ -4,6 +4,9 @@ let webSocket = null;
 let firstSocketMessage = true;
 let gameEventLogging = false;
 
+// Hack to be able to change gameEventLogging variable from console
+window.setGameEventLogging = (trueFalse) => gameEventLogging = trueFalse;
+
 let serverGameState = {};
 
 const iconSize = '1.5rem';
