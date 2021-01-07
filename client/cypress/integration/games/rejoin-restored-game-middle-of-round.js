@@ -215,6 +215,7 @@ export const gameSpec = {
                 cy.clearCookies();
                 cy.visit(common.URL);
                 common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+                cy.request(`${common.URL}/setTesting`);
                 cy.writeFile('temp_files/2.2', '0');
 
                 // Check I'm not in the team list
