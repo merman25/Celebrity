@@ -32,6 +32,14 @@ upload() {
 	&& ee 'rm -fr upload'
 }
 
+fix_symlink_on_windows() {
+    # quick hack
+    if is_cygwin; then
+	ee '/bin/rm client/cypress/integration/util.js'
+	ee '/bin/cp client/js/util.js client/cypress/integration'
+    fi
+}
+
 ee 'rm -fr release' \
     && ee 'mkdir release' \
     && ee 'cd release' \
@@ -41,6 +49,7 @@ ee 'rm -fr release' \
     && ee 'cd client' \
     && ee 'npm install' \
     && ee 'cd ..' \
+    && ee 'fix_symlink_on_windows' \
     && ee 'bash run-tests.sh -fjx' \
     && ee 'bash run-tests.sh -jrwx' \
     && ee 'upload' \
