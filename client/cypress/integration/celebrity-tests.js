@@ -56,6 +56,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 namesSeen: [],
                 fastMode: fastMode,
                 fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
+                roundIndex: 0,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;   
@@ -75,11 +76,11 @@ export function playGame(clientState) {
         if (clientState.restoredGame) {
             // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
             if (clientState.index !== 0) {
-                cy.readFile(`temp_files/host_joined_game_${clientState.gameID}`);
+                cy.readFile(`temp_files/host_joined_game_${clientState.gameID}`, {timeout: 60000});
             }
         }
 
-        joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+        joinGame(clientState.playerName, clientState.gameID, clientState.hostName, clientState);
         if (clientState.restoredGame) {
             // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
             if (clientState.index === 0) {
@@ -88,21 +89,39 @@ export function playGame(clientState) {
         }
     }
     else {
-        startHostingNewGame(clientState.playerName, clientState.gameID);
+        startHostingNewGame(clientState.playerName, clientState.gameID, clientState);
     }
     checkDOMContent(DOMSpecs, clientState);
 
     // Check I and the other players are listed, ready to be put into teams
     cy.contains('.teamlessPlayerLiClass', clientState.playerName, { timeout: 20000 });
-    checkTeamlessPlayerList(clientState.otherPlayers);
+    const checkTeamlessPromise = checkTeamlessPlayerList(clientState.otherPlayers);
 
     // Set the game parameters (num rounds, num names per player, etc)
     if (clientState.iAmHosting
         && !clientState.restoredGame) {
         // Give everyone time to check the DOM content before it changes
-        cy.wait(2000);
+
+        const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
+        for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
+            cy.get('html')
+            .then(() => {
+                // put inside a get/then to make sure there has been enough time to set clientState.gameID
+                cy.readFile(`temp_files/checked_initial_dom_${clientState.gameID}.${otherIndex}`);
+            });
+        }
+
         setGameParams(clientState.playerName);
     }
+    else {
+        cy.get('html')
+        .then(() => {
+                // put inside a get/then to make sure there has been enough time to set clientState.gameID
+                cy.writeFile(`temp_files/checked_initial_dom_${clientState.gameID}.${clientState.index}`, '0');
+        });
+    }
+
+
 
     checkDOMContent(DOMSpecs, clientState);
     if (!clientState.restoredGame
@@ -116,8 +135,25 @@ export function playGame(clientState) {
 
     if (!fastMode) {
         // Give everyone time to check the DOM content before it changes
-        cy.wait(2000);
+        if (clientState.iAmHosting) {
+            const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
+            for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
+                cy.get('html')
+                    .then(() => {
+                        // put inside a get/then to make sure there has been enough time to set clientState.gameID
+                        cy.readFile(`temp_files/checked_dom_after_game_params_${clientState.gameID}.${otherIndex}`);
+                    });
+            }
+        }
+        else {
+            cy.get('html')
+                .then(() => {
+                    // put inside a get/then to make sure there has been enough time to set clientState.gameID
+                    cy.writeFile(`temp_files/checked_dom_after_game_params_${clientState.gameID}.${clientState.index}`, '0');
+                });
+        }
     }
+
 
     if (clientState.iAmHosting) {
         if (!clientState.restoredGame) {
@@ -212,6 +248,7 @@ function waitForWakeUpTrigger(clientState) {
                 // Ready to start a new round.
                 // Only the host needs to click something now, but all players will see the same trigger text.
 
+                clientState.roundIndex = clientState.roundIndex + 1;
                 if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
@@ -283,6 +320,8 @@ function getNames(clientState) {
 
                 for (const move of turnToTake) {
 
+                    // Need to wait to make sure DOM is updated with new name, otherwise we can check the same name twice.
+                    // Should be a way to avoid this, but can't find it
                     cy.wait(500);
                     if (move === 'got-it') {
                         cy.get('[id="currentNameDiv"]')
@@ -334,7 +373,7 @@ function getNames(clientState) {
     }
 }
 
-function startHostingNewGame(playerName, gameID) {
+function startHostingNewGame(playerName, gameID, clientState) {
     cy.get('[id="nameField"]').type(playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
@@ -353,14 +392,18 @@ function startHostingNewGame(playerName, gameID) {
 
             assert(/^[0-9]{4}/.test(gameID), 'game ID is 4 digits');
 
+            clientState.gameID = gameID;
             cy.writeFile('temp_files/gameID', gameID)
         });
 }
 
 function checkTeamlessPlayerList(otherPlayers) {
+    let returnObject = null;
     for (const player of otherPlayers) {
-        cy.contains('.teamlessPlayerLiClass', player, { timeout: 120000 });
+        returnObject = cy.contains('.teamlessPlayerLiClass', player, { timeout: 120000 });
     }
+
+    return returnObject;
 }
 
 function setGameParams() {
@@ -422,7 +465,7 @@ function startGame() {
     }
 }
 
-export function joinGame(playerName, gameID, hostName) {
+export function joinGame(playerName, gameID, hostName, clientState) {
     cy.get('[id="nameField"]').type(playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
@@ -435,7 +478,10 @@ export function joinGame(playerName, gameID, hostName) {
     else {
         // read gameID from file, if it's not specified in the specs
         cy.readFile('temp_files/gameID')
-            .then(content => cy.get('[id="gameIDField"]').type(content));
+            .then(content => {
+                cy.get('[id="gameIDField"]').type(content);
+                clientState.gameID = content;
+           });
     }
 
     cy.get('[id="gameIDSubmitButton"]').click();
@@ -543,6 +589,18 @@ function checkFinalScoreForRound(clientState) {
 
                     expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
                 });
+
+                // These are flaky lines, it often gets stuck writing the files. So we do cy.wait() instead
+            // if (!clientState.iAmHosting) {
+            //     cy.writeFile(`temp_files/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
+            // }
+            // else {
+            //     const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
+            //     for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
+            //         cy.readFile(`temp_files/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
+            //     }
+            // }
+
 
         });
 }
