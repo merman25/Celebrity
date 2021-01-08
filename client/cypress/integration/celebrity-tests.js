@@ -274,8 +274,9 @@ function waitForWakeUpTrigger(clientState) {
 function getNames(clientState) {
     const turnCounter = clientState.turnCounter;
     const numPlayers = clientState.otherPlayers.length + 1;
-    const teamInfoObject = clientState;
     const turnIndexOffset = clientState.turnIndexOffset;
+    const playerIndex = clientState.playerIndex;
+    const teamIndex = clientState.teamIndex;
     const turns = clientState.turns;
     const namesSeen = clientState.namesSeen;
 
@@ -284,8 +285,13 @@ function getNames(clientState) {
 
     // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
     const numTeams = 2;
-    const turnIndex = turnIndexOffset + turnCounter * numPlayers + numTeams * teamInfoObject.playerIndex + teamInfoObject.teamIndex;
-    console.log(`turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamInfoObject.teamIndex}, playerIndex ${teamInfoObject.playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
+    const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
+
+    // If numPlayers is odd, team 0 has one more player than team 1.
+    const numPlayersInMyTeam        = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
+    const numTurnsBetweenMyTurns    = numTeams * numPlayersInMyTeam;
+    const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
+    console.log(`turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
     const turnToTake = turns[turnIndex];
 
