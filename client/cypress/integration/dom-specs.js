@@ -47,7 +47,7 @@ export const DOMSpecs = [
     
         {
             predicate: (testBotInfo, clientState) => testBotInfo.gameParamsSet,
-            text: 'Rounds: 3',
+            textFunction: (testBotInfo, clientState) => clientState.numRounds ? `Rounds: ${clientState.numRounds}` : 'Rounds: 3',
         },
 
         {

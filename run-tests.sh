@@ -2,7 +2,7 @@
 
 # Global variables in CAPS, local variables in lower case.
 START_DIR=$(pwd)
-TEST_ROOT="$START_DIR/test_results"
+TEST_ROOT="./test_results"
 
 
 print_usage() {
@@ -18,6 +18,7 @@ print_usage() {
     printf "\t-w:\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\tExit browser at end of test (default off)\n"
     printf "\t-d SEED:\tSpecify seed for random game\n"
+    printf "\t-p PORT:\t\tSpecify lowest port to use (default 10000)\n"
     printf "\t-u URL:\t\tSpecify URL to use\n"
 }
 
@@ -29,6 +30,14 @@ is_cygwin(){
 	else
 		return 1
 	fi
+}
+
+fix_cygwin_path() {
+    if is_cygwin; then
+	cygpath -w "$*" | sed 's-\\-/-g'
+    else
+	echo "$*"
+    fi
 }
 
 random_hex() {
@@ -107,7 +116,8 @@ build_cypress_env_common() {
     fast_mode="$2"
     url="$3"
 
-    ENV="TEMP_DIR=${TEST_DIR}/temp_files,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
+    TEMP_FILE_DIR=$(fix_cygwin_path "$TEST_DIR")/temp_files
+    ENV="TEMP_DIR=$TEMP_FILE_DIR,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
 
     echo -n "$ENV"
 }
@@ -146,7 +156,7 @@ start_player() {
 	inc_restored="$5"
 
 	ENV=$(build_cypress_env_deterministic "$player_index" "$fast_mode" "$url" "$inc_restored")
-	port=$((10000 + "$player_index"))
+	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     elif [ "$mode" == "rand" ]; then
@@ -157,7 +167,7 @@ start_player() {
 	seed="$6"
 
 	ENV=$(build_cypress_env_random "$player_index" "$fast_mode" "$url" "$num_players" "$seed")
-	port=$((10000 + "$player_index"))
+	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     else
@@ -177,8 +187,9 @@ EXIT="--no-exit"
 START_SERVER="true"
 RANDOM_GAME="false"
 SEED=""
+PORT_BASE=10000
 URL="default"
-while getopts "hfjkqrswxu:d:" OPT; do
+while getopts "hfjkqrswxu:d:p:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -210,6 +221,9 @@ while getopts "hfjkqrswxu:d:" OPT; do
 	    ;;
 	d)
 	    SEED="$OPTARG"
+	    ;;
+	p)
+	    PORT_BASE="$OPTARG"
 	    ;;
 	u)
 	    URL="$OPTARG"
@@ -249,7 +263,7 @@ fi
 
 sleep 1
 cd client
-
+TEST_DIR="../$TEST_ROOT"/"$TSTAMP"
 
 TEST_TYPE="full"
 if [ "$FAST_MODE" == "true" ]; then
@@ -286,6 +300,10 @@ fi
 
 sleep 5
 cd "$START_DIR"
+TEST_DIR="$TEST_ROOT"/"$TSTAMP"
+RESULTS_DIR_PREFIX="$TEST_DIR/results"
+RESULTS_DIR="$RESULTS_DIR_PREFIX"-"$TEST_TYPE"
+
 exec_command_in_new_window Dashboard bash dashboard.sh "$RESULTS_DIR" &
 
 while sleep 1; do
