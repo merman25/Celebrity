@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswx] [-u URL]\n"
+    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED]\n"
     printf "\n"
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
@@ -11,6 +11,7 @@ print_usage() {
     printf "\t-s:\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
     printf "\t-w:\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\tExit browser at end of test (default off)\n"
+    printf "\t-d SEED:\tSpecify seed for random game\n"
     printf "\t-u URL:\t\tSpecify URL to use\n"
 }
 
@@ -55,7 +56,8 @@ HEAD="--headless"
 EXIT="--no-exit"
 START_SERVER="true"
 RANDOM_GAME="false"
-while getopts "hfjqrswxu:" OPT; do
+SEED=""
+while getopts "hfjqrswxu:d:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -81,6 +83,9 @@ while getopts "hfjqrswxu:" OPT; do
 	    ;;
 	x)
 	    EXIT=""
+	    ;;
+	d)
+	    SEED="$OPTARG"
 	    ;;
 	u)
 	    URL="$OPTARG"
@@ -149,14 +154,22 @@ fi
 rm -f "results-$test_type"/*
 
 if [ "$RANDOM_GAME" == "true" ]; then
-    seed=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
-    echo "seed: $seed"
+    if [ -z "$SEED" ]; then
+	SEED=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
+    fi
+    echo "seed: $SEED"
+
+    MAX_RANDOM_INT_IN_BASH=32767 # min value is 0
+    RANDOM=$((16#"$SEED" % $MAX_RANDOM_INT_IN_BASH)) # seed the generator to get predictable value
+    
     num_players=$((2 + $RANDOM % 9));
 
     for player_index in $(seq 0 $(( $num_players - 1 )) ); do
-	exec_command_in_new_window "Player $player_index" npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=$player_index,FAST_MODE=$FAST_MODE,URL=$URL,RANDOM=true,NUM_PLAYERS=$num_players,SEED="$seed" $HEAD $EXIT -p $((10000 + $player_index )) '>' "results-$test_type/player${player_index}-report" &
+	exec_command_in_new_window "Player $player_index" npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=$player_index,FAST_MODE=$FAST_MODE,URL=$URL,RANDOM=true,NUM_PLAYERS=$num_players,SEED="$SEED" $HEAD $EXIT -p $((10000 + $player_index )) '>' "results-$test_type/player${player_index}-report" &
     done
 else
+    num_players=4
+    
     exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
     exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
     exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
@@ -169,7 +182,7 @@ exec_command_in_new_window Dashboard bash dashboard.sh &
 
 while sleep 1; do
     num_passes=$(grep -l 'All specs passed' "results-$test_type"/player* | wc -l)
-    if [ $num_passes -eq 4 ]; then
+    if [ $num_passes -eq $num_players ]; then
 	echo "OK"
 	exit 0
     else
