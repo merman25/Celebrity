@@ -6,23 +6,24 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-p PORT]\n"
+    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
     printf "\n"
-    printf "\t-h:\t\tPrint this message and exit\n"
-    printf "\t-f:\t\tFast mode (default off)\n"
-    printf "\t-j:\t\tRun from jar (default off)\n"
-    printf "\t-k:\t\tKill old tests and server before starting (default off)\n"
-    printf "\t-q:\t\tPlay a random game (default off)\n"
-    printf "\t-r:\t\tInclude tests of restored games (default off)\n"
-    printf "\t-s:\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
-    printf "\t-w:\t\tOpen browser windows (default off)\n"
-    printf "\t-x:\t\tExit browser at end of test (default off)\n"
-    printf "\t-d SEED:\tSpecify seed for random game\n"
-    printf "\t-l NUM_PLAYERS:\tNumber of players\n"
-    printf "\t-n NUM_NAMES:\tNumber of names per player\n"
-    printf "\t-o NUM_ROUNDS:\tNumber of rounds\n"
-    printf "\t-p PORT:\tSpecify lowest port to use (default 10000)\n"
-    printf "\t-u URL:\t\tSpecify URL to use\n"
+    printf "\t-h:\t\t\t\tPrint this message and exit\n"
+    printf "\t-f:\t\t\t\tFast mode (default off)\n"
+    printf "\t-j:\t\t\t\tRun from jar (default off)\n"
+    printf "\t-k:\t\t\t\tKill old tests and server before starting (default off)\n"
+    printf "\t-q:\t\t\t\tPlay a random game (default off)\n"
+    printf "\t-r:\t\t\t\tInclude tests of restored games (default off)\n"
+    printf "\t-s:\t\t\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
+    printf "\t-w:\t\t\t\tOpen browser windows (default off)\n"
+    printf "\t-x:\t\t\t\tExit browser at end of test (default off)\n"
+    printf "\t-d SEED:\t\t\tSpecify seed for random game\n"
+    printf "\t-g STAGGERED_DELAY_IN_SEC:\tStaggered start of each player, with specified delay (default 0)\n"
+    printf "\t-l NUM_PLAYERS:\t\t\tNumber of players\n"
+    printf "\t-n NUM_NAMES:\t\t\tNumber of names per player\n"
+    printf "\t-o NUM_ROUNDS:\t\t\tNumber of rounds\n"
+    printf "\t-p PORT:\t\t\tSpecify lowest port to use (default 10000)\n"
+    printf "\t-u URL:\t\t\t\tSpecify URL to use\n"
 }
 
 is_cygwin(){
@@ -199,7 +200,7 @@ RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
 URL="default"
-while getopts "hfjkqrswxd:l:n:o:p:u:" OPT; do
+while getopts "hfjkqrswxd:g:l:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -231,6 +232,9 @@ while getopts "hfjkqrswxd:l:n:o:p:u:" OPT; do
 	    ;;
 	d)
 	    SEED="$OPTARG"
+	    ;;
+	g)
+	    STAGGERED_DELAY_IN_SEC="$OPTARG"
 	    ;;
 	l)
 	    NUM_PLAYERS="$OPTARG"
@@ -310,11 +314,17 @@ if [ "$RANDOM_GAME" == "true" ]; then
     fi
 
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
+	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
+	    sleep "$STAGGERED_DELAY_IN_SEC"
+	fi
 	start_player "rand" $player_index $FAST_MODE $URL $NUM_PLAYERS $SEED
     done
 else
     NUM_PLAYERS=4
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
+	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
+	    sleep "$STAGGERED_DELAY_IN_SEC"
+	fi
 	start_player "det" $player_index $FAST_MODE $URL $INC_RESTORED
     done
 fi

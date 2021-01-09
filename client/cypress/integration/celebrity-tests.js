@@ -59,7 +59,7 @@ if (Cypress.env('RANDOM')) {
     const gameSpec = randomGame.generateGame(numPlayers, {seed: seed, fastMode: true, numRounds: Cypress.env('NUM_ROUNDS'), numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER')});
     gameSpec.index = playerIndex;
 
-    describe(`Player ${gameSpec.index + 1}`, () => {
+    describe(`Player ${gameSpec.index + 1} [${gameSpec.playerNames[gameSpec.index]}]`, () => {
         it(`Plays ${gameSpec.description}`, () => {
             cy.visit(URL);
             cy.request(`${URL}/setTesting`);
