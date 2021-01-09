@@ -2,6 +2,7 @@ import { DOMSpecs } from "./dom-specs";
 import * as spec4Players from "./games/04-players"
 import * as specRestoredMiddle from "./games/rejoin-restored-game-middle-of-round"
 import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
+import * as randomGame from "./games/random"
 import * as util from "./util.js"
 
 let allCelebNames = null;
@@ -24,6 +25,11 @@ if (envURL
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
+
+        if (Cypress.env('RANDOM')) {
+            assert.typeOf(Cypress.env('SEED'), 'string', 'SEED should be set to a string if RANDOM is true');
+            assert.typeOf(Cypress.env('NUM_PLAYERS'), 'number', 'NUM_PLAYERS should be set to a number if RANDOM is true');
+        }
     });
 });
 
@@ -33,10 +39,15 @@ if (includeRestoredGames) {
   gameSpecs.push(specRestoredEnd.gameSpec);
 }
 
-for (let i = 0; i < gameSpecs.length; i++) {
-    const gameSpec = gameSpecs[i];
+if (Cypress.env('RANDOM')) {
+    const numPlayers = Cypress.env('NUM_PLAYERS');
+    const playerIndex = Cypress.env('PLAYER_INDEX');
+    const seed = Cypress.env('SEED').toString();
+    const gameSpec = randomGame.generateGame(numPlayers, {seed: seed, fastMode: true});
+    gameSpec.index = playerIndex;
+
     describe(`Player ${gameSpec.index + 1}`, () => {
-        it(`Plays spec ${i}: ${gameSpec.description}`, () => {
+        it(`Plays ${gameSpec.description}`, () => {
             cy.visit(URL);
             cy.request(`${URL}/setTesting`);
 
@@ -57,15 +68,52 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 fastMode: fastMode,
                 fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
                 roundIndex: 0,
+                numNamesPerPlayer: gameSpec.numNamesPerPlayer,
             }
             if (gameSpec.customActions)
-                clientState.customActions = gameSpec.customActions;   
-    
+                clientState.customActions = gameSpec.customActions;
+
             allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
 
             playGame(clientState);
         });
     });
+}
+else {
+    for (let i = 0; i < gameSpecs.length; i++) {
+        const gameSpec = gameSpecs[i];
+        describe(`Player ${gameSpec.index + 1}`, () => {
+            it(`Plays spec ${i}: ${gameSpec.description}`, () => {
+                cy.visit(URL);
+                cy.request(`${URL}/setTesting`);
+
+                const index = gameSpec.index;
+                const playerName = gameSpec.playerNames[index];
+                const clientState = {
+                    index: index,
+                    hostName: gameSpec.playerNames[0],
+                    playerName: playerName,
+                    otherPlayers: gameSpec.playerNames.filter(name => name !== playerName),
+                    celebrityNames: gameSpec.celebrityNames[index],
+                    iAmHosting: index === 0,
+                    gameID: gameSpec.gameID,
+                    turnIndexOffset: gameSpec.turnIndexOffset,
+                    turns: gameSpec.turns,
+                    restoredGame: gameSpec.restoredGame,
+                    namesSeen: [],
+                    fastMode: fastMode,
+                    fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
+                    roundIndex: 0,
+                }
+                if (gameSpec.customActions)
+                    clientState.customActions = gameSpec.customActions;
+
+                allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
+
+                playGame(clientState);
+            });
+        });
+    }
 }
 
 // Play the game through to the end
@@ -111,7 +159,7 @@ export function playGame(clientState) {
             });
         }
 
-        setGameParams(clientState.playerName);
+        setGameParams(clientState);
     }
     else {
         cy.get('html')
@@ -412,7 +460,10 @@ function checkTeamlessPlayerList(otherPlayers) {
     return returnObject;
 }
 
-function setGameParams() {
+function setGameParams(clientState) {
+    if (clientState.numNamesPerPlayer) {
+        cy.get('[id="numNamesField"]').clear().type(clientState.numNamesPerPlayer);
+    }
     cy.get('[id="submitGameParamsButton"]').click();
 }
 

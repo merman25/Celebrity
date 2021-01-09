@@ -6,6 +6,7 @@ print_usage() {
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
     printf "\t-j:\t\tRun from jar (default off)\n"
+    printf "\t-q:\t\tPlay a random game (default off)\n"
     printf "\t-r:\t\tInclude tests of restored games (default off)\n"
     printf "\t-s:\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
     printf "\t-w:\t\tOpen browser windows (default off)\n"
@@ -53,7 +54,8 @@ INC_RESTORED="false"
 HEAD="--headless"
 EXIT="--no-exit"
 START_SERVER="true"
-while getopts "hfjrswxu:" OPT; do
+RANDOM_GAME="false"
+while getopts "hfjqrswxu:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -64,6 +66,9 @@ while getopts "hfjrswxu:" OPT; do
 	    ;;
 	j)
 	    FROM_JAR="true"
+	    ;;
+	q)
+	    RANDOM_GAME="true"
 	    ;;
 	r)
 	    INC_RESTORED="true"
@@ -143,10 +148,20 @@ if [ ! -d results-full ]; then
 fi
 rm -f "results-$test_type"/*
 
-exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
-exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
-exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
-exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10003 '>' "results-$test_type/player4-report" &
+if [ "$RANDOM_GAME" == "true" ]; then
+    seed=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
+    echo "seed: $seed"
+    num_players=$((2 + $RANDOM % 9));
+
+    for player_index in $(seq 0 $(( $num_players - 1 )) ); do
+	exec_command_in_new_window "Player $player_index" npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=$player_index,FAST_MODE=$FAST_MODE,URL=$URL,RANDOM=true,NUM_PLAYERS=$num_players,SEED="$seed" $HEAD $EXIT -p $((10000 + $player_index )) '>' "results-$test_type/player${player_index}-report" &
+    done
+else
+    exec_command_in_new_window 'Player 1' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=0,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10000 '>' "results-$test_type/player1-report" &
+    exec_command_in_new_window 'Player 2' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=1,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10001 '>' "results-$test_type/player2-report" &
+    exec_command_in_new_window 'Player 3' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=2,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10002 '>' "results-$test_type/player3-report" &
+    exec_command_in_new_window 'Player 4' npx cypress run -s cypress/integration/celebrity-tests.js --env PLAYER_INDEX=3,FAST_MODE=$FAST_MODE,URL=$URL,INC_RESTORED=$INC_RESTORED $HEAD $EXIT -p 10003 '>' "results-$test_type/player4-report" &
+fi
 
 sleep 5
 exec_command_in_new_window Dashboard bash dashboard.sh &
