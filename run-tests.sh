@@ -1,6 +1,9 @@
 #!/usr/bin/bash
 
 # Global variables in CAPS, local variables in lower case.
+START_DIR=$(pwd)
+TEST_ROOT="$START_DIR/test_results"
+
 
 print_usage() {
     printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED]\n"
@@ -8,6 +11,7 @@ print_usage() {
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
     printf "\t-j:\t\tRun from jar (default off)\n"
+    printf "\t-k:\t\tKill old tests and server before starting (default off)\n"
     printf "\t-q:\t\tPlay a random game (default off)\n"
     printf "\t-r:\t\tInclude tests of restored games (default off)\n"
     printf "\t-s:\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
@@ -25,6 +29,10 @@ is_cygwin(){
 	else
 		return 1
 	fi
+}
+
+random_hex() {
+    dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9
 }
 
 exec_command_in_new_window() {
@@ -83,95 +91,8 @@ start_server() {
 	    server_command="$server_command --seed $((16#$SEED))"
     fi
     
-    exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 &
+    exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 | tee "$TEST_DIR"/server-logs.txt &
 }
-
-# Process options
-FAST_MODE="false"
-FROM_JAR="false"
-INC_RESTORED="false"
-HEAD="--headless"
-EXIT="--no-exit"
-START_SERVER="true"
-RANDOM_GAME="false"
-SEED=""
-URL="default"
-while getopts "hfjqrswxu:d:" OPT; do
-    case $OPT in
-	h)
-	    print_usage
-	    exit 0
-	    ;;
-	f)
-	    FAST_MODE="true"
-	    ;;
-	j)
-	    FROM_JAR="true"
-	    ;;
-	q)
-	    RANDOM_GAME="true"
-	    ;;
-	r)
-	    INC_RESTORED="true"
-	    ;;
-	s)
-	    START_SERVER="false"
-	    ;;
-	w)
-	    HEAD="--headed"
-	    ;;
-	x)
-	    EXIT=""
-	    ;;
-	d)
-	    SEED="$OPTARG"
-	    ;;
-	u)
-	    URL="$OPTARG"
-	    ;;
-	*)
-	    print_usage
-	    exit 1
-	    ;;
-    esac
-done
-
-kill_tests
-
-if [ "$RANDOM_GAME" == "true" ]; then
-    if [ -z "$SEED" ]; then
-	SEED=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
-    fi
-    echo "seed: $SEED"
-fi
-
-if [ "$START_SERVER" == "true" ]; then
-    start_server;
-fi
-
-sleep 1
-cd client
-rm -fr cypress/screenshots/*
-rm -fr cypress/videos/*
-
-if [ -d temp_files ]; then
-    rm -fr temp_files
-fi
-mkdir temp_files
-
-
-TEST_TYPE="full"
-if [ "$FAST_MODE" == "true" ]; then
-    TEST_TYPE="fast"
-fi
-
-if [ ! -d results-fast ]; then
-    mkdir results-fast
-fi
-if [ ! -d results-full ]; then
-    mkdir results-full
-fi
-rm -f "results-$TEST_TYPE"/*
 
 append() {
     if [ -z "$1" ]; then
@@ -186,7 +107,7 @@ build_cypress_env_common() {
     fast_mode="$2"
     url="$3"
 
-    ENV="PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
+    ENV="TEMP_DIR=${TEST_DIR}/temp_files,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
 
     echo -n "$ENV"
 }
@@ -226,7 +147,7 @@ start_player() {
 
 	ENV=$(build_cypress_env_deterministic "$player_index" "$fast_mode" "$url" "$inc_restored")
 	port=$((10000 + "$player_index"))
-	result_file="results-$TEST_TYPE/player${player_index}-report"
+	result_file="$RESULTS_DIR/player${player_index}-report"
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     elif [ "$mode" == "rand" ]; then
 	player_index="$2"
@@ -237,7 +158,7 @@ start_player() {
 
 	ENV=$(build_cypress_env_random "$player_index" "$fast_mode" "$url" "$num_players" "$seed")
 	port=$((10000 + "$player_index"))
-	result_file="results-$TEST_TYPE/player${player_index}-report"
+	result_file="$RESULTS_DIR/player${player_index}-report"
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     else
 	echo "Error: unknown mode $mode"
@@ -245,6 +166,107 @@ start_player() {
 	exit 1
     fi
 }
+
+# Process options
+KILL_TESTS="false"
+FAST_MODE="false"
+FROM_JAR="false"
+INC_RESTORED="false"
+HEAD="--headless"
+EXIT="--no-exit"
+START_SERVER="true"
+RANDOM_GAME="false"
+SEED=""
+URL="default"
+while getopts "hfjkqrswxu:d:" OPT; do
+    case $OPT in
+	h)
+	    print_usage
+	    exit 0
+	    ;;
+	f)
+	    FAST_MODE="true"
+	    ;;
+	j)
+	    FROM_JAR="true"
+	    ;;
+	k)
+	    KILL_TESTS="true"
+	    ;;
+	q)
+	    RANDOM_GAME="true"
+	    ;;
+	r)
+	    INC_RESTORED="true"
+	    ;;
+	s)
+	    START_SERVER="false"
+	    ;;
+	w)
+	    HEAD="--headed"
+	    ;;
+	x)
+	    EXIT=""
+	    ;;
+	d)
+	    SEED="$OPTARG"
+	    ;;
+	u)
+	    URL="$OPTARG"
+	    ;;
+	*)
+	    print_usage
+	    exit 1
+	    ;;
+    esac
+done
+
+
+TSTAMP=$(date +%Y-%m-%d_%H%M%S)
+TEST_DIR="$TEST_ROOT"/"$TSTAMP"
+
+if [ \! -d "$TEST_DIR" ]; then
+    mkdir -p "$TEST_DIR"
+fi
+echo "Command: $0 $*" > "$TEST_DIR"/command.txt
+
+if [ "$KILL_TESTS" == "true" ]; then
+    kill_tests
+    rm -fr client/cypress/screenshots/*
+    rm -fr client/cypress/videos/*
+fi
+
+if [ "$RANDOM_GAME" == "true" ]; then
+    if [ -z "$SEED" ]; then
+	SEED=$(random_hex)
+    fi
+    echo "seed: $SEED" | tee "$TEST_DIR"/seed.txt
+fi
+
+if [ "$START_SERVER" == "true" ]; then
+    start_server;
+fi
+
+sleep 1
+cd client
+
+
+TEST_TYPE="full"
+if [ "$FAST_MODE" == "true" ]; then
+    TEST_TYPE="fast"
+fi
+
+RESULTS_DIR_PREFIX="$TEST_DIR/results"
+
+if [ ! -d "$RESULTS_DIR_PREFIX"-fast ]; then
+    mkdir "$RESULTS_DIR_PREFIX"-fast
+fi
+if [ ! -d "$RESULTS_DIR_PREFIX"-full ]; then
+    mkdir "$RESULTS_DIR_PREFIX"-full
+fi
+RESULTS_DIR="$RESULTS_DIR_PREFIX"-"$TEST_TYPE"
+
+rm -f "RESULTS_DIR"/*
 
 if [ "$RANDOM_GAME" == "true" ]; then
     MAX_RANDOM_INT_IN_BASH=32767 # min value is 0
@@ -263,15 +285,16 @@ else
 fi
 
 sleep 5
-exec_command_in_new_window Dashboard bash dashboard.sh &
+cd "$START_DIR"
+exec_command_in_new_window Dashboard bash dashboard.sh "$RESULTS_DIR" &
 
 while sleep 1; do
-    NUM_PASSES=$(grep -l 'All specs passed' "results-$TEST_TYPE"/player* | wc -l)
+    NUM_PASSES=$(grep -l 'All specs passed' "$RESULTS_DIR"/player* | wc -l)
     if [ $NUM_PASSES -eq $NUM_PLAYERS ]; then
 	echo "OK"
 	exit 0
     else
-	NUM_FAILS=$(grep -l fail "results-$TEST_TYPE"/* | wc -l);
+	NUM_FAILS=$(grep -l fail "$RESULTS_DIR"/* | wc -l);
 	if [ $NUM_FAILS -gt 0 ]; then
 	    echo "FAIL"
 	    exit $NUM_FAILS

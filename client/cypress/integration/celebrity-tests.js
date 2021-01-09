@@ -22,10 +22,12 @@ if (envURL
     && envURL !== 'default') {
     URL = envURL;
 }
+export const tempDir = Cypress.env('TEMP_DIR');
 
 describe('Initialisation', () => {
     it('Checks mandatory environment variables are set', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
+        assert.typeOf(Cypress.env('TEMP_DIR'), 'string', 'TEMP_DIR should be set to a directory path where temp files can be written')
 
         if (Cypress.env('RANDOM')) {
             assert.notEqual(Cypress.env('SEED'), null, 'SEED should be set to a string if RANDOM is true');
@@ -136,7 +138,7 @@ export function playGame(clientState) {
         if (clientState.restoredGame) {
             // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
             if (clientState.index !== 0) {
-                cy.readFile(`temp_files/host_joined_game_${clientState.gameID}`, {timeout: 60000});
+                cy.readFile(`${tempDir}/host_joined_game_${clientState.gameID}`, {timeout: 60000});
             }
         }
 
@@ -144,7 +146,7 @@ export function playGame(clientState) {
         if (clientState.restoredGame) {
             // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
             if (clientState.index === 0) {
-                cy.writeFile(`temp_files/host_joined_game_${clientState.gameID}`, '0');
+                cy.writeFile(`${tempDir}/host_joined_game_${clientState.gameID}`, '0');
             }
         }
     }
@@ -167,7 +169,7 @@ export function playGame(clientState) {
             cy.get('html')
             .then(() => {
                 // put inside a get/then to make sure there has been enough time to set clientState.gameID
-                cy.readFile(`temp_files/checked_initial_dom_${clientState.gameID}.${otherIndex}`);
+                cy.readFile(`${tempDir}/checked_initial_dom_${clientState.gameID}.${otherIndex}`);
             });
         }
 
@@ -177,7 +179,7 @@ export function playGame(clientState) {
         cy.get('html')
         .then(() => {
                 // put inside a get/then to make sure there has been enough time to set clientState.gameID
-                cy.writeFile(`temp_files/checked_initial_dom_${clientState.gameID}.${clientState.index}`, '0');
+                cy.writeFile(`${tempDir}/checked_initial_dom_${clientState.gameID}.${clientState.index}`, '0');
         });
     }
 
@@ -201,7 +203,7 @@ export function playGame(clientState) {
                 cy.get('html')
                     .then(() => {
                         // put inside a get/then to make sure there has been enough time to set clientState.gameID
-                        cy.readFile(`temp_files/checked_dom_after_game_params_${clientState.gameID}.${otherIndex}`);
+                        cy.readFile(`${tempDir}/checked_dom_after_game_params_${clientState.gameID}.${otherIndex}`);
                     });
             }
         }
@@ -209,7 +211,7 @@ export function playGame(clientState) {
             cy.get('html')
                 .then(() => {
                     // put inside a get/then to make sure there has been enough time to set clientState.gameID
-                    cy.writeFile(`temp_files/checked_dom_after_game_params_${clientState.gameID}.${clientState.index}`, '0');
+                    cy.writeFile(`${tempDir}/checked_dom_after_game_params_${clientState.gameID}.${clientState.index}`, '0');
                 });
         }
     }
@@ -459,7 +461,7 @@ function startHostingNewGame(playerName, gameID, clientState) {
             assert(/^[0-9]{4}/.test(gameID), 'game ID is 4 digits');
 
             clientState.gameID = gameID;
-            cy.writeFile('temp_files/gameID', gameID)
+            cy.writeFile(`${tempDir}/gameID`, gameID)
         });
 }
 
@@ -549,7 +551,7 @@ export function joinGame(playerName, gameID, hostName, clientState) {
     }
     else {
         // read gameID from file, if it's not specified in the specs
-        cy.readFile('temp_files/gameID', {timeout: 60000})
+        cy.readFile(`${tempDir}/gameID`, {timeout: 60000})
             .then(content => {
                 cy.get('[id="gameIDField"]').type(content);
                 clientState.gameID = content;
@@ -664,12 +666,12 @@ function checkFinalScoreForRound(clientState) {
 
                 // These are flaky lines, it often gets stuck writing the files. So we do cy.wait() instead
             // if (!clientState.iAmHosting) {
-            //     cy.writeFile(`temp_files/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
+            //     cy.writeFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
             // }
             // else {
             //     const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
             //     for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
-            //         cy.readFile(`temp_files/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
+            //         cy.readFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
             //     }
             // }
 
