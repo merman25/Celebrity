@@ -15,7 +15,7 @@ export const generateGame = function (numPlayers, options = { seed: null, fastMo
     const selectedCelebNames = chooseWithoutReplacement(random, numNamesPerPlayer, numPlayers, celebNames);
 
     const totalNames = numNamesPerPlayer * numPlayers;
-    const numRounds = 3; //1 + Math.floor(10 * random());
+    const numRounds = 1 + Math.floor(10 * random());
     const turns = [];
     let currentTurn = null;
 
@@ -51,6 +51,7 @@ export const generateGame = function (numPlayers, options = { seed: null, fastMo
         fullChecksWhenNotInFastMode: true,
         turns: turns,
         numNamesPerPlayer: numNamesPerPlayer,
+        numRounds: numRounds,
     };
 
     return gameSpec;

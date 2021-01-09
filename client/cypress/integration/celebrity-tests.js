@@ -80,6 +80,7 @@ if (Cypress.env('RANDOM')) {
                 fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
                 roundIndex: 0,
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
+                numRounds: gameSpec.numRounds,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
@@ -472,6 +473,9 @@ function checkTeamlessPlayerList(otherPlayers) {
 }
 
 function setGameParams(clientState) {
+    if (clientState.numRounds) {
+        cy.get('[id="numRoundsField"').clear().type(clientState.numRounds);
+    }
     if (clientState.numNamesPerPlayer) {
         cy.get('[id="numNamesField"]').clear().type(clientState.numNamesPerPlayer);
     }
@@ -515,7 +519,7 @@ function requestNames() {
 
 function submitNames(celebrityNames) {
     for (let i = 0; i < celebrityNames.length; i++) {
-        cy.get(`[id="name${i + 1}"]`).type(celebrityNames[i]);
+        cy.get(`[id="name${i + 1}"]`, {timeout: 30000}).type(celebrityNames[i]);
     }
     cy.get('[id="submitNamesButton"]').click();
 }
