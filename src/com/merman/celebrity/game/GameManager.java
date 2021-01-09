@@ -46,20 +46,7 @@ public class GameManager {
 	implements IExpiredEntityRemover<Game> {
 		@Override
 		public void remove(Game aGame) {
-			synchronized (GameManager.class) {
-				Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Removing game", aGame);
-				gamesMap.remove(aGame.getID());
-				if (aGame.getHost() != null)
-					mapHostsToGames.remove(aGame.getHost());
-
-				List<Logger> gameLoggerList = mapGamesToLoggers.get(aGame);
-				if (gameLoggerList != null) {
-					for (Logger gameLogger : gameLoggerList) {
-						Log.removeLogger(LogMessageSubject.GENERAL, gameLogger);
-						gameLogger.close();
-					}
-				}
-			}
+			removeGame(aGame);
 		}
 	}
 	
@@ -319,6 +306,10 @@ public class GameManager {
 	}
 	
 	public static synchronized void createTestGame(String aGameID, Player aPlayer) {
+		Game oldGame = gamesMap.get(aGameID);
+		if (oldGame != null) {
+			removeGame(oldGame);
+		}
 		Game game = createGame(aPlayer, aGameID);
 		game.setFireEvents(false);
 		
@@ -495,5 +486,20 @@ public class GameManager {
 		}
 		
 		return gameList;
+	}
+
+	public static synchronized void removeGame(Game aGame) {
+		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Removing game", aGame);
+		gamesMap.remove(aGame.getID());
+		if (aGame.getHost() != null)
+			mapHostsToGames.remove(aGame.getHost());
+
+		List<Logger> gameLoggerList = mapGamesToLoggers.get(aGame);
+		if (gameLoggerList != null) {
+			for (Logger gameLogger : gameLoggerList) {
+				Log.removeLogger(LogMessageSubject.GENERAL, gameLogger);
+				gameLogger.close();
+			}
+		}
 	}
 }
