@@ -11,7 +11,7 @@ const celebNames = ['(Oom) Thijs', 'Ada Lovelace', 'Adolf Hitler', 'Agatha Chris
 export const generateGame = function (numPlayers, options = { seed: null, fastMode: true }) {
     const random = util.generateRandomFunction(options.seed);
     const selectedPlayers = choose(random, numPlayers, playerNames);
-    const numNamesPerPlayer = 10; //1 + Math.floor(10 * random());
+    const numNamesPerPlayer = 1 + Math.floor(10 * random());
     const selectedCelebNames = chooseWithoutReplacement(random, numNamesPerPlayer, numPlayers, celebNames);
 
     const totalNames = numNamesPerPlayer * numPlayers;
