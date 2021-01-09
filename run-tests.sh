@@ -6,7 +6,7 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED]\n"
+    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-p PORT]\n"
     printf "\n"
     printf "\t-h:\t\tPrint this message and exit\n"
     printf "\t-f:\t\tFast mode (default off)\n"
@@ -18,7 +18,10 @@ print_usage() {
     printf "\t-w:\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\tExit browser at end of test (default off)\n"
     printf "\t-d SEED:\tSpecify seed for random game\n"
-    printf "\t-p PORT:\t\tSpecify lowest port to use (default 10000)\n"
+    printf "\t-l NUM_PLAYERS:\tNumber of players\n"
+    printf "\t-n NUM_NAMES:\tNumber of names per player\n"
+    printf "\t-o NUM_ROUNDS:\tNumber of rounds\n"
+    printf "\t-p PORT:\tSpecify lowest port to use (default 10000)\n"
     printf "\t-u URL:\t\tSpecify URL to use\n"
 }
 
@@ -132,6 +135,13 @@ build_cypress_env_random() {
     ENV=$(build_cypress_env_common "$player_index" "$fast_mode" "$url")
     ENV=$(append "$ENV" "RANDOM=true,NUM_PLAYERS=$num_players,SEED=$seed")
 
+    if [ \! -z "$NUM_NAMES_PER_PLAYER" ]; then
+	ENV=$(append "$ENV" "NUM_NAMES_PER_PLAYER=$NUM_NAMES_PER_PLAYER")
+    fi
+    if [ \! -z "$NUM_ROUNDS" ]; then
+	ENV=$(append "$ENV" "NUM_ROUNDS=$NUM_ROUNDS")
+    fi
+
     echo -n "$ENV"
 }
 
@@ -189,7 +199,7 @@ RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
 URL="default"
-while getopts "hfjkqrswxu:d:p:" OPT; do
+while getopts "hfjkqrswxd:l:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -221,6 +231,15 @@ while getopts "hfjkqrswxu:d:p:" OPT; do
 	    ;;
 	d)
 	    SEED="$OPTARG"
+	    ;;
+	l)
+	    NUM_PLAYERS="$OPTARG"
+	    ;;
+	n)
+	    NUM_NAMES_PER_PLAYER="$OPTARG"
+	    ;;
+	o)
+	    NUM_ROUNDS="$OPTARG"
 	    ;;
 	p)
 	    PORT_BASE="$OPTARG"
@@ -285,8 +304,10 @@ rm -f "RESULTS_DIR"/*
 if [ "$RANDOM_GAME" == "true" ]; then
     MAX_RANDOM_INT_IN_BASH=32767 # min value is 0
     RANDOM=$((16#"$SEED" % $MAX_RANDOM_INT_IN_BASH)) # seed the generator to get predictable value
-    
-    NUM_PLAYERS=$((2 + $RANDOM % 9));
+
+    if [ -z "$NUM_PLAYERS" ]; then
+	NUM_PLAYERS=$((2 + $RANDOM % 9));
+    fi
 
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
 	start_player "rand" $player_index $FAST_MODE $URL $NUM_PLAYERS $SEED
