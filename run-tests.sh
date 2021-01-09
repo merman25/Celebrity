@@ -111,6 +111,13 @@ else
     ps -e | grep xterm | sed 's/^ *//' | cut -d' ' -f1 | xargs kill 2>/dev/null
 fi
 
+if [ "$RANDOM_GAME" == "true" ]; then
+    if [ -z "$SEED" ]; then
+	SEED=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
+    fi
+    echo "seed: $SEED"
+fi
+
 if [ "$URL" == "" ]; then
     if [ "$START_SERVER" == "true" ]; then
 	if [ "$FROM_JAR" == "true" ]; then
@@ -123,6 +130,10 @@ if [ "$URL" == "" ]; then
 	    fi
 	
 	    server_command="java -Xmx256m -cp $CLASSPATH com.merman.celebrity.server.CelebrityMain"
+	fi
+
+	if [ \! -z "$SEED" ]; then
+	    server_command="$server_command --seed $((16#$SEED))"
 	fi
 
 	exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 &
@@ -154,11 +165,6 @@ fi
 rm -f "results-$test_type"/*
 
 if [ "$RANDOM_GAME" == "true" ]; then
-    if [ -z "$SEED" ]; then
-	SEED=$(dd if=/dev/urandom count=4 bs=1 2>/dev/null | od -An -tx | tail -c9)
-    fi
-    echo "seed: $SEED"
-
     MAX_RANDOM_INT_IN_BASH=32767 # min value is 0
     RANDOM=$((16#"$SEED" % $MAX_RANDOM_INT_IN_BASH)) # seed the generator to get predictable value
     

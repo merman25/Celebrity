@@ -8,6 +8,7 @@ import java.util.Random;
 public class SharedRandom {
 	
 	private static Random random = new Random();
+	private static boolean setRandomGeneratorForEachGameWithFixedSeed;
 
 	private SharedRandom() {
 	}
@@ -18,5 +19,13 @@ public class SharedRandom {
 	
 	public static synchronized Random getRandom() {
 		return random;
+	}
+
+	public static boolean isSetRandomGeneratorForEachGameWithFixedSeed() {
+		return setRandomGeneratorForEachGameWithFixedSeed;
+	}
+
+	public static void setSetRandomGeneratorForEachGameWithFixedSeed(boolean aSetRandomGeneratorForEachGameWithFixedSeed) {
+		setRandomGeneratorForEachGameWithFixedSeed = aSetRandomGeneratorForEachGameWithFixedSeed;
 	}
 }

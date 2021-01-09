@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -14,7 +15,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.merman.celebrity.client.theme.IconType;
@@ -51,7 +54,11 @@ public class Game implements ICanExpire {
 	private List<Player>              playersWithoutTeams         = new ArrayList<>();
 	private Map<Player, Team>         mapPlayersToTeams           = new LinkedHashMap<Player, Team>();
 	private GameStatus                status                      = GameStatus.WAITING_FOR_PLAYERS;
-	private Map<Player, List<String>> mapPlayersToNameLists       = new LinkedHashMap<Player, List<String>>();
+	
+	/* Use a sorted Map, so that if we're using a fixed random seed, the shuffled name list will
+	 * always be the same.
+	 */
+	private Map<Player, List<String>> mapPlayersToNameLists       = new TreeMap<Player, List<String>>(Comparator.comparing(Player::getName));
 	private List<String>              masterNameList              = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
 	private Turn                      currentTurn;
@@ -81,6 +88,8 @@ public class Game implements ICanExpire {
 	
 	// Set true by an HTTP request for which there is no visible button - only test bots set it to true
 	private boolean                   testGame;
+	
+	private Random                    random						= SharedRandom.getRandom();
 	
 	public Game(String aID) {
 		ID = aID;
@@ -202,7 +211,12 @@ public class Game implements ICanExpire {
 		teamList.clear();
 		mapPlayersToTeams.clear();
 		if ( aAllocateTeamsAtRandom ) {
-			Collections.shuffle(playerList, SharedRandom.getRandom());
+			/* Sort before shuffling to get repeatable results when using fixed seed
+			 * (players may not always be added to playersWithoutTeams in the same order, it depends
+			 * on the network)
+			 */
+			Collections.sort(playerList, Comparator.comparing(Player::getName));
+			Collections.shuffle(playerList, getRandom());
 		}
 		
 		Team team1 = new Team();
@@ -329,7 +343,7 @@ public class Game implements ICanExpire {
 		currentNameIndex = 0;
 		shuffledNameList.clear();
 		shuffledNameList.addAll(masterNameList);
-		Collections.shuffle(shuffledNameList, SharedRandom.getRandom());
+		Collections.shuffle(shuffledNameList, getRandom());
 	}
 	
 	public synchronized List<String> getShuffledNameList() {
@@ -459,7 +473,7 @@ public class Game implements ICanExpire {
 			List<String>		achievedNames		= new ArrayList<>(shuffledNameList.subList(0, aPassNameIndex));
 			List<String>		remainingNames		= new ArrayList<>(shuffledNameList.subList(aPassNameIndex, shuffledNameList.size()));
 
-			int					newIndex			= SharedRandom.getRandom().nextInt( remainingNames.size() - 1 ) + 1;
+			int					newIndex			= getRandom().nextInt( remainingNames.size() - 1 ) + 1;
 			String				oldName				= remainingNames.get(newIndex);
 			remainingNames.set(newIndex, remainingNames.get(0));
 			remainingNames.set(0, oldName);
@@ -724,5 +738,13 @@ public class Game implements ICanExpire {
 
 	public void setTestGame(boolean aTestGame) {
 		testGame = aTestGame;
+	}
+
+	public Random getRandom() {
+		return random;
+	}
+
+	public void setRandom(Random aRandom) {
+		random = aRandom;
 	}
 }

@@ -2,9 +2,12 @@ package com.merman.celebrity.game;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,7 +15,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -89,6 +95,24 @@ public class GameManager {
 		if (session != null
 				&& session.isTestSession()) {
 			game.setTestGame(true);
+		}
+		if (SharedRandom.isSetRandomGeneratorForEachGameWithFixedSeed()) {
+			try {
+				// Get hash of game ID
+				MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+				messageDigest.update( aGameID.getBytes(StandardCharsets.UTF_8 ) );
+				byte[] md5Hash = messageDigest.digest();
+
+				// Get long from hash
+				long seed = 0;
+				for (int byteIndex = 0; byteIndex < 8; byteIndex++) {
+					long byteFromHash = md5Hash[ md5Hash.length - 1 - byteIndex ] + 128; // keeping bytes in long in same order as in hash, although prob makes no diff
+					seed |= (byteFromHash << (8 * byteIndex) );
+				}
+				game.setRandom(new Random(seed));
+			} catch (Exception e) {
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception trying to generate random seed from gameID", aGameID, "exception", e);
+			}
 		}
 		
 		if ( ( createFiles

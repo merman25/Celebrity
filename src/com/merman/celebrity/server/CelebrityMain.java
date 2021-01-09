@@ -124,6 +124,10 @@ public class CelebrityMain {
 			try {
 				long seed = Long.parseLong(aArgValue);
 				SharedRandom.setSeed(seed);
+				
+				// Could have a separate option for this, but if we've set a fixed seed, it's because we want repeatability.
+				// And if we want repeatability, each game needs its own Random (because several may be played at once)
+				SharedRandom.setSetRandomGeneratorForEachGameWithFixedSeed(true);
 			}
 			catch (NumberFormatException e) {
 				System.err.format("Error: cannot parse seed value %s\n", aArgValue);
