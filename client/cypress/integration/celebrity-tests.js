@@ -27,7 +27,7 @@ describe('Initialisation', () => {
         assert.typeOf(Cypress.env('PLAYER_INDEX'), 'number', 'PLAYER_INDEX should be set to a number');
 
         if (Cypress.env('RANDOM')) {
-            assert.typeOf(Cypress.env('SEED'), 'string', 'SEED should be set to a string if RANDOM is true');
+            assert.notEqual(Cypress.env('SEED'), null, 'SEED should be set to a string if RANDOM is true');
             assert.typeOf(Cypress.env('NUM_PLAYERS'), 'number', 'NUM_PLAYERS should be set to a number if RANDOM is true');
         }
     });
@@ -42,7 +42,17 @@ if (includeRestoredGames) {
 if (Cypress.env('RANDOM')) {
     const numPlayers = Cypress.env('NUM_PLAYERS');
     const playerIndex = Cypress.env('PLAYER_INDEX');
-    const seed = Cypress.env('SEED').toString();
+    let seed = Cypress.env('SEED');
+    
+    if (seed) {
+        /* Not specifying the seed is an error: it means the players will generate
+        *  inconsistent series of turns, and not play correctly. But this is checked
+        *  in describe('Initialisation') with an informative error message - here we avoid
+        *  the problem of just seeing an NPE instead.
+        */
+        seed = seed.toString();
+    }
+
     const gameSpec = randomGame.generateGame(numPlayers, {seed: seed, fastMode: true});
     gameSpec.index = playerIndex;
 
