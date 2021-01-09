@@ -18,7 +18,8 @@ if (Cypress.env('INC_RESTORED')) {
 }
 const envURL = Cypress.env('URL');
 if (envURL
-    && envURL !== '') {
+    && envURL !== ''
+    && envURL !== 'default') {
     URL = envURL;
 }
 
@@ -486,7 +487,7 @@ function allocateTeams() {
 
 export function checkTeamList(clientState) {
     // Check I'm in a team
-    cy.get('[id="teamList"]').contains('Teams');
+    cy.get('[id="teamList"]').contains('Teams', {timeout: 30000});
     cy.get('[id="teamList"]').contains(clientState.playerName);
 
     // Check everyone else is in a team
@@ -544,7 +545,7 @@ export function joinGame(playerName, gameID, hostName, clientState) {
     }
     else {
         // read gameID from file, if it's not specified in the specs
-        cy.readFile('temp_files/gameID')
+        cy.readFile('temp_files/gameID', {timeout: 60000})
             .then(content => {
                 cy.get('[id="gameIDField"]').type(content);
                 clientState.gameID = content;
