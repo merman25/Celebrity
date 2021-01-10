@@ -502,7 +502,7 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
         buttonID = 'endTurnButton';
     }
     else if (typeof (move) === 'number') {
-        const adjustedWaitTime = Math.max(0, move - delayInSec);
+        const adjustedWaitTime = Math.max(0.5, move - delayInSec); // always wait at least 500ms, same as in block 'if (!clientState.slowMode)' above
         cy.wait(adjustedWaitTime * 1000)
             .then(() => {
                 totalExpectedWaitTimeInSec += move;
