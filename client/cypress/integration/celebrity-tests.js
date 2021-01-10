@@ -56,7 +56,14 @@ if (Cypress.env('RANDOM')) {
         seed = seed.toString();
     }
 
-    const gameSpec = randomGame.generateGame(numPlayers, {seed: seed, fastMode: true, numRounds: Cypress.env('NUM_ROUNDS'), numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER')});
+    const gameSpec = randomGame.generateGame(numPlayers,
+        {
+            seed: seed,
+            fastMode: true,
+            numRounds: Cypress.env('NUM_ROUNDS'),
+            numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
+            slowMode: Cypress.env('SLOW_MODE'),
+        });
     gameSpec.index = playerIndex;
 
     describe(`Player ${gameSpec.index + 1} [${gameSpec.playerNames[gameSpec.index]}]`, () => {
@@ -329,6 +336,11 @@ function waitForWakeUpTrigger(clientState) {
                 }
                 waitForWakeUpTrigger(clientState);
             }
+            else if (triggerElement.innerText === 'bot-wait-for-turn' ) {
+                // Somebody else's turn, wait until the test trigger is cleared, then wait for next one
+                cy.get('.testTriggerClass').contains('bot-wait-for-turn', { timeout: 60000 }).should('not.exist');
+                waitForWakeUpTrigger(clientState);
+            }
         });
 }
 
@@ -356,6 +368,7 @@ function getNames(clientState) {
     console.log(`turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
     const turnToTake = turns[turnIndex];
+    console.log(`turnToTake: ${turnToTake}`);
 
     let options = {};
 
@@ -415,6 +428,9 @@ function getNames(clientState) {
                     else if (move === 'end-turn') {
                         cy.get('[id="endTurnButton"]').click();
                     }
+                    else if (typeof(move) === 'number') {
+                        cy.wait(move * 1000);
+                    }
                 }
 
                 cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
@@ -436,6 +452,9 @@ function getNames(clientState) {
             }
             else if (move === 'end-turn') {
                 cy.get('[id="endTurnButton"]').click();
+            }
+            else if (typeof(move) === 'number') {
+                cy.wait(move * 1000);
             }
         }
     }

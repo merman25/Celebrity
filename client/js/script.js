@@ -573,7 +573,7 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 			document.getElementById('gameStatusDiv').textContent = 'It\'s your turn!';
 		}
 		else {
-
+			addTestTrigger('bot-wait-for-turn');
 			const currentPlayer = serverGameState.currentPlayer;
 			if (currentPlayer != null) {
 				let currentPlayerName = currentPlayer.name;

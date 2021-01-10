@@ -6,7 +6,7 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswx] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
+    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
     printf "\n"
     printf "\t-h:\t\t\t\tPrint this message and exit\n"
     printf "\t-f:\t\t\t\tFast mode (default off)\n"
@@ -17,6 +17,7 @@ print_usage() {
     printf "\t-s:\t\t\t\tServer already running, don't start a new one (default off, so new server instance will be started)\n"
     printf "\t-w:\t\t\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\t\t\tExit browser at end of test (default off)\n"
+    printf "\t-z:\t\t\t\tSlow mode (default off)\n"
     printf "\t-d SEED:\t\t\tSpecify seed for random game\n"
     printf "\t-g STAGGERED_DELAY_IN_SEC:\tStaggered start of each player, with specified delay (default 0)\n"
     printf "\t-l NUM_PLAYERS:\t\t\tNumber of players\n"
@@ -123,6 +124,10 @@ build_cypress_env_common() {
     TEMP_FILE_DIR=$(fix_cygwin_path "$TEST_DIR")/temp_files
     ENV="TEMP_DIR=$TEMP_FILE_DIR,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
 
+    if [ \! -z "$SLOW_MODE" ]; then
+	ENV=$(append "$ENV" "SLOW_MODE=$SLOW_MODE")
+    fi
+
     echo -n "$ENV"
 }
 
@@ -200,7 +205,7 @@ RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
 URL="default"
-while getopts "hfjkqrswxd:g:l:n:o:p:u:" OPT; do
+while getopts "hfjkqrswxzd:g:l:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -229,6 +234,9 @@ while getopts "hfjkqrswxd:g:l:n:o:p:u:" OPT; do
 	    ;;
 	x)
 	    EXIT=""
+	    ;;
+	z)
+	    SLOW_MODE="true"
 	    ;;
 	d)
 	    SEED="$OPTARG"
