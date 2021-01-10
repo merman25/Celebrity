@@ -95,6 +95,7 @@ export const generateGame = function (numPlayers, options = { seed: null, fastMo
         turns: turns,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
+        slowMode: options.slowMode,
     };
 
     return gameSpec;

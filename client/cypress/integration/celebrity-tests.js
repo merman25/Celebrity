@@ -90,6 +90,7 @@ if (Cypress.env('RANDOM')) {
                 roundIndex: 0,
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
                 numRounds: gameSpec.numRounds,
+                slowMode: gameSpec.slowMode,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
@@ -401,9 +402,11 @@ function getNames(clientState) {
 
                 for (const move of turnToTake) {
 
-                    // Need to wait to make sure DOM is updated with new name, otherwise we can check the same name twice.
-                    // Should be a way to avoid this, but can't find it
-                    cy.wait(500);
+                    if (!clientState.slowMode) {
+                        // Need to wait to make sure DOM is updated with new name, otherwise we can check the same name twice.
+                        // Should be a way to avoid this, but can't find it
+                        cy.wait(500);
+                    }
                     if (move === 'got-it') {
                         cy.get('[id="currentNameDiv"]')
                             .then(elements => {
