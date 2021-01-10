@@ -63,6 +63,7 @@ if (Cypress.env('RANDOM')) {
             numRounds: Cypress.env('NUM_ROUNDS'),
             numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
             slowMode: Cypress.env('SLOW_MODE'),
+            fullChecksWhenNotInFastMode: true,
         });
     gameSpec.index = playerIndex;
 
