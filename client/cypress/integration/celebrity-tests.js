@@ -409,10 +409,6 @@ function getNames(clientState) {
                         cy.wait(500);
                     }
 
-                    if (typeof(move) === 'string') {
-                        console.log(util.formatTime(), `taking move ${move}`);
-                    }
-
                     if (move === 'got-it') {
                         cy.get('[id="currentNameDiv"]')
                             .then(elements => {
@@ -429,17 +425,20 @@ function getNames(clientState) {
                                 namesSeenOnThisTurn.add(celebName);
                             });
 
-                        cy.get('[id="gotNameButton"]').click(options);
+                        cy.get('[id="gotNameButton"]').click(options)
+                            .then(() => console.log(util.formatTime(), `took move ${move}`));
                     }
                     else if (move === 'pass') {
-                        cy.get('[id="passButton"]').click(options);
+                        cy.get('[id="passButton"]').click(options)
+                            .then(() => console.log(util.formatTime(), `took move ${move}`));
                     }
                     else if (move === 'end-turn') {
-                        cy.get('[id="endTurnButton"]').click();
+                        cy.get('[id="endTurnButton"]').click()
+                            .then(() => console.log(util.formatTime(), `took move ${move}`));
                     }
                     else if (typeof(move) === 'number') {
-                        console.log(util.formatTime(), `waiting ${move} seconds before next move`);
-                        cy.wait(move * 1000);
+                        cy.wait(move * 1000)
+                            .then(() => console.log(util.formatTime(), `waited ${move} seconds before next move`));
                     }
                 }
 
@@ -451,11 +450,11 @@ function getNames(clientState) {
                     *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
                     *  GotIt button is not visible
                     */
-                   console.log(util.formatTime(), 'reached end of turn, checking scores list');
                    cy.get('[id="gotNameButton"]', {timeout: 15000}).should('not.be.visible'); // timeout on a should goes on the parent get()
                    cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
                    .then(elements => {
                        // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                       console.log(util.formatTime(), 'reached end of turn, checking scores list');
                        namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
                    });
