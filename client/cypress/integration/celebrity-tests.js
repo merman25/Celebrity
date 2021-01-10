@@ -59,7 +59,7 @@ if (Cypress.env('RANDOM')) {
     const gameSpec = randomGame.generateGame(numPlayers,
         {
             seed: seed,
-            fastMode: true,
+            fastMode: fastMode,
             numRounds: Cypress.env('NUM_ROUNDS'),
             numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
             slowMode: Cypress.env('SLOW_MODE'),

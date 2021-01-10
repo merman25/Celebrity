@@ -36,6 +36,7 @@ export const generateGame = function (numPlayers, options = {
         currentTurn = null;
         for (let nameIndex = 0; nameIndex < totalNames; ) {
             if (currentTurn === null) {
+                // console.log(`computing turn at index ${turns.length}`);
                 currentTurn = [];
                 turns.push(currentTurn);
             }
@@ -43,8 +44,12 @@ export const generateGame = function (numPlayers, options = {
             if (options.slowMode) {
                 const roundDurationInSec = 60;
                 let roundMarginInSec = 3;
-                if (options.fastMode && ! options.fullChecksWhenNotInFastMode) {
+                if (!options.fastMode && options.fullChecksWhenNotInFastMode) {
+                    // console.log('using larger margin');
                     roundMarginInSec = 10;
+                }
+                else {
+                    // console.log(`fastMode ${options.fastMode}, fullChecks ${options.fullChecksWhenNotInFastMode}, using smaller margin`);
                 }
                 const playDurationInSec = roundDurationInSec - roundMarginInSec;
 
@@ -56,6 +61,7 @@ export const generateGame = function (numPlayers, options = {
                     currentTurn.push(playDurationForThisName);
 
                     if (playDurationSoFar < playDurationInSec) {
+                        // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, clicking another button`);
                         let randomResult = random();
                         if (randomResult < 0.1) {
                             currentTurn.push(p);
@@ -64,11 +70,13 @@ export const generateGame = function (numPlayers, options = {
                             currentTurn.push(g);
                             nameIndex++;
                             if (nameIndex >= totalNames) {
+                                // console.log('end of round');
                                 currentTurn = null;
                             }
                         }
                     }
                     else {
+                        // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, won't click`);
                         currentTurn = null;
                     }
                 }
