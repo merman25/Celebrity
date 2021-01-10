@@ -516,7 +516,8 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
         cy.get(`[id="${buttonID}"]`).click(options)
             .then(() => {
                 console.log(util.formatTime(), `took move ${move}`);
-                if (clientState.slowMode) {
+                if (clientState.slowMode
+                    && moveIndex < turnToTake.length - 1) {
                     cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
                         .then(elements => {
                             const gameStatusDiv = elements[0];
