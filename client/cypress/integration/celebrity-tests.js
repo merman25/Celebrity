@@ -575,7 +575,7 @@ function getNamesV2(clientState) {
                 randomInvocationCount++;
             }
             const indexDelta = clickIndex - prevIndex;
-            console.log(`Between the last turn and this turn, global index has gone from ${prevIndex} to ${clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
+            console.log(util.formatTime(), `Between the last turn and this turn, global index has gone from ${prevIndex} to ${clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
 
             const roundDurationInSec = 60;
             let roundMarginInSec = 3;
@@ -611,7 +611,7 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
         const waitDuration = 5 + Math.floor(20 * clientState.random());
         if (waitDuration + totalExpectedWaitTimeInSec + delayInSec >= playDurationInSec) {
             clientState.prevGlobalNameIndex = clickIndex;
-            console.log(`Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
+            console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
         }
         else {
             cy.wait(waitDuration * 1000)
@@ -641,7 +641,9 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                 cy.get(`[id="${buttonID}"]`).click()
                 .then(() => {
                     console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
-                    clickIndex++;
+                    if (buttonID === 'gotNameButton') {
+                        clickIndex++;
+                    }
                     if (clickIndex % numNames !== 0) {
                         cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
                             .then(elements => {
