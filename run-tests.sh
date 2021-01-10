@@ -105,7 +105,7 @@ start_server() {
 	    server_command="$server_command --seed $((16#$SEED))"
     fi
     
-    exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14 | tee "$TEST_DIR"/server-logs.txt &
+    exec_command_in_new_max_window Server "$server_command" --create-files false --delete-existing false --logging sysout test_games/1000/11 test_games/1001/14  "|" "tee" "$TEST_DIR/server-logs.txt" &
 }
 
 append() {
