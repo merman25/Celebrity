@@ -306,14 +306,17 @@ function waitForWakeUpTrigger(clientState) {
             }
             else if (triggerElement.innerText === 'bot-start-turn') {
                 // It's my turn, get the names I'm supposed to get on this turn
-                cy.get('[id="startTurnButton"]').click();
-                getNames(clientState);
+                cy.get('[id="startTurnButton"]').click()
+                    .then(() => {
+                        getNames(clientState);
 
-                // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
-                // that the turnCounter value is now wrong. And you can't increment it back, since that code
-                // will be executed before the cy.get() in the new call to waitForWakeUpTrigger.
-                clientState.turnCounter = clientState.turnCounter + 1;
-                waitForWakeUpTrigger(clientState);
+                        // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
+                        // that the turnCounter value is now wrong. And you can't increment it back, since that code
+                        // will be executed before the cy.get() in the new call to waitForWakeUpTrigger.
+                        clientState.turnCounter = clientState.turnCounter + 1;
+                        waitForWakeUpTrigger(clientState);
+                    });
+
             }
             else if (triggerElement.innerText === 'bot-ready-to-start-next-round') {
                 // Ready to start a new round.
@@ -450,22 +453,28 @@ function getNames(clientState) {
                     *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
                     *  GotIt button is not visible
                     */
-                   cy.get('[id="gotNameButton"]', {timeout: 15000}).should('not.be.visible'); // timeout on a should goes on the parent get()
-                   cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
-                   .then(elements => {
-                       // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                       console.log(util.formatTime(), 'reached end of turn, checking scores list');
-                       namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                       namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                   });
+                    if (namesSeenOnThisRound.length > 0
+                        || namesSeenOnThisTurn.length > 0) {
+                        cy.get('[id="gotNameButton"]', { timeout: 15000 }).should('not.be.visible'); // timeout on a should goes on the parent get()
+                        cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                            .then(elements => {
+                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                                console.log(util.formatTime(), 'reached end of turn, checking scores list');
+                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                                namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                            });
+                    }
                 }
                 else {
-                    cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
-                        .then(elements => {
-                            // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                            namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                            namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                        });
+                    if (namesSeenOnThisRound.length > 0
+                        || namesSeenOnThisTurn.length > 0) {
+                        cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                            .then(elements => {
+                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                                namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                            });
+                    }
                 }
             });
     }
