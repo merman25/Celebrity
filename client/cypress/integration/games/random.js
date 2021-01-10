@@ -14,7 +14,8 @@ export const generateGame = function (numPlayers, options = {
     numRounds: null,
     numNamesPerPlayer: null,
     slowMode: false,
-    fullChecksWhenNotInFastMode: true
+    fullChecksWhenNotInFastMode: true,
+    turnVersion: 'V1',
 }) {
     const random = util.generateRandomFunction(options.seed);
     const selectedPlayers = choose(random, numPlayers, playerNames);
@@ -30,77 +31,101 @@ export const generateGame = function (numPlayers, options = {
         numRounds = 1 + Math.floor(10 * random());
     }
     const turns = [];
-    let currentTurn = null;
+    let turnsV2 = false;
+    if (options.turnVersion === 'V1') {
+        let currentTurn = null;
 
-    for (let roundIndex = 0; roundIndex < numRounds; roundIndex++) {
-        currentTurn = null;
-        for (let nameIndex = 0; nameIndex < totalNames; ) {
-            if (currentTurn === null) {
-                // console.log(`computing turn at index ${turns.length}`);
-                currentTurn = [];
-                turns.push(currentTurn);
-            }
-
-            if (options.slowMode) {
-                const roundDurationInSec = 60;
-                let roundMarginInSec = 3;
-                if (!options.fastMode && options.fullChecksWhenNotInFastMode) {
-                    // console.log('using larger margin');
-                    roundMarginInSec = 10;
+        for (let roundIndex = 0; roundIndex < numRounds; roundIndex++) {
+            currentTurn = null;
+            for (let nameIndex = 0; nameIndex < totalNames;) {
+                if (currentTurn === null) {
+                    // console.log(`computing turn at index ${turns.length}`);
+                    currentTurn = [];
+                    turns.push(currentTurn);
                 }
-                else {
-                    // console.log(`fastMode ${options.fastMode}, fullChecks ${options.fullChecksWhenNotInFastMode}, using smaller margin`);
-                }
-                const playDurationInSec = roundDurationInSec - roundMarginInSec;
 
-                let playDurationSoFar=0;
-                while(playDurationSoFar < playDurationInSec
-                        && nameIndex < totalNames) {
-                    let playDurationForThisName = 5 + Math.floor(20 * random());
-                    playDurationSoFar += playDurationForThisName;
-                    currentTurn.push(playDurationForThisName);
-
-                    if (playDurationSoFar < playDurationInSec) {
-                        // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, clicking another button`);
-                        let randomResult = random();
-                        if (randomResult < 0.1) {
-                            currentTurn.push(p);
-                        }
-                        else {
-                            currentTurn.push(g);
-                            nameIndex++;
-                            if (nameIndex >= totalNames) {
-                                // console.log('end of round');
-                                currentTurn = null;
-                            }
-                        }
+                if (options.slowMode) {
+                    const roundDurationInSec = 60;
+                    let roundMarginInSec = 3;
+                    if (!options.fastMode && options.fullChecksWhenNotInFastMode) {
+                        // console.log('using larger margin');
+                        roundMarginInSec = 10;
                     }
                     else {
-                        // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, won't click`);
+                        // console.log(`fastMode ${options.fastMode}, fullChecks ${options.fullChecksWhenNotInFastMode}, using smaller margin`);
+                    }
+                    const playDurationInSec = roundDurationInSec - roundMarginInSec;
+
+                    let playDurationSoFar = 0;
+                    while (playDurationSoFar < playDurationInSec
+                        && nameIndex < totalNames) {
+                        let playDurationForThisName = 5 + Math.floor(20 * random());
+                        playDurationSoFar += playDurationForThisName;
+                        currentTurn.push(playDurationForThisName);
+
+                        if (playDurationSoFar < playDurationInSec) {
+                            // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, clicking another button`);
+                            let randomResult = random();
+                            if (randomResult < 0.1) {
+                                currentTurn.push(p);
+                            }
+                            else {
+                                currentTurn.push(g);
+                                nameIndex++;
+                                if (nameIndex >= totalNames) {
+                                    // console.log('end of round');
+                                    currentTurn = null;
+                                }
+                            }
+                        }
+                        else {
+                            // console.log(`playDurationForThisName ${playDurationForThisName} takes us to total duration ${playDurationSoFar}, won't click`);
+                            currentTurn = null;
+                        }
+                    }
+
+                    if (currentTurn) {
+                        currentTurn.push(playDurationSoFar - playDurationInSec + roundMarginInSec);
                         currentTurn = null;
                     }
                 }
-
-                if (currentTurn) {
-                    currentTurn.push(playDurationSoFar - playDurationInSec + roundMarginInSec);
-                    currentTurn = null;
-                }
-            }
-            else {
-                let randomResult = random();
-                if (randomResult < 0.1) {
-                    currentTurn.push(p);
-                }
-                else if (randomResult < 0.75) {
-                    currentTurn.push(g);
-                    nameIndex++;
-                }
                 else {
-                    currentTurn.push(e);
-                    currentTurn = null;
+                    let randomResult = random();
+                    if (randomResult < 0.1) {
+                        currentTurn.push(p);
+                    }
+                    else if (randomResult < 0.75) {
+                        currentTurn.push(g);
+                        nameIndex++;
+                    }
+                    else {
+                        currentTurn.push(e);
+                        currentTurn = null;
+                    }
                 }
             }
         }
+    }
+    else if (options.turnVersion === 'V2') {
+        turnsV2 = true;
+        // const totalGotItClicks = numRounds * totalNames;
+        // for (let clickIndex=0; clickIndex < totalGotItClicks; ) {
+        //     let waitDuration = 5 + Math.floor(20 * random());
+        //     turnsV2.push(waitDuration);
+
+        //     const randomResult = random();
+        //     if (randomResult < 0.1) {
+        //         turnsV2.push(p);
+        //     }
+        //     else {
+        //         turnsV2.push(g);
+        //         clickIndex++;
+
+        //         if (clickIndex % totalNames == 0) {
+        //             turnsV2.push('round-ended');
+        //         }
+        //     }
+        // }
     }
 
     const gameSpec = {
@@ -111,9 +136,11 @@ export const generateGame = function (numPlayers, options = {
         turnIndexOffset: 0,
         fullChecksWhenNotInFastMode: options.fullChecksWhenNotInFastMode,
         turns: turns,
+        turnsV2: turnsV2,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
         slowMode: options.slowMode,
+        random: random,
     };
 
     return gameSpec;

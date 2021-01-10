@@ -237,6 +237,9 @@ public class GameManager {
 					.collect( Collectors.toList() ) )
 			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
 			.put( "turnCount", aGame.getTurnCount() )
+			// The game-global name index is the current index in the list of all celeb names across all rounds of the game.
+			// Used sometimes by the test bots.
+			.put( "gameGlobalNameIndex", aGame.getCurrentNameIndex() * ( aGame.getRoundIndex() + 1 ) )
 			;
 			
 			if (sessionRequesting != null) {

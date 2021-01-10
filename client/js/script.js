@@ -547,11 +547,13 @@ function processGameStateObject(newGameStateObject) {
 	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
 
+	
 	const testBotInfo = {
 		gameStatus: serverGameState.status,
 		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
 		teamsAllocated: myGameState.teamsAllocated,
 		turnCount: serverGameState.turnCount,
+		gameGlobalNameIndex: serverGameState.gameGlobalNameIndex,
 	};
 
 	setDOMElementVisibility(myGameState, serverGameState);

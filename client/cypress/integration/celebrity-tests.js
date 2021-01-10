@@ -56,14 +56,16 @@ if (Cypress.env('RANDOM')) {
         seed = seed.toString();
     }
 
+    let slowMode = Cypress.env('SLOW_MODE');
     const gameSpec = randomGame.generateGame(numPlayers,
         {
             seed: seed,
             fastMode: fastMode,
             numRounds: Cypress.env('NUM_ROUNDS'),
             numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
-            slowMode: Cypress.env('SLOW_MODE'),
+            slowMode: slowMode,
             fullChecksWhenNotInFastMode: true,
+            turnVersion: slowMode ? 'V2' : 'V1',
         });
     gameSpec.index = playerIndex;
 
@@ -84,6 +86,7 @@ if (Cypress.env('RANDOM')) {
                 gameID: gameSpec.gameID,
                 turnIndexOffset: gameSpec.turnIndexOffset,
                 turns: gameSpec.turns,
+                turnsV2: gameSpec.turnsV2,
                 restoredGame: gameSpec.restoredGame,
                 namesSeen: [],
                 fastMode: fastMode,
@@ -92,6 +95,7 @@ if (Cypress.env('RANDOM')) {
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
                 numRounds: gameSpec.numRounds,
                 slowMode: gameSpec.slowMode,
+                random: gameSpec.random,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
@@ -351,79 +355,84 @@ function waitForWakeUpTrigger(clientState) {
 
 // Get the names I'm supposed to get on this turn
 function getNames(clientState) {
-    const turnCounter = clientState.turnCounter;
-    const numPlayers = clientState.otherPlayers.length + 1;
-    const turnIndexOffset = clientState.turnIndexOffset;
-    const playerIndex = clientState.playerIndex;
-    const teamIndex = clientState.teamIndex;
-    const turns = clientState.turns;
-    const namesSeen = clientState.namesSeen;
-
-    cy.scrollTo(0, 0); // Looks nicer when watching (only useful if we use {force: true} when clicking the buttons)
-    // cy.wait(5000); // so I can follow it when watching
-
-    // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
-    const numTeams = 2;
-    const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
-
-    // If numPlayers is odd, team 0 has one more player than team 1.
-    const numPlayersInMyTeam        = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
-    const numTurnsBetweenMyTurns    = numTeams * numPlayersInMyTeam;
-    const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
-    console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
-
-    const turnToTake = turns[turnIndex];
-    console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
-
-    let options = {};
-
-    // {force: true} disables scrolling, which is nice for videos but not
-    // what we want in a real test. When doing {force: true}, we need the
-    // should('be.visible') to make sure we at least wait for the button to appear.
-
-    // options = {force: true};
-    if (( !fastMode && clientState.fullChecksWhenNotInFastMode) || options.force) {
-        cy.get('[id="gotNameButton"]').should('be.visible');
-        cy.get('[id="passButton"]').should('be.visible');
-        cy.get('[id="endTurnButton"]').should('be.visible');
-    }
-
-    if ( !fastMode && clientState.fullChecksWhenNotInFastMode ) {
-        // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
-        // We also check that the names we see are elements of the celebName list rather than other strings
-        retrieveTestBotInfo()
-            .then(testBotInfo => {
-                expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
-
-                const namesSeenOnThisTurn = new Set();
-                const roundIndex = testBotInfo.roundIndex;
-
-                let namesSeenOnThisRound = namesSeen[roundIndex];
-                if (namesSeenOnThisRound == null) {
-                    namesSeenOnThisRound = new Set();
-                    namesSeen[roundIndex] = namesSeenOnThisRound;
-                }
-
-                let delayInSec = 0;
-                let totalExpectedWaitTimeInSec = 0;
-                const roundDurationInSec = 60;
-                takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
-            });
+    if (clientState.turnsV2) {
+        getNamesV2(clientState);
     }
     else {
-        // In fast mode, just click the buttons, no 0.5s wait and no checking of names
-        for (const move of turnToTake) {
-            if (move === 'got-it') {
-                cy.get('[id="gotNameButton"]').click(options);
-            }
-            else if (move === 'pass') {
-                cy.get('[id="passButton"]').click(options);
-            }
-            else if (move === 'end-turn') {
-                cy.get('[id="endTurnButton"]').click();
-            }
-            else if (typeof(move) === 'number') {
-                cy.wait(move * 1000);
+        const turnCounter = clientState.turnCounter;
+        const numPlayers = clientState.otherPlayers.length + 1;
+        const turnIndexOffset = clientState.turnIndexOffset;
+        const playerIndex = clientState.playerIndex;
+        const teamIndex = clientState.teamIndex;
+        const turns = clientState.turns;
+        const namesSeen = clientState.namesSeen;
+
+        cy.scrollTo(0, 0); // Looks nicer when watching (only useful if we use {force: true} when clicking the buttons)
+        // cy.wait(5000); // so I can follow it when watching
+
+        // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
+        const numTeams = 2;
+        const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
+
+        // If numPlayers is odd, team 0 has one more player than team 1.
+        const numPlayersInMyTeam = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
+        const numTurnsBetweenMyTurns = numTeams * numPlayersInMyTeam;
+        const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
+        console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
+
+        const turnToTake = turns[turnIndex];
+        console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
+
+        let options = {};
+
+        // {force: true} disables scrolling, which is nice for videos but not
+        // what we want in a real test. When doing {force: true}, we need the
+        // should('be.visible') to make sure we at least wait for the button to appear.
+
+        // options = {force: true};
+        if ((!fastMode && clientState.fullChecksWhenNotInFastMode) || options.force) {
+            cy.get('[id="gotNameButton"]').should('be.visible');
+            cy.get('[id="passButton"]').should('be.visible');
+            cy.get('[id="endTurnButton"]').should('be.visible');
+        }
+
+        if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+            // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
+            // We also check that the names we see are elements of the celebName list rather than other strings
+            retrieveTestBotInfo()
+                .then(testBotInfo => {
+                    expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
+
+                    const namesSeenOnThisTurn = new Set();
+                    const roundIndex = testBotInfo.roundIndex;
+
+                    let namesSeenOnThisRound = namesSeen[roundIndex];
+                    if (namesSeenOnThisRound == null) {
+                        namesSeenOnThisRound = new Set();
+                        namesSeen[roundIndex] = namesSeenOnThisRound;
+                    }
+
+                    let delayInSec = 0;
+                    let totalExpectedWaitTimeInSec = 0;
+                    const roundDurationInSec = 60;
+                    takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                });
+        }
+        else {
+            // In fast mode, just click the buttons, no 0.5s wait and no checking of names
+            for (const move of turnToTake) {
+                if (move === 'got-it') {
+                    cy.get('[id="gotNameButton"]').click(options);
+                }
+                else if (move === 'pass') {
+                    cy.get('[id="passButton"]').click(options);
+                }
+                else if (move === 'end-turn') {
+                    cy.get('[id="endTurnButton"]').click();
+                }
+                else if (typeof (move) === 'number') {
+                    cy.wait(move * 1000);
+                }
             }
         }
     }
@@ -542,6 +551,125 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
 
     }
 }
+
+function getNamesV2(clientState) {
+    retrieveTestBotInfo()
+        .then(testBotInfo => {
+            const clickIndex = testBotInfo.gameGlobalNameIndex;
+            const prevIndex  = clientState.prevGlobalNameIndex ? clientState.prevGlobalNameIndex : 0;
+
+            let passCount = 0;
+            let randomInvocationCount = 0;
+            for (let otherPlayerClickIndex=prevIndex; otherPlayerClickIndex < clickIndex; otherPlayerClickIndex++) {
+                clientState.random(); // Other player invoked the random to decide how long to wait
+                randomInvocationCount++;
+
+                // TODO other player may have ended round
+
+                // Other player invoked the random to decide whether or not to pass
+                if (clientState.random() < 0.1) {
+                    // other player passed, decrement the index to go through another iteration of the loop and call the random again
+                    otherPlayerClickIndex--;
+                    passCount++;
+                }
+                randomInvocationCount++;
+            }
+            const indexDelta = clickIndex - prevIndex;
+            console.log(`Between the last turn and this turn, global index has gone from ${prevIndex} to ${clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
+
+            const roundDurationInSec = 60;
+            let roundMarginInSec = 3;
+            if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+                roundMarginInSec = 10;
+            }
+            const playDurationInSec = roundDurationInSec - roundMarginInSec;
+
+            const namesSeenOnThisTurn = new Set();
+            const roundIndex = testBotInfo.roundIndex;
+
+            let namesSeenOnThisRound = clientState.namesSeen[roundIndex];
+            if (namesSeenOnThisRound == null) {
+                namesSeenOnThisRound = new Set();
+                clientState.namesSeen[roundIndex] = namesSeenOnThisRound;
+            }
+
+            let delayInSec = 0;
+            let totalExpectedWaitTimeInSec = 0;
+
+            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+        });
+}
+
+function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn) {
+    const numNames = allCelebNames.length;
+    if (totalExpectedWaitTimeInSec > 0
+        && clickIndex % numNames === 0) {
+            clientState.prevGlobalNameIndex = clickIndex;
+            console.log(util.formatTime(), `Reached end of round, not taking any more turns. Global index now ${clientState.prevGlobalNameIndex}.`);
+    }
+    else {
+        const waitDuration = 5 + Math.floor(20 * clientState.random());
+        if (waitDuration + totalExpectedWaitTimeInSec + delayInSec >= playDurationInSec) {
+            clientState.prevGlobalNameIndex = clickIndex;
+            console.log(`Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
+        }
+        else {
+            cy.wait(waitDuration * 1000)
+            .then(() => {
+                totalExpectedWaitTimeInSec += waitDuration;
+                let buttonID = 'gotNameButton';
+                if (clientState.random() < 0.1) {
+                    buttonID = 'passButton';
+                }
+                else {
+                    cy.get('[id="currentNameDiv"]')
+                    .then(elements => {
+                        let currentNameDiv = elements[0];
+                        const nameDivText = currentNameDiv.innerText;
+                        const prefixString = 'Name: ';
+                        assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
+        
+                        const celebName = nameDivText.substring(prefixString.length);
+                        assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
+        
+                        assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
+                        assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
+                        namesSeenOnThisTurn.add(celebName);
+                    });
+                }
+
+                cy.get(`[id="${buttonID}"]`).click()
+                .then(() => {
+                    console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+                    clickIndex++;
+                    if (clickIndex % numNames !== 0) {
+                        cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+                            .then(elements => {
+                                const gameStatusDiv = elements[0];
+                                const statusDivText = gameStatusDiv.innerText;
+                                const prefixString = 'Seconds remaining: ';
+                                assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
+    
+                                const secondsRemainingText = statusDivText.substring(prefixString.length);
+                                const secondsRemaining = parseInt(secondsRemainingText);
+                                const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+                                delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemaining);
+    
+                                console.log(util.formatTime(), `Read ${secondsRemaining}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+    
+                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+                            });
+                    }
+                    else {
+                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+                    }
+                });
+            });
+        }
+    }
+}
+
+
 
 function startHostingNewGame(playerName, gameID, clientState) {
     cy.get('[id="nameField"]').type(playerName);
