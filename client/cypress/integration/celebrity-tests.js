@@ -437,12 +437,30 @@ function getNames(clientState) {
                     }
                 }
 
-                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
-                    .then(elements => {
-                        // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                        namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                    });
+                if (clientState.slowMode) {
+                    /* In slow mode, we leave a big margin of time at the end of the turn to not click anything, in case delays
+                    *  during the turn mean that our waits would add up to more than 60s.
+                    *  
+                    *  If we get a case where we actually have most of the margin left when we get to the end of our turnToTake array,
+                    *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
+                    *  GotIt button is not visible
+                    */
+                   cy.get('[id="gotNameButton"]', {timeout: 15000}).should('not.be.visible'); // timeout on a should goes on the parent get()
+                   cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                   .then(elements => {
+                       // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                       namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                       namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                   });
+                }
+                else {
+                    cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                        .then(elements => {
+                            // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                            namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                            namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                        });
+                }
             });
     }
     else {
