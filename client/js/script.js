@@ -377,7 +377,7 @@ if (getCookie('restore') === 'true') {
 const messageOnReload = getCookie('messageOnReload');
 if (messageOnReload != null
 	&& messageOnReload != '') {
-	console.log('messageOnReload', messageOnReload);
+	console.log(util.formatTime(), 'messageOnReload', messageOnReload);
 	clearCookie('messageOnReload');
 
 	showNotification(messageOnReload);
@@ -444,7 +444,7 @@ function tryToOpenSocket() {
 			console.error(evt);
 		};
 		webSocket.onclose = evt => {
-			console.log('websocket closed');
+			console.log(util.formatTime(), 'websocket closed');
 		};
 		webSocket.onopen = event => {
 			webSocket.send('initial-test');
@@ -455,7 +455,7 @@ function tryToOpenSocket() {
 			if (firstSocketMessage) {
 				firstSocketMessage = false;
 				if (message === 'gotcha') {
-					console.log('websocket connection OK');
+					console.log(util.formatTime(), 'websocket connection OK');
 				}
 			}
 
@@ -481,7 +481,7 @@ function tryToOpenSocket() {
 					updateCountdownClock(secondsRemaining);
 				}
 				else {
-					console.log('object received', messageObject);
+					console.log(util.formatTime(), 'object received', messageObject);
 				}
 			}
 
@@ -492,7 +492,7 @@ function tryToOpenSocket() {
 				processGameStateObject(gameObj);
 			}
 			else if (message !== 'gotcha') {
-				console.log(`message: ${evt.data}`);
+				console.log(util.formatTime(), `message: ${evt.data}`);
 			}
 		};
 	} catch (err) {
@@ -1148,10 +1148,11 @@ function addTestTrigger(text) {
 }
 
 function clearTestTrigger() {
-	if (serverGameState.testing) {
+	const testTriggerDiv = document.getElementById('testTriggerDiv');
+	if (serverGameState.testing
+		&& testTriggerDiv.textContent !== '') {
 		console.log(util.formatTime(), 'clearing test trigger');
 	}
-	const testTriggerDiv = document.getElementById('testTriggerDiv');
 	testTriggerDiv.textContent = '';
 	testTriggerDiv.classList.remove('testTriggerClass');
 }

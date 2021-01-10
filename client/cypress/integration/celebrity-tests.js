@@ -302,7 +302,7 @@ function waitForWakeUpTrigger(clientState) {
                 if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
-                console.log('Finished!!');
+                console.log(util.formatTime(), 'Finished!!');
             }
             else if (triggerElement.innerText === 'bot-start-turn') {
                 // It's my turn, get the names I'm supposed to get on this turn
@@ -367,10 +367,10 @@ function getNames(clientState) {
     const numPlayersInMyTeam        = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
     const numTurnsBetweenMyTurns    = numTeams * numPlayersInMyTeam;
     const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
-    console.log(`turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
+    console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
     const turnToTake = turns[turnIndex];
-    console.log(`turnToTake: ${turnToTake}`);
+    console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
     let options = {};
 
@@ -408,6 +408,11 @@ function getNames(clientState) {
                         // Should be a way to avoid this, but can't find it
                         cy.wait(500);
                     }
+
+                    if (typeof(move) === 'string') {
+                        console.log(util.formatTime(), `taking move ${move}`);
+                    }
+
                     if (move === 'got-it') {
                         cy.get('[id="currentNameDiv"]')
                             .then(elements => {
@@ -433,6 +438,7 @@ function getNames(clientState) {
                         cy.get('[id="endTurnButton"]').click();
                     }
                     else if (typeof(move) === 'number') {
+                        console.log(util.formatTime(), `waiting ${move} seconds before next move`);
                         cy.wait(move * 1000);
                     }
                 }
@@ -445,6 +451,7 @@ function getNames(clientState) {
                     *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
                     *  GotIt button is not visible
                     */
+                   console.log(util.formatTime(), 'reached end of turn, checking scores list');
                    cy.get('[id="gotNameButton"]', {timeout: 15000}).should('not.be.visible'); // timeout on a should goes on the parent get()
                    cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
                    .then(elements => {
