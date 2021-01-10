@@ -404,78 +404,10 @@ function getNames(clientState) {
                     namesSeen[roundIndex] = namesSeenOnThisRound;
                 }
 
-                for (const move of turnToTake) {
-
-                    if (!clientState.slowMode) {
-                        // Need to wait to make sure DOM is updated with new name, otherwise we can check the same name twice.
-                        // Should be a way to avoid this, but can't find it
-                        cy.wait(500);
-                    }
-
-                    if (move === 'got-it') {
-                        cy.get('[id="currentNameDiv"]')
-                            .then(elements => {
-                                let currentNameDiv = elements[0];
-                                const nameDivText = currentNameDiv.innerText;
-                                const prefixString = 'Name: ';
-                                assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
-
-                                const celebName = nameDivText.substring(prefixString.length);
-                                assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
-
-                                assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
-                                assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
-                                namesSeenOnThisTurn.add(celebName);
-                            });
-
-                        cy.get('[id="gotNameButton"]').click(options)
-                            .then(() => console.log(util.formatTime(), `took move ${move}`));
-                    }
-                    else if (move === 'pass') {
-                        cy.get('[id="passButton"]').click(options)
-                            .then(() => console.log(util.formatTime(), `took move ${move}`));
-                    }
-                    else if (move === 'end-turn') {
-                        cy.get('[id="endTurnButton"]').click()
-                            .then(() => console.log(util.formatTime(), `took move ${move}`));
-                    }
-                    else if (typeof(move) === 'number') {
-                        cy.wait(move * 1000)
-                            .then(() => console.log(util.formatTime(), `waited ${move} seconds before next move`));
-                    }
-                }
-
-                if (clientState.slowMode) {
-                    /* In slow mode, we leave a big margin of time at the end of the turn to not click anything, in case delays
-                    *  during the turn mean that our waits would add up to more than 60s.
-                    *  
-                    *  If we get a case where we actually have most of the margin left when we get to the end of our turnToTake array,
-                    *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
-                    *  GotIt button is not visible
-                    */
-                    if (namesSeenOnThisRound.length > 0
-                        || namesSeenOnThisTurn.length > 0) {
-                        cy.get('[id="gotNameButton"]', { timeout: 15000 }).should('not.be.visible'); // timeout on a should goes on the parent get()
-                        cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
-                            .then(elements => {
-                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                                console.log(util.formatTime(), 'reached end of turn, checking scores list');
-                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                                namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                            });
-                    }
-                }
-                else {
-                    if (namesSeenOnThisRound.length > 0
-                        || namesSeenOnThisTurn.length > 0) {
-                        cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
-                            .then(elements => {
-                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                                namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-                            });
-                    }
-                }
+                let delayInSec = 0;
+                let totalExpectedWaitTimeInSec = 0;
+                const roundDurationInSec = 60;
+                takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
             });
     }
     else {
@@ -494,6 +426,119 @@ function getNames(clientState) {
                 cy.wait(move * 1000);
             }
         }
+    }
+}
+
+// We need a recursive function rather than a loop over turnToTake, so that when we're in slowMode,
+// each call to cy.wait knows what the calculated delay is.
+function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options) {
+    if (moveIndex >= turnToTake.length) {
+        // Reached end of turn - do final check, then terminate recursion
+        if (clientState.slowMode) {
+            /* In slow mode, we leave a big margin of time at the end of the turn to not click anything, in case delays
+            *  during the turn mean that our waits would add up to more than 60s.
+            *  
+            *  If we get a case where we actually have most of the margin left when we get to the end of our turnToTake array,
+            *  we need to wait until the turn has really ended before checking the scores div. Check this by checking the
+            *  GotIt button is not visible
+            */
+            if (namesSeenOnThisRound.length > 0
+                || namesSeenOnThisTurn.length > 0) {
+                cy.get('[id="gotNameButton"]', { timeout: 15000 }).should('not.be.visible'); // timeout on a should goes on the parent get()
+                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                    .then(elements => {
+                        // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                        console.log(util.formatTime(), 'reached end of turn, checking scores list');
+                        namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                    });
+            }
+        }
+        else {
+            if (namesSeenOnThisRound.length > 0
+                || namesSeenOnThisTurn.length > 0) {
+                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                    .then(elements => {
+                        // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                        namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                    });
+            }
+        }
+    }
+
+
+    if (!clientState.slowMode) {
+        // Need to wait to make sure DOM is updated with new name, otherwise we can check the same name twice.
+        // Should be a way to avoid this, but can't find it
+        cy.wait(500);
+    }
+
+    const move = turnToTake[moveIndex];
+
+    let buttonID = null;
+    if (move === 'got-it') {
+        cy.get('[id="currentNameDiv"]')
+            .then(elements => {
+                let currentNameDiv = elements[0];
+                const nameDivText = currentNameDiv.innerText;
+                const prefixString = 'Name: ';
+                assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
+
+                const celebName = nameDivText.substring(prefixString.length);
+                assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
+
+                assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
+                assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
+                namesSeenOnThisTurn.add(celebName);
+            });
+
+        buttonID = 'gotNameButton';
+    }
+    else if (move === 'pass') {
+        buttonID = 'passButton';
+    }
+    else if (move === 'end-turn') {
+        buttonID = 'endTurnButton';
+    }
+    else if (typeof (move) === 'number') {
+        const adjustedWaitTime = Math.max(0, move - delayInSec);
+        cy.wait(adjustedWaitTime * 1000)
+            .then(() => {
+                totalExpectedWaitTimeInSec += move;
+                console.log(util.formatTime(), `Had a ${move}-second wait specified, with ${delayInSec}s delay. Waited ${adjustedWaitTime} seconds. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+
+                takeMoves(moveIndex+1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+            });
+    }
+
+    if (buttonID) {
+        cy.get(`[id="${buttonID}"]`).click(options)
+            .then(() => {
+                console.log(util.formatTime(), `took move ${move}`);
+                if (clientState.slowMode) {
+                    cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+                        .then(elements => {
+                            const gameStatusDiv = elements[0];
+                            const statusDivText = gameStatusDiv.innerText;
+                            const prefixString = 'Seconds remaining: ';
+                            assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
+
+                            const secondsRemainingText = statusDivText.substring(prefixString.length);
+                            const secondsRemaining = parseInt(secondsRemainingText);
+                            const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+                            delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemaining);
+
+                            console.log(util.formatTime(), `Read ${secondsRemaining}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+
+                            takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                        });
+                }
+                else {
+                    takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                }
+            });
+
     }
 }
 
