@@ -666,11 +666,22 @@ function getNamesV2(clientState) {
             let delayInSec = 0;
             let totalExpectedWaitTimeInSec = 0;
 
-            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null);
+            const scoresArray = testBotInfo.scores;
+            if (scoresArray.find(score => score > 0)) {
+                cy.get('[id="scoresDiv"]')
+                    .then(elements => {
+                        const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
+                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, namesPreviouslyOnScoresDiv);
+                        cy.scrollTo(0, 0); // Looks nicer when watching
+                    });
+            }
+            else {
+                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, [[], []]);
+            }
         });
 }
 
-function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM) {
+function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
     const numNames = allCelebNames.length;
     if (gotAtLeastOneName
         && clickIndex % numNames === 0) {
@@ -683,6 +694,38 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
         if (waitDuration + totalExpectedWaitTimeInSec + delayInSec >= playDurationInSec) {
             clientState.prevGlobalNameIndex = clickIndex;
             console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
+
+            if (gotAtLeastOneName
+                || namesPreviouslyOnScoresDiv.length > 0) {
+                cy.get('[id="gotNameButton"', { timeout: 1000 * (roundDurationInSec - totalExpectedWaitTimeInSec) }).should('not.be.visible')
+                    .then(() => {
+                        cy.get('[id="scoresDiv"]')
+                            .then(elements => {
+                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+
+                                console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
+                                const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
+
+                                for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
+                                    const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
+                                    const namesNowSeenInThisSubList = namesSeenNowOnScoresDiv[scoresSubListIndex];
+                                    let namesExpectedOnScoresDiv;
+                                    if (scoresSubListIndex == clientState.teamIndex) {
+                                        namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
+                                    }
+                                    else {
+                                        namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
+                                    }
+                                    assert.equal(namesNowSeenInThisSubList.length, namesExpectedOnScoresDiv.length, 'There should be the right number of names now listed in scores');
+                                    for (let nameIndex = 0; nameIndex < namesNowSeenInThisSubList.length; nameIndex++) {
+                                        assert.equal(namesNowSeenInThisSubList[nameIndex], namesExpectedOnScoresDiv[nameIndex], `Expect ${nameIndex}th element of scores list to have the right value`);
+                                    }
+                                }
+                            });
+                    });
+
+            }
         }
         else if (delayInSec > 10
                 && secondsRemainingFromDOM
@@ -697,6 +740,36 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                 let buttonID = 'gotNameButton';
                 if (clientState.random() < 0.1) {
                     buttonID = 'passButton';
+
+                    cy.get(`[id="${buttonID}"]`).click()
+                    .then(() => {
+                        console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+                        if (buttonID === 'gotNameButton') {
+                            clickIndex++;
+                            gotAtLeastOneName = true;
+                        }
+                        if (clickIndex % numNames !== 0) {
+                            cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+                                .then(elements => {
+                                    const gameStatusDiv = elements[0];
+                                    const statusDivText = gameStatusDiv.innerText;
+                                    const prefixString = 'Seconds remaining: ';
+                                    assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
+        
+                                    const secondsRemainingText = statusDivText.substring(prefixString.length);
+                                    secondsRemainingFromDOM = parseInt(secondsRemainingText);
+                                    const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+                                    delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
+        
+                                    console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+        
+                                    takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                });
+                        }
+                        else {
+                            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                        }
+                    });
                 }
                 else {
                     cy.get('[id="currentNameDiv"]')
@@ -712,38 +785,38 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                         assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                         assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
                         namesSeenOnThisTurn.add(celebName);
+
+                        cy.get(`[id="${buttonID}"]`).click()
+                        .then(() => {
+                            console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+                            if (buttonID === 'gotNameButton') {
+                                clickIndex++;
+                                gotAtLeastOneName = true;
+                            }
+                            if (clickIndex % numNames !== 0) {
+                                cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+                                    .then(elements => {
+                                        const gameStatusDiv = elements[0];
+                                        const statusDivText = gameStatusDiv.innerText;
+                                        const prefixString = 'Seconds remaining: ';
+                                        assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
+            
+                                        const secondsRemainingText = statusDivText.substring(prefixString.length);
+                                        secondsRemainingFromDOM = parseInt(secondsRemainingText);
+                                        const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+                                        delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
+            
+                                        console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+            
+                                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                    });
+                            }
+                            else {
+                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                            }
+                        });
                     });
                 }
-
-                cy.get(`[id="${buttonID}"]`).click()
-                .then(() => {
-                    console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
-                    if (buttonID === 'gotNameButton') {
-                        clickIndex++;
-                        gotAtLeastOneName = true;
-                    }
-                    if (clickIndex % numNames !== 0) {
-                        cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
-                            .then(elements => {
-                                const gameStatusDiv = elements[0];
-                                const statusDivText = gameStatusDiv.innerText;
-                                const prefixString = 'Seconds remaining: ';
-                                assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
-    
-                                const secondsRemainingText = statusDivText.substring(prefixString.length);
-                                secondsRemainingFromDOM = parseInt(secondsRemainingText);
-                                const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
-                                delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
-    
-                                console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
-    
-                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM);
-                            });
-                    }
-                    else {
-                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM);
-                    }
-                });
             });
         }
     }
