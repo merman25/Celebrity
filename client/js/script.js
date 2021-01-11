@@ -554,6 +554,7 @@ function processGameStateObject(newGameStateObject) {
 		teamsAllocated: myGameState.teamsAllocated,
 		turnCount: serverGameState.turnCount,
 		gameGlobalNameIndex: serverGameState.gameGlobalNameIndex,
+		scores: serverGameState.namesAchieved.map(({name, namesAchieved}) => namesAchieved.length),
 	};
 
 	setDOMElementVisibility(myGameState, serverGameState);

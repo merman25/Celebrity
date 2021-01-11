@@ -385,9 +385,6 @@ function getNames(clientState) {
         const turns = clientState.turns;
         const namesSeen = clientState.namesSeen;
 
-        cy.scrollTo(0, 0); // Looks nicer when watching (only useful if we use {force: true} when clicking the buttons)
-        // cy.wait(5000); // so I can follow it when watching
-
         // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
         const numTeams = 2;
         const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
@@ -401,14 +398,7 @@ function getNames(clientState) {
         const turnToTake = turns[turnIndex];
         console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
-        let options = {};
-
-        // {force: true} disables scrolling, which is nice for videos but not
-        // what we want in a real test. When doing {force: true}, we need the
-        // should('be.visible') to make sure we at least wait for the button to appear.
-
-        // options = {force: true};
-        if ((!fastMode && clientState.fullChecksWhenNotInFastMode) || options.force) {
+        if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
             cy.get('[id="gotNameButton"]').should('be.visible');
             cy.get('[id="passButton"]').should('be.visible');
             cy.get('[id="endTurnButton"]').should('be.visible');
@@ -433,17 +423,30 @@ function getNames(clientState) {
                     let delayInSec = 0;
                     let totalExpectedWaitTimeInSec = 0;
                     const roundDurationInSec = 60;
-                    takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+
+                    const scoresArray = testBotInfo.scores;
+                    if (scoresArray.find(score => score > 0)) {
+                        cy.get('[id="scoresDiv"]')
+                            .then(elements => {
+                                const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
+                                takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                                cy.scrollTo(0, 0); // Looks nicer when watching
+                            });
+                    }
+                    else {
+                        takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
+                        cy.scrollTo(0, 0); // Looks nicer when watching
+                    }
                 });
         }
         else {
             // In fast mode, just click the buttons, no 0.5s wait and no checking of names
             for (const move of turnToTake) {
                 if (move === 'got-it') {
-                    cy.get('[id="gotNameButton"]').click(options);
+                    cy.get('[id="gotNameButton"]').click();
                 }
                 else if (move === 'pass') {
-                    cy.get('[id="passButton"]').click(options);
+                    cy.get('[id="passButton"]').click();
                 }
                 else if (move === 'end-turn') {
                     cy.get('[id="endTurnButton"]').click();
@@ -452,13 +455,14 @@ function getNames(clientState) {
                     cy.wait(move * 1000);
                 }
             }
+            cy.scrollTo(0, 0); // Looks nicer when watching
         }
     }
 }
 
 // We need a recursive function rather than a loop over turnToTake, so that when we're in slowMode,
 // each call to cy.wait knows what the calculated delay is.
-function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options) {
+function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
     if (moveIndex >= turnToTake.length) {
         // Reached end of turn - do final check, then terminate recursion
         if (clientState.slowMode) {
@@ -472,23 +476,42 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
             if (namesSeenOnThisRound.length > 0
                 || namesSeenOnThisTurn.length > 0) {
                 cy.get('[id="gotNameButton"]', { timeout: 15000 }).should('not.be.visible'); // timeout on a should goes on the parent get()
-                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+                cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
                         console.log(util.formatTime(), 'reached end of turn, checking scores list');
                         namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+                        const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
+                        assert.deepEqual(namesSeenNowOnScoresDiv.sort(), [...namesPreviouslyOnScoresDiv, ...namesSeenOnThisTurn].sort(), 'Names now listed in scores should be the names we had before, plus the names we saw on this turn');
                     });
             }
         }
         else {
-            if (namesSeenOnThisRound.length > 0
-                || namesSeenOnThisTurn.length > 0) {
-                cy.get('[id="scoresDiv"]').click() // scroll here to look at scores (only needed if we're watching or videoing)
+            if (gotAtLeastOneName
+                || namesPreviouslyOnScoresDiv.length > 0) {
+                cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
                         namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-                        namesSeenOnThisRound.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+
+                        console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
+                        const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
+
+                        for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
+                            const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
+                            const namesNowSeenInThisSubList        = namesSeenNowOnScoresDiv[scoresSubListIndex];
+                            let namesExpectedOnScoresDiv;
+                            if (scoresSubListIndex == clientState.teamIndex) {
+                                namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
+                            }
+                            else {
+                                namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
+                            }
+                            assert.equal(namesNowSeenInThisSubList.length, namesExpectedOnScoresDiv.length, 'There should be the right number of names now listed in scores');
+                            for (let nameIndex = 0; nameIndex < namesNowSeenInThisSubList.length; nameIndex++) {
+                                assert.equal(namesNowSeenInThisSubList[nameIndex], namesExpectedOnScoresDiv[nameIndex], `Expect ${nameIndex}th element of scores list to have the right value`);
+                            }
+                        }
                     });
             }
         }
@@ -505,6 +528,9 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
 
     let buttonID = null;
     if (move === 'got-it') {
+        buttonID = 'gotNameButton';
+        gotAtLeastOneName = true;
+
         cy.get('[id="currentNameDiv"]')
             .then(elements => {
                 let currentNameDiv = elements[0];
@@ -518,9 +544,35 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
                 assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                 assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
                 namesSeenOnThisTurn.add(celebName);
+
+                cy.get(`[id="${buttonID}"]`).click()
+                .then(() => {
+                    console.log(util.formatTime(), `took move ${move}`);
+                    if (clientState.slowMode
+                        && moveIndex < turnToTake.length - 1) {
+                        cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+                            .then(elements => {
+                                const gameStatusDiv = elements[0];
+                                const statusDivText = gameStatusDiv.innerText;
+                                const prefixString = 'Seconds remaining: ';
+                                assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
+    
+                                const secondsRemainingText = statusDivText.substring(prefixString.length);
+                                const secondsRemaining = parseInt(secondsRemainingText);
+                                const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+                                delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemaining);
+    
+                                console.log(util.formatTime(), `Read ${secondsRemaining}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+    
+                                takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                            });
+                    }
+                    else {
+                        takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                    }
+                });
             });
 
-        buttonID = 'gotNameButton';
     }
     else if (move === 'pass') {
         buttonID = 'passButton';
@@ -535,12 +587,12 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
                 totalExpectedWaitTimeInSec += move;
                 console.log(util.formatTime(), `Had a ${move}-second wait specified, with ${delayInSec}s delay. Waited ${adjustedWaitTime} seconds. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
 
-                takeMoves(moveIndex+1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                takeMoves(moveIndex+1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
             });
     }
 
-    if (buttonID) {
-        cy.get(`[id="${buttonID}"]`).click(options)
+    if (move === 'pass' || move === 'end-turn') {
+        cy.get(`[id="${buttonID}"]`).click()
             .then(() => {
                 console.log(util.formatTime(), `took move ${move}`);
                 if (clientState.slowMode
@@ -559,11 +611,11 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
 
                             console.log(util.formatTime(), `Read ${secondsRemaining}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
 
-                            takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                            takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                         });
                 }
                 else {
-                    takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, options);
+                    takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                 }
             });
 
@@ -905,34 +957,88 @@ function groupBy(inputArray, groupingFunction) {
 }
 
 function checkFinalScoreForRound(clientState) {
-    allCelebNames.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-    cy.get('.achievedNameLi.team0')
+    cy.get('[id="scoresDiv"]')
         .then(elements => {
-            const team0Score = elements.length;
+            const scoresDiv = elements[0];
+            const [totalScore, seenNames] = readScoresDiv(scoresDiv);
 
-            cy.get('.scoreRowClass').last().prev()
-                .contains(team0Score.toString());
-            cy.get('.achievedNameLi.team1')
-                .then(elements => {
-                    const team1Score = elements.length;
-
-                    cy.get('.scoreRowClass').last()
-                        .contains(team1Score.toString());
-
-                    expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
-                });
-
-                // These are flaky lines, it often gets stuck writing the files. So we do cy.wait() instead
-            // if (!clientState.iAmHosting) {
-            //     cy.writeFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
-            // }
-            // else {
-            //     const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
-            //     for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
-            //         cy.readFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
-            //     }
-            // }
-
-
+            assert.equal(totalScore, allCelebNames.length, 'Total score should match total number of names');
+            const allCelebNamesSorted = [...allCelebNames];
+            allCelebNamesSorted.sort();
+            const allSeenNames = seenNames.reduce((leftArr, rightArr) => leftArr.concat(rightArr));
+            allSeenNames.sort();
+            assert.deepEqual(allSeenNames, allCelebNamesSorted, 'Names in score list should match list of all celeb names');
         });
+    // allCelebNames.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
+    // cy.get('.achievedNameLi.team0')
+    //     .then(elements => {
+    //         const team0Score = elements.length;
+
+    //         cy.get('.scoreRowClass').last().prev()
+    //             .contains(team0Score.toString());
+    //         cy.get('.achievedNameLi.team1')
+    //             .then(elements => {
+    //                 const team1Score = elements.length;
+
+    //                 cy.get('.scoreRowClass').last()
+    //                     .contains(team1Score.toString());
+
+    //                 expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
+    //             });
+
+    //             // These are flaky lines, it often gets stuck writing the files. So we do cy.wait() instead
+    //         // if (!clientState.iAmHosting) {
+    //         //     cy.writeFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
+    //         // }
+    //         // else {
+    //         //     const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
+    //         //     for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
+    //         //         cy.readFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
+    //         //     }
+    //         // }
+
+
+    //     });
+}
+
+function readScoresDiv(scoresDiv) {
+    const scoresLines = scoresDiv.innerText.split('\n'); // NB: innerText includes newlines, textContent does not
+
+    let thisTeamsScore;
+    let totalScore = 0;
+    let prevTeamOffset = 0;
+    let seenNames = [[]];
+    for(let scoreLineIndex=0; scoreLineIndex<scoresLines.length; scoreLineIndex++) {
+        const text = scoresLines[scoreLineIndex];
+        if (scoreLineIndex === 0) {
+            assert.equal( text, 'Scores' );
+        }
+        else if (scoreLineIndex === 1) {
+            assert.equal(text, 'Team 1');
+        }
+        else if (scoreLineIndex === 2) {
+            const prefix = 'Score: ';
+            assert(text.startsWith(prefix), `text '${text} should start with '${prefix}'`);
+            const scoreString = text.substring(prefix.length);
+            thisTeamsScore = parseInt(scoreString);
+            totalScore += thisTeamsScore;
+        }
+        else if (scoreLineIndex < prevTeamOffset + thisTeamsScore + 3) {
+            seenNames[seenNames.length - 1].push(text);
+        }
+        else if (scoreLineIndex === thisTeamsScore + 3) {
+            assert.equal(text, 'Team 2');
+            seenNames.push([]);
+        }
+        else if (scoreLineIndex === thisTeamsScore + 4) {
+            const prefix = 'Score: ';
+            assert(text.startsWith(prefix), `text '${text} should start with '${prefix}'`);
+            const scoreString = text.substring(prefix.length);
+            thisTeamsScore = parseInt(scoreString);
+            totalScore += thisTeamsScore;
+            prevTeamOffset = scoreLineIndex - 2;
+        }
+    }
+
+    return [totalScore, seenNames];
 }
