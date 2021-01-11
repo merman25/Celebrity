@@ -16,6 +16,8 @@ export const generateGame = function (numPlayers, options = {
     slowMode: false,
     fullChecksWhenNotInFastMode: true,
     turnVersion: 'V1',
+    minWaitTimeInSec: 5,
+    maxWaitTimeInSec: 25,
 }) {
     const random = util.generateRandomFunction(options.seed);
     const selectedPlayers = choose(random, numPlayers, playerNames);
@@ -59,7 +61,8 @@ export const generateGame = function (numPlayers, options = {
                     let playDurationSoFar = 0;
                     while (playDurationSoFar < playDurationInSec
                         && nameIndex < totalNames) {
-                        let playDurationForThisName = 5 + Math.floor(20 * random());
+                        const waitDurationRangeInSec = options.maxWaitTimeInSec - options.minWaitTimeInSec;
+                        let playDurationForThisName = minWaitTimeInSec + Math.floor(waitDurationRangeInSec * random());
                         playDurationSoFar += playDurationForThisName;
                         currentTurn.push(playDurationForThisName);
 
@@ -141,6 +144,8 @@ export const generateGame = function (numPlayers, options = {
         numRounds: numRounds,
         slowMode: options.slowMode,
         random: random,
+        minWaitTimeInSec: options.minWaitTimeInSec,
+        maxWaitTimeInSec: options.maxWaitTimeInSec,
     };
 
     return gameSpec;

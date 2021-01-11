@@ -6,7 +6,7 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
+    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-m MIN_WAIT_TIME_IN_SEC] [-M MAX_WAIT_TIME_IN_SEC] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
     printf "\n"
     printf "\t-h:\t\t\t\tPrint this message and exit\n"
     printf "\t-f:\t\t\t\tFast mode (default off)\n"
@@ -21,6 +21,8 @@ print_usage() {
     printf "\t-d SEED:\t\t\tSpecify seed for random game\n"
     printf "\t-g STAGGERED_DELAY_IN_SEC:\tStaggered start of each player, with specified delay (default 0)\n"
     printf "\t-l NUM_PLAYERS:\t\t\tNumber of players\n"
+    printf "\t-m MIN_TIME:\t\t\tMin wait time in sec (slow mode only, default 5)\n"
+    printf "\t-M MAX_TIME:\t\t\tMax wait time in sec (slow mode only, default 20)\n"
     printf "\t-n NUM_NAMES:\t\t\tNumber of names per player\n"
     printf "\t-o NUM_ROUNDS:\t\t\tNumber of rounds\n"
     printf "\t-p PORT:\t\t\tSpecify lowest port to use (default 10000)\n"
@@ -127,6 +129,12 @@ build_cypress_env_common() {
     if [ \! -z "$SLOW_MODE" ]; then
 	ENV=$(append "$ENV" "SLOW_MODE=$SLOW_MODE")
     fi
+    if [ \! -z "$MIN_WAIT_TIME_IN_SEC" ]; then
+	ENV=$(append "$ENV" "MIN_WAIT_TIME_IN_SEC=$MIN_WAIT_TIME_IN_SEC")
+    fi
+    if [ \! -z "$MAX_WAIT_TIME_IN_SEC" ]; then
+	ENV=$(append "$ENV" "MAX_WAIT_TIME_IN_SEC=$MAX_WAIT_TIME_IN_SEC")
+    fi
 
     echo -n "$ENV"
 }
@@ -205,7 +213,7 @@ RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
 URL="default"
-while getopts "hfjkqrswxzd:g:l:n:o:p:u:" OPT; do
+while getopts "hfjkqrswxzd:g:l:m:M:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -246,6 +254,12 @@ while getopts "hfjkqrswxzd:g:l:n:o:p:u:" OPT; do
 	    ;;
 	l)
 	    NUM_PLAYERS="$OPTARG"
+	    ;;
+	m)
+	    MIN_WAIT_TIME_IN_SEC="$OPTARG"
+	    ;;
+	M)
+	    MAX_WAIT_TIME_IN_SEC="$OPTARG"
 	    ;;
 	n)
 	    NUM_NAMES_PER_PLAYER="$OPTARG"

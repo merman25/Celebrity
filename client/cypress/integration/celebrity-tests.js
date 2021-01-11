@@ -57,16 +57,24 @@ if (Cypress.env('RANDOM')) {
     }
 
     let slowMode = Cypress.env('SLOW_MODE');
-    const gameSpec = randomGame.generateGame(numPlayers,
-        {
-            seed: seed,
-            fastMode: fastMode,
-            numRounds: Cypress.env('NUM_ROUNDS'),
-            numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
-            slowMode: slowMode,
-            fullChecksWhenNotInFastMode: true,
-            turnVersion: slowMode ? 'V2' : 'V1',
-        });
+    const specOptions = {
+        seed: seed,
+        fastMode: fastMode,
+        numRounds: Cypress.env('NUM_ROUNDS'),
+        numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
+        slowMode: slowMode,
+        fullChecksWhenNotInFastMode: true,
+        turnVersion: slowMode ? 'V2' : 'V1',
+    };
+    if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
+        specOptions.minWaitTimeInSec = Cypress.env('MIN_WAIT_TIME_IN_SEC');
+    }
+    if (Cypress.env('MAX_WAIT_TIME_IN_SEC')) {
+        specOptions.maxWaitTimeInSec = Cypress.env('MAX_WAIT_TIME_IN_SEC');
+    }
+    
+
+    const gameSpec = randomGame.generateGame(numPlayers, specOptions);
     gameSpec.index = playerIndex;
 
     describe(`Player ${gameSpec.index + 1} [${gameSpec.playerNames[gameSpec.index]}]`, () => {
@@ -96,6 +104,8 @@ if (Cypress.env('RANDOM')) {
                 numRounds: gameSpec.numRounds,
                 slowMode: gameSpec.slowMode,
                 random: gameSpec.random,
+                minWaitTimeInSec: gameSpec.minWaitTimeInSec,
+                maxWaitTimeInSec: gameSpec.maxWaitTimeInSec,
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
@@ -580,7 +590,7 @@ function getNamesV2(clientState) {
             const roundDurationInSec = 60;
             let roundMarginInSec = 3;
             if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
-                roundMarginInSec = 10;
+                roundMarginInSec = 5;
             }
             const playDurationInSec = roundDurationInSec - roundMarginInSec;
 
@@ -596,22 +606,29 @@ function getNamesV2(clientState) {
             let delayInSec = 0;
             let totalExpectedWaitTimeInSec = 0;
 
-            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null);
         });
 }
 
-function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn) {
+function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM) {
     const numNames = allCelebNames.length;
-    if (totalExpectedWaitTimeInSec > 0
+    if (gotAtLeastOneName
         && clickIndex % numNames === 0) {
             clientState.prevGlobalNameIndex = clickIndex;
             console.log(util.formatTime(), `Reached end of round, not taking any more turns. Global index now ${clientState.prevGlobalNameIndex}.`);
     }
     else {
-        const waitDuration = 5 + Math.floor(20 * clientState.random());
+        const waitTimeRange = clientState.maxWaitTimeInSec - clientState.minWaitTimeInSec;
+        const waitDuration = clientState.minWaitTimeInSec + Math.floor(waitTimeRange * clientState.random());
         if (waitDuration + totalExpectedWaitTimeInSec + delayInSec >= playDurationInSec) {
             clientState.prevGlobalNameIndex = clickIndex;
             console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
+        }
+        else if (delayInSec > 10
+                && secondsRemainingFromDOM
+                && secondsRemainingFromDOM < 2 * delayInSec) {
+             // Sometimes delay gets really high, and then you can't rely on Seconds Remaining readout any more
+             console.log(util.formatTime(), `High delay of ${delayInSec}, seconds remaining from DOM is ${secondsRemainingFromDOM}, won't risk taking a turn since value is less than twice the delay`);
         }
         else {
             cy.wait(waitDuration * 1000)
@@ -643,6 +660,7 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                     console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
                     if (buttonID === 'gotNameButton') {
                         clickIndex++;
+                        gotAtLeastOneName = true;
                     }
                     if (clickIndex % numNames !== 0) {
                         cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
@@ -653,17 +671,17 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                                 assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
     
                                 const secondsRemainingText = statusDivText.substring(prefixString.length);
-                                const secondsRemaining = parseInt(secondsRemainingText);
+                                secondsRemainingFromDOM = parseInt(secondsRemainingText);
                                 const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
-                                delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemaining);
+                                delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
     
-                                console.log(util.formatTime(), `Read ${secondsRemaining}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+                                console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
     
-                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM);
                             });
                     }
                     else {
-                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn);
+                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM);
                     }
                 });
             });
