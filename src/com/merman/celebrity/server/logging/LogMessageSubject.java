@@ -3,5 +3,7 @@ package com.merman.celebrity.server.logging;
 public enum LogMessageSubject {
 	GENERAL,
 	ANALYTICS,
-	HTTP_REQUESTS;
+	HTTP_REQUESTS,
+	RESTARTS,
+	SESSIONS;
 }

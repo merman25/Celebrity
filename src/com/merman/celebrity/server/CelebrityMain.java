@@ -34,7 +34,7 @@ public class CelebrityMain {
 	private static int          overridePort                 = -1;
 	private static boolean      sysOutLogging;
 	private static String       version                      = "NO_VERSION";
-	private static Path         dataDirectory;
+	private static Path         dataDirectory			     = Paths.get(DATA_DIRECTORY_ROOT);
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -73,7 +73,7 @@ public class CelebrityMain {
 
 		readVersion();
 		initLogging();
-		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Starting Celebrity Server Version", getVersion());
+		Log.log(LogMessageType.INFO, LogMessageSubject.RESTARTS, "Starting Celebrity Server Version", getVersion());
 		
 		Server server;
 		if (overridePort >= 0 ) {
@@ -99,7 +99,6 @@ public class CelebrityMain {
 		}
 		
 		System.out.format("Starting Celebrity Server Version %s\n", getVersion());
-		dataDirectory = Paths.get(DATA_DIRECTORY_ROOT, getVersion());
 	}
 
 	private static void initLogging() {
@@ -116,6 +115,8 @@ public class CelebrityMain {
 			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new FileOutputter(new File(logDir, "all.txt"))));
 			Log.addLogger(LogMessageSubject.ANALYTICS, new Logger(null, new FileOutputter(new File(logDir, "stats.txt"))));
 			Log.addLogger(LogMessageSubject.HTTP_REQUESTS, new Logger(null, new FileOutputter(new File(logDir, "httprequests.txt"))));
+			Log.addLogger(LogMessageSubject.RESTARTS, new Logger(null, new FileOutputter(new File(logDir, "restarts.txt"))));
+			Log.addLogger(LogMessageSubject.SESSIONS, new Logger(null, new FileOutputter(new File(logDir, "sessions.txt"))));
 		}
 	}
 

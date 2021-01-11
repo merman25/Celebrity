@@ -21,7 +21,7 @@ public class SessionManager {
 		@Override
 		public void remove(Session aSession) {
 			synchronized (SessionManager.class) {
-				Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Removing session", aSession);
+				Log.log(LogMessageType.DEBUG, LogMessageSubject.SESSIONS, "Removing session", aSession);
 				sessionsMap.remove(aSession.getSessionID());
 				WebsocketHandler websocketHandler = socketsMap.get(aSession);
 				if (websocketHandler != null) {

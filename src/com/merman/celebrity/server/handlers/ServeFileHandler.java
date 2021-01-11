@@ -57,7 +57,7 @@ public class ServeFileHandler extends AHttpHandler {
 					operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
 				}
 				
-				Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
+				Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
 			}
 			else {
 				WebsocketHandler websocketHandler = SessionManager.getWebsocketHandler(aSession);

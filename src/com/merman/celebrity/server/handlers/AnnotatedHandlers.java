@@ -30,7 +30,7 @@ public class AnnotatedHandlers {
 				|| username.trim().isEmpty() ) {
 			throw new IllegalServerRequestException( String.format("Session [%s], illegal user name [%s]", session, username), null);
 		}
-		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", session, "Username", username);
+		Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "Session", session, "Username", username);
 		session.getPlayer().setName(username);
 	}
 	

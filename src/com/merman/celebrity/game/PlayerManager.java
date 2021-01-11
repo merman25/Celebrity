@@ -20,7 +20,7 @@ public class PlayerManager {
 	implements IExpiredEntityRemover<Player> {
 		@Override
 		public void remove(Player aPlayer) {
-			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Removing player", aPlayer);
+			Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "Removing player", aPlayer);
 			synchronized (PlayerManager.class) {
 				playerMap.remove(aPlayer.getPublicUniqueID());
 			}
