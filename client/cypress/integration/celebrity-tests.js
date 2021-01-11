@@ -66,11 +66,19 @@ if (Cypress.env('RANDOM')) {
         fullChecksWhenNotInFastMode: true,
         turnVersion: slowMode ? 'V2' : 'V1',
     };
-    if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
+    if (Cypress.env('MIN_WAIT_TIME_IN_SEC')
+        &&Cypress.env('MIN_WAIT_TIME_IN_SEC') !== '') {
         specOptions.minWaitTimeInSec = Cypress.env('MIN_WAIT_TIME_IN_SEC');
     }
-    if (Cypress.env('MAX_WAIT_TIME_IN_SEC')) {
+    else {
+        specOptions.minWaitTimeInSec = 5;
+    }
+    if (Cypress.env('MAX_WAIT_TIME_IN_SEC')
+        && Cypress.env('MAX_WAIT_TIME_IN_SEC') !== '') {
         specOptions.maxWaitTimeInSec = Cypress.env('MAX_WAIT_TIME_IN_SEC');
+    }
+    else {
+        specOptions.maxWaitTimeInSec = 25;
     }
     
 
