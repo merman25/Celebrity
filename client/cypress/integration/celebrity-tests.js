@@ -489,8 +489,8 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
         else {
             if (gotAtLeastOneName
                 || namesPreviouslyOnScoresDiv.length > 0) {
-                    cy.get('[id="gotNameButton"]').should('not.be.visible');
-                    cy.get('[id="scoresDiv"]')
+                cy.get('[id="gotNameButton"]').should('not.be.visible');
+                cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
                         namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
@@ -692,7 +692,13 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
     else {
         const waitTimeRange = clientState.maxWaitTimeInSec - clientState.minWaitTimeInSec;
         const waitDuration = clientState.minWaitTimeInSec + Math.floor(waitTimeRange * clientState.random());
-        if (waitDuration + totalExpectedWaitTimeInSec + delayInSec >= playDurationInSec) {
+
+        const totalActualWaitTimeInSec = totalExpectedWaitTimeInSec + delayInSec;
+        const estimatedTotalWaitTimeAfterThisWaitInSec = waitDuration + totalActualWaitTimeInSec;
+        const estimatedSecondsRemainingAfterThisWaitInSec = playDurationInSec - estimatedTotalWaitTimeAfterThisWaitInSec;
+        console.log(util.formatTime(), `totalExpectedWaitTime [${totalExpectedWaitTimeInSec}s], delay [${delayInSec}s], actual wait time [${totalActualWaitTimeInSec}s], wait time for this turn [${waitDuration}s], estimated total after this wait [${estimatedTotalWaitTimeAfterThisWaitInSec}s], play duration [${playDurationInSec}s], seconds remaining after estimate [${estimatedSecondsRemainingAfterThisWaitInSec}s, margin applied], seconds remaining from DOM [${secondsRemainingFromDOM}s]`);
+
+        if (estimatedTotalWaitTimeAfterThisWaitInSec >= playDurationInSec) {
             clientState.prevGlobalNameIndex = clickIndex;
             console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
 
@@ -728,11 +734,10 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
 
             }
         }
-        else if (delayInSec > 10
-                && secondsRemainingFromDOM
-                && secondsRemainingFromDOM < 2 * delayInSec) {
+        else if (secondsRemainingFromDOM
+                && waitDuration + secondsRemainingFromDOM < 2 * delayInSec) {
              // Sometimes delay gets really high, and then you can't rely on Seconds Remaining readout any more
-             console.log(util.formatTime(), `High delay of ${delayInSec}, seconds remaining from DOM is ${secondsRemainingFromDOM}, won't risk taking a turn since value is less than twice the delay`);
+             console.log(util.formatTime(), `Delay of ${delayInSec}, seconds remaining from DOM is ${secondsRemainingFromDOM}, won't risk taking a turn since value is less than twice the delay`);
         }
         else {
             cy.wait(waitDuration * 1000)
