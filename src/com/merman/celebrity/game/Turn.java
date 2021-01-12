@@ -55,7 +55,9 @@ public class Turn {
 
 	public synchronized void stop() {
 		secondsRemaining = 0;
-		timer.cancel();
+		if (timer != null) {
+			timer.cancel();
+		}
 		timer = null;
 		game.turnEnded();
 	}
