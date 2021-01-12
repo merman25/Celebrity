@@ -137,7 +137,7 @@ export function playGame(clientState) {
             }
         }
 
-        joinGame(clientState.playerName, clientState.gameID, clientState.hostName, clientState);
+        joinGame(clientState);
         if (clientState.restoredGame) {
             // Since the player at index 0 is hard-coded to be the host, other players must make sure he has time to join the game first.
             if (clientState.index === 0) {
@@ -808,15 +808,15 @@ function startGame(clientState) {
     }
 }
 
-export function joinGame(playerName, gameID, hostName, clientState) {
-    cy.get('[id="nameField"]').type(playerName);
+export function joinGame(clientState) {
+    cy.get('[id="nameField"]').type(clientState.playerName);
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
     cy.get('[id="join"]').click();
 
-    if (gameID) {
-        cy.get('[id="gameIDField"]').type(gameID);
+    if (clientState.gameID) {
+        cy.get('[id="gameIDField"]').type(clientState.gameID);
     }
     else {
         // read gameID from file, if it's not specified in the specs

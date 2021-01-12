@@ -199,7 +199,7 @@ export const gameSpec = {
                 // refresh the page, to simulate losing connection, then re-join the game
                 cy.clearCookies();
                 cy.visit(common.URL);
-                common.joinGame(clientState.playerName, clientState.gameID, clientState.hostName);
+                common.joinGame(clientState);
                 cy.request(`${common.URL}/setTesting`);
                 cy.writeFile(`${common.tempDir}/2.2`, '0');
 
