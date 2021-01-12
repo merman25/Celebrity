@@ -1044,36 +1044,6 @@ function checkFinalScoreForRound(clientState) {
             allSeenNames.sort();
             assert.deepEqual(allSeenNames, allCelebNamesSorted, 'Names in score list should match list of all celeb names');
         });
-    // allCelebNames.forEach(name => cy.get('[id="scoresDiv"]').contains(name));
-    // cy.get('.achievedNameLi.team0')
-    //     .then(elements => {
-    //         const team0Score = elements.length;
-
-    //         cy.get('.scoreRowClass').last().prev()
-    //             .contains(team0Score.toString());
-    //         cy.get('.achievedNameLi.team1')
-    //             .then(elements => {
-    //                 const team1Score = elements.length;
-
-    //                 cy.get('.scoreRowClass').last()
-    //                     .contains(team1Score.toString());
-
-    //                 expect(team0Score + team1Score, 'scores should add up to total number of celebrities').to.equal(allCelebNames.length);
-    //             });
-
-    //             // These are flaky lines, it often gets stuck writing the files. So we do cy.wait() instead
-    //         // if (!clientState.iAmHosting) {
-    //         //     cy.writeFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${clientState.index}`, '0');
-    //         // }
-    //         // else {
-    //         //     const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
-    //         //     for (let otherIndex = 1; otherIndex < limit; otherIndex++) {
-    //         //         cy.readFile(`${tempDir}/checked_score_${clientState.gameID}_round_${clientState.roundIndex}.${otherIndex}`);
-    //         //     }
-    //         // }
-
-
-    //     });
 }
 
 function readScoresDiv(scoresDiv) {
