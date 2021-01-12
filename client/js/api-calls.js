@@ -16,7 +16,7 @@ async function sendRequest(requestName, data = null) {
     const fetchResult = await fetch(requestName, fetchArgs)
         .catch(err => {
             // Can show an error page here that says we failed to contact the server
-            console.log(err);   
+            console.error(err);   
         });
 
     if (fetchResult
