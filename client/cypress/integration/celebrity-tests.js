@@ -384,21 +384,17 @@ function getNames(clientState) {
                         namesSeen[roundIndex] = namesSeenOnThisRound;
                     }
 
-                    let delayInSec = 0;
-                    let totalExpectedWaitTimeInSec = 0;
-                    const roundDurationInSec = 60;
-
                     const scoresArray = testBotInfo.scores;
                     if (scoresArray.find(score => score > 0)) {
                         cy.get('[id="scoresDiv"]')
                             .then(elements => {
                                 const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                                takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                                takeMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
                                 cy.scrollTo(0, 0); // Looks nicer when watching
                             });
                     }
                     else {
-                        takeMoves(0, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
+                        takeMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
                         cy.scrollTo(0, 0); // Looks nicer when watching
                     }
                 });
@@ -428,11 +424,11 @@ function getNames(clientState) {
 // each call to cy.wait would know what the calculated delay was. Turns out that because of the delay,
 // I couldn't make the function work in slowMode. In slowMode, we always use takeMovesV2 instead.
 // So, function could probably be converted back to a simple loop if necessary.
-function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
+function takeMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
     if (moveIndex >= turnToTake.length) {
         // Reached end of turn - do final check, then terminate recursion
         if (gotAtLeastOneName
-            || namesPreviouslyOnScoresDiv.length > 0) {
+            || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
             cy.get('[id="gotNameButton"]').should('not.be.visible');
             cy.get('[id="scoresDiv"]')
                 .then(elements => {
@@ -488,7 +484,7 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
                     cy.get(`[id="${buttonID}"]`).click()
                         .then(() => {
                             console.log(util.formatTime(), `took move ${move}`);
-                            takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                            takeMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                         });
                 });
 
@@ -504,7 +500,7 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
             cy.get(`[id="${buttonID}"]`).click()
                 .then(() => {
                     console.log(util.formatTime(), `took move ${move}`);
-                    takeMoves(moveIndex + 1, turnToTake, clientState, roundDurationInSec, delayInSec, totalExpectedWaitTimeInSec, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                    takeMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                 });
         }
     }
