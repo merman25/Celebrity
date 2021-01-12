@@ -475,7 +475,8 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
             */
             if (namesSeenOnThisRound.length > 0
                 || namesSeenOnThisTurn.length > 0) {
-                cy.get('[id="gotNameButton"]', { timeout: 15000 }).should('not.be.visible'); // timeout on a should goes on the parent get()
+                const adjustedTimeRemaining = roundDurationInSec - totalExpectedWaitTimeInSec + 2*delayInSec;
+                cy.get('[id="gotNameButton"]', { timeout: 1000 * adjustedTimeRemaining }).should('not.be.visible'); // timeout on a should goes on the parent get()
                 cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
@@ -696,15 +697,17 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
         const totalActualWaitTimeInSec = totalExpectedWaitTimeInSec + delayInSec;
         const estimatedTotalWaitTimeAfterThisWaitInSec = waitDuration + totalActualWaitTimeInSec;
         const estimatedSecondsRemainingAfterThisWaitInSec = playDurationInSec - estimatedTotalWaitTimeAfterThisWaitInSec;
-        console.log(util.formatTime(), `totalExpectedWaitTime [${totalExpectedWaitTimeInSec}s], delay [${delayInSec}s], actual wait time [${totalActualWaitTimeInSec}s], wait time for this turn [${waitDuration}s], estimated total after this wait [${estimatedTotalWaitTimeAfterThisWaitInSec}s], play duration [${playDurationInSec}s], seconds remaining after estimate [${estimatedSecondsRemainingAfterThisWaitInSec}s, margin applied], seconds remaining from DOM [${secondsRemainingFromDOM}s]`);
+        const adjustedEstimatedTotalWaitTimeAfterThisWaitInSec = estimatedTotalWaitTimeAfterThisWaitInSec + delayInSec; // Add the delay on a second time, to give a bigger margin
+        console.log(util.formatTime(), `totalExpectedWaitTime [${totalExpectedWaitTimeInSec}s], delay [${delayInSec}s], actual wait time [${totalActualWaitTimeInSec}s], wait time for this turn [${waitDuration}s], estimated total after this wait [${estimatedTotalWaitTimeAfterThisWaitInSec}s], adjusted to [${adjustedEstimatedTotalWaitTimeAfterThisWaitInSec}s], play duration [${playDurationInSec}s], seconds remaining after estimate [${estimatedSecondsRemainingAfterThisWaitInSec}s, margin applied], seconds remaining from DOM [${secondsRemainingFromDOM}s]`);
 
-        if (estimatedTotalWaitTimeAfterThisWaitInSec >= playDurationInSec) {
+        if (adjustedEstimatedTotalWaitTimeAfterThisWaitInSec >= playDurationInSec) {
             clientState.prevGlobalNameIndex = clickIndex;
             console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
 
             if (gotAtLeastOneName
                 || namesPreviouslyOnScoresDiv.length > 0) {
-                cy.get('[id="gotNameButton"', { timeout: 1000 * (roundDurationInSec - totalExpectedWaitTimeInSec) }).should('not.be.visible')
+                const adjustedTimeRemaining = roundDurationInSec - totalExpectedWaitTimeInSec + 2 * delayInSec;
+                cy.get('[id="gotNameButton"', { timeout: 1000 * adjustedTimeRemaining }).should('not.be.visible')
                     .then(() => {
                         cy.get('[id="scoresDiv"]')
                             .then(elements => {
@@ -733,11 +736,6 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                     });
 
             }
-        }
-        else if (secondsRemainingFromDOM
-                && waitDuration + secondsRemainingFromDOM < 2 * delayInSec) {
-             // Sometimes delay gets really high, and then you can't rely on Seconds Remaining readout any more
-             console.log(util.formatTime(), `Delay of ${delayInSec}, seconds remaining from DOM is ${secondsRemainingFromDOM}, won't risk taking a turn since value is less than twice the delay`);
         }
         else {
             cy.wait(waitDuration * 1000)
