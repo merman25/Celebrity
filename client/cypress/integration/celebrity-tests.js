@@ -40,7 +40,7 @@ if (Cypress.env('INC_RESTORED')) {
 }
 
 /* ============================
- * Replace the default with a randome game if requested
+ * Replace the default with a random game if requested
 */
 
 if (Cypress.env('RANDOM')) {
