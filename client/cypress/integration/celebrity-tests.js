@@ -489,7 +489,8 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
         else {
             if (gotAtLeastOneName
                 || namesPreviouslyOnScoresDiv.length > 0) {
-                cy.get('[id="scoresDiv"]')
+                    cy.get('[id="gotNameButton"]').should('not.be.visible');
+                    cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
                         namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
