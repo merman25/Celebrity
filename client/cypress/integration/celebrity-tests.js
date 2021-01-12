@@ -5,17 +5,8 @@ import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 import * as randomGame from "./games/random"
 import * as util from "./util.js"
 
-let allCelebNames = null;
-let fastMode = false;
-let includeRestoredGames = false;
 export let URL = 'http://localhost:8000';
 
-if (Cypress.env('FAST_MODE')) {
-    fastMode = true;
-}
-if (Cypress.env('INC_RESTORED')) {
-    includeRestoredGames = true;
-}
 const envURL = Cypress.env('URL');
 if (envURL) {
     URL = envURL;
@@ -35,7 +26,7 @@ describe('Initialisation', () => {
 });
 
 const gameSpecs = [spec4Players.gameSpec];
-if (includeRestoredGames) {
+if (Cypress.env('INC_RESTORED')) {
   gameSpecs.push(specRestoredMiddle.gameSpec);
   gameSpecs.push(specRestoredEnd.gameSpec);
 }
@@ -48,31 +39,31 @@ if (Cypress.env('RANDOM')) {
     if (seed) {
         /* Not specifying the seed is an error: it means the players will generate
         *  inconsistent series of turns, and not play correctly. But this is checked
-        *  in describe('Initialisation') with an informative error message - here we avoid
-        *  the problem of just seeing an NPE instead.
+        *  in describe('Initialisation') with an informative error message - the check
+        *  here is just to avoid the problem of just seeing an NPE instead.
         */
+
+        // util.generateRandomFunction requires a string, which it then hashes to create the numeric seed
         seed = seed.toString();
     }
 
     let slowMode = Cypress.env('SLOW_MODE');
     const specOptions = {
         seed: seed,
-        fastMode: fastMode,
+        fastMode: Cypress.env('FAST_MODE'),
         numRounds: Cypress.env('NUM_ROUNDS'),
         numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
         slowMode: slowMode,
         fullChecksWhenNotInFastMode: true,
         turnVersion: slowMode ? 'V2' : 'V1',
     };
-    if (Cypress.env('MIN_WAIT_TIME_IN_SEC')
-        &&Cypress.env('MIN_WAIT_TIME_IN_SEC') !== '') {
+    if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
         specOptions.minWaitTimeInSec = Cypress.env('MIN_WAIT_TIME_IN_SEC');
     }
     else {
         specOptions.minWaitTimeInSec = 5;
     }
-    if (Cypress.env('MAX_WAIT_TIME_IN_SEC')
-        && Cypress.env('MAX_WAIT_TIME_IN_SEC') !== '') {
+    if (Cypress.env('MAX_WAIT_TIME_IN_SEC')) {
         specOptions.maxWaitTimeInSec = Cypress.env('MAX_WAIT_TIME_IN_SEC');
     }
     else {
@@ -103,7 +94,7 @@ if (Cypress.env('RANDOM')) {
                 turnsV2: gameSpec.turnsV2,
                 restoredGame: gameSpec.restoredGame,
                 namesSeen: [],
-                fastMode: fastMode,
+                fastMode: Cypress.env('FAST_MODE'),
                 fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
                 roundIndex: 0,
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
@@ -112,11 +103,12 @@ if (Cypress.env('RANDOM')) {
                 random: gameSpec.random,
                 minWaitTimeInSec: gameSpec.minWaitTimeInSec,
                 maxWaitTimeInSec: gameSpec.maxWaitTimeInSec,
+                allCelebNames: gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []),
             }
             if (gameSpec.customActions)
                 clientState.customActions = gameSpec.customActions;
 
-            allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
+            
 
             playGame(clientState);
         });
@@ -144,15 +136,15 @@ else {
                     turns: gameSpec.turns,
                     restoredGame: gameSpec.restoredGame,
                     namesSeen: [],
-                    fastMode: fastMode,
+                    fastMode: Cypress.env('FAST_MODE'),
                     fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
                     roundIndex: 0,
+                    allCelebNames: gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []),
                 }
                 if (gameSpec.customActions)
                     clientState.customActions = gameSpec.customActions;
 
-                allCelebNames = gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []);
-
+                
                 playGame(clientState);
             });
         });
@@ -216,7 +208,7 @@ export function playGame(clientState) {
 
     checkDOMContent(DOMSpecs, clientState);
     if (!clientState.restoredGame
-        && !fastMode) {
+        && !clientState.fastMode) {
         cy.get('[id="teamList"]')
             .then(elements => {
                 const teamList = elements[0];
@@ -224,7 +216,7 @@ export function playGame(clientState) {
             });
     }
 
-    if (!fastMode) {
+    if (!clientState.fastMode) {
         // Give everyone time to check the DOM content before it changes
         if (clientState.iAmHosting) {
             const limit = clientState.otherPlayers.length + 1; // Non-host players are indexed 1 - limit
@@ -271,7 +263,7 @@ export function playGame(clientState) {
         requestNames();
     }
 
-    if (!fastMode) {
+    if (!clientState.fastMode) {
         cy.get('[id="startGameButton"]').should('not.be.visible');
     }
 
@@ -281,7 +273,7 @@ export function playGame(clientState) {
 
     if (clientState.iAmHosting
         && !clientState.restoredGame) {
-        startGame();
+        startGame(clientState);
     }
 
     // The turnCounter keeps track of the number of times we've taken a turn, which tells us where
@@ -319,7 +311,7 @@ function waitForWakeUpTrigger(clientState) {
             }
             else if (triggerElement.innerText === 'bot-game-over') {
                 // Finished game, stop here
-                if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+                if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
                 console.log(util.formatTime(), 'Finished!!');
@@ -343,13 +335,13 @@ function waitForWakeUpTrigger(clientState) {
                 // Only the host needs to click something now, but all players will see the same trigger text.
 
                 clientState.roundIndex = clientState.roundIndex + 1;
-                if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+                if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
                     checkFinalScoreForRound(clientState);
                 }
 
                 if (clientState.iAmHosting) {
                     // Host clicks the start next round button
-                    if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+                    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
                         cy.wait(5000); // Give player who finished the round time to check the scores div
                     }
                     cy.get('[id="startNextRoundButton"]').click();
@@ -396,13 +388,13 @@ function getNames(clientState) {
         const turnToTake = turns[turnIndex];
         console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
-        if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+        if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
             cy.get('[id="gotNameButton"]').should('be.visible');
             cy.get('[id="passButton"]').should('be.visible');
             cy.get('[id="endTurnButton"]').should('be.visible');
         }
 
-        if (!fastMode && clientState.fullChecksWhenNotInFastMode) {
+        if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
             // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
             // We also check that the names we see are elements of the celebName list rather than other strings
             retrieveTestBotInfo()
@@ -539,7 +531,7 @@ function takeMoves(moveIndex, turnToTake, clientState, roundDurationInSec, delay
                 assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
 
                 const celebName = nameDivText.substring(prefixString.length);
-                assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
+                assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
 
                 assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                 assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
@@ -682,7 +674,7 @@ function getNamesV2(clientState) {
 }
 
 function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
-    const numNames = allCelebNames.length;
+    const numNames = clientState.allCelebNames.length;
     if (gotAtLeastOneName
         && clickIndex % numNames === 0) {
             clientState.prevGlobalNameIndex = clickIndex;
@@ -782,7 +774,7 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
                         assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
         
                         const celebName = nameDivText.substring(prefixString.length);
-                        assert(allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
+                        assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
         
                         assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                         assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
@@ -911,14 +903,14 @@ function submitNames(celebrityNames) {
     cy.get('[id="submitNamesButton"]').click();
 }
 
-function startGame() {
+function startGame(clientState) {
     cy.get('[id="gameStatusDiv"]').contains('Waiting for names from 0 player(s)', { timeout: 60000 });
 
     // Wait before clicking, to give other players time to verify gameStatus
     cy.wait(1000);
     cy.get('[id="startGameButton"]').click();
 
-    if (!fastMode) {
+    if (!clientState.fastMode) {
         cy.get('[id="startGameButton"]').should('not.be.visible');
         cy.get('[id="startNextRoundButton"]').should('not.be.visible');
     }
@@ -973,7 +965,7 @@ function retrieveTestBotInfo() {
 
 // Check that all constraints specified by DOMSpecs are satisfied
 function checkDOMContent(DOMSpecs, clientState) {
-    if (!fastMode) {
+    if (!clientState.fastMode) {
         retrieveTestBotInfo()
             .then(testBotInfo => {
                 DOMSpecs.forEach(spec => {
@@ -1037,8 +1029,8 @@ function checkFinalScoreForRound(clientState) {
             const scoresDiv = elements[0];
             const [totalScore, seenNames] = readScoresDiv(scoresDiv);
 
-            assert.equal(totalScore, allCelebNames.length, 'Total score should match total number of names');
-            const allCelebNamesSorted = [...allCelebNames];
+            assert.equal(totalScore, clientState.allCelebNames.length, 'Total score should match total number of names');
+            const allCelebNamesSorted = [...clientState.allCelebNames];
             allCelebNamesSorted.sort();
             const allSeenNames = seenNames.reduce((leftArr, rightArr) => leftArr.concat(rightArr));
             allSeenNames.sort();
