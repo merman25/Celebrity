@@ -35,6 +35,7 @@ import com.merman.celebrity.game.events.SetHostGameEvent;
 import com.merman.celebrity.game.events.SetNameListGameEvent;
 import com.merman.celebrity.game.events.SetPassOnNameIndexGameEvent;
 import com.merman.celebrity.game.events.SetStatusGameEvent;
+import com.merman.celebrity.game.events.TurnEndedGameEvent;
 import com.merman.celebrity.game.events.UpdateCurrentPlayerGameEvent;
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.SessionManager;
@@ -386,17 +387,30 @@ public class Game implements ICanExpire {
 
 	public synchronized void turnEnded() {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "turnEnded");
-		if ( currentTurn != null ) {
-			currentTurn = null;
+		boolean oldFireEventsValue = isFireEvents();
+		try {
+			// Only fire the event after all processing has been completed. Otherwise sometimes the test bots see
+			// the turn control buttons too early.
+			setFireEvents(false);
+			if ( currentTurn != null ) {
+				currentTurn = null;
+			}
+			keepScore();
+			incrementPlayer();
+			if ( currentNameIndex >= shuffledNameList.size() ) {
+				endRound();
+			}
+			else {
+				setPassOnNameIndex(currentNameIndex);
+				allowNextPlayerToStartNextTurn();
+			}
+			
+			setFireEvents(oldFireEventsValue);
+			fireGameEvent(new TurnEndedGameEvent(this, getStatus(), getCurrentPlayer()));
 		}
-		keepScore();
-		incrementPlayer();
-		if ( currentNameIndex >= shuffledNameList.size() ) {
-			endRound();
-		}
-		else {
-			setPassOnNameIndex(currentNameIndex);
-			allowNextPlayerToStartNextTurn();
+		finally {
+			// Make sure value is restored even if there's an exception, but don't fire the game event in that case
+			setFireEvents(oldFireEventsValue);
 		}
 
 		if ( GameManager.createFiles ) {
