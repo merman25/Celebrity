@@ -5,12 +5,16 @@ import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 import * as randomGame from "./games/random"
 import * as util from "./util.js"
 
-export let URL = 'http://localhost:8000';
+/* ============================
+ * Global ENV vars
+*/
 
+export let URL = 'http://localhost:8000';
 const envURL = Cypress.env('URL');
 if (envURL) {
     URL = envURL;
 }
+
 export const tempDir = Cypress.env('TEMP_DIR');
 
 describe('Initialisation', () => {
@@ -25,11 +29,19 @@ describe('Initialisation', () => {
     });
 });
 
-const gameSpecs = [spec4Players.gameSpec];
+/* ============================
+ * Default game spec if non-random
+*/
+
+let gameSpecs = [spec4Players.gameSpec];
 if (Cypress.env('INC_RESTORED')) {
   gameSpecs.push(specRestoredMiddle.gameSpec);
   gameSpecs.push(specRestoredEnd.gameSpec);
 }
+
+/* ============================
+ * Replace the default with a randome game if requested
+*/
 
 if (Cypress.env('RANDOM')) {
     const numPlayers = Cypress.env('NUM_PLAYERS');
@@ -60,22 +72,19 @@ if (Cypress.env('RANDOM')) {
     if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
         specOptions.minWaitTimeInSec = Cypress.env('MIN_WAIT_TIME_IN_SEC');
     }
-    else {
-        specOptions.minWaitTimeInSec = 5;
-    }
     if (Cypress.env('MAX_WAIT_TIME_IN_SEC')) {
         specOptions.maxWaitTimeInSec = Cypress.env('MAX_WAIT_TIME_IN_SEC');
-    }
-    else {
-        specOptions.maxWaitTimeInSec = 25;
     }
     
 
     const gameSpec = randomGame.generateGame(numPlayers, specOptions);
     gameSpec.index = playerIndex;
-
+    gameSpecs = [gameSpec];
+}
+for (let i = 0; i < gameSpecs.length; i++) {
+    const gameSpec = gameSpecs[i];
     describe(`Player ${gameSpec.index + 1} [${gameSpec.playerNames[gameSpec.index]}]`, () => {
-        it(`Plays ${gameSpec.description}`, () => {
+        it(`Plays spec ${i}: ${gameSpec.description}`, () => {
             cy.visit(URL);
             cy.request(`${URL}/setTesting`);
 
@@ -113,42 +122,6 @@ if (Cypress.env('RANDOM')) {
             playGame(clientState);
         });
     });
-}
-else {
-    for (let i = 0; i < gameSpecs.length; i++) {
-        const gameSpec = gameSpecs[i];
-        describe(`Player ${gameSpec.index + 1}`, () => {
-            it(`Plays spec ${i}: ${gameSpec.description}`, () => {
-                cy.visit(URL);
-                cy.request(`${URL}/setTesting`);
-
-                const index = gameSpec.index;
-                const playerName = gameSpec.playerNames[index];
-                const clientState = {
-                    index: index,
-                    hostName: gameSpec.playerNames[0],
-                    playerName: playerName,
-                    otherPlayers: gameSpec.playerNames.filter(name => name !== playerName),
-                    celebrityNames: gameSpec.celebrityNames[index],
-                    iAmHosting: index === 0,
-                    gameID: gameSpec.gameID,
-                    turnIndexOffset: gameSpec.turnIndexOffset,
-                    turns: gameSpec.turns,
-                    restoredGame: gameSpec.restoredGame,
-                    namesSeen: [],
-                    fastMode: Cypress.env('FAST_MODE'),
-                    fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
-                    roundIndex: 0,
-                    allCelebNames: gameSpec.celebrityNames.reduce((flattenedArr, celebNameArr) => flattenedArr.concat(celebNameArr), []),
-                }
-                if (gameSpec.customActions)
-                    clientState.customActions = gameSpec.customActions;
-
-                
-                playGame(clientState);
-            });
-        });
-    }
 }
 
 // Play the game through to the end
