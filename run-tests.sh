@@ -118,81 +118,59 @@ append() {
     fi
 }
 
+append_if_set() {
+    env="$1"
+    name="$2"
+    val="$3"
+
+    if [ \! -z "$val" ]; then
+	env=$(append "$env" "$name=$val")
+    fi
+
+    echo -n "$env"
+}
+
 build_cypress_env_common() {
     player_index="$1"
     fast_mode="$2"
-    url="$3"
 
     TEMP_FILE_DIR=$(fix_cygwin_path "$TEST_DIR")/temp_files
-    ENV="TEMP_DIR=$TEMP_FILE_DIR,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode,URL=$url"
-
-    if [ \! -z "$SLOW_MODE" ]; then
-	ENV=$(append "$ENV" "SLOW_MODE=$SLOW_MODE")
-    fi
-    if [ \! -z "$MIN_WAIT_TIME_IN_SEC" ]; then
-	ENV=$(append "$ENV" "MIN_WAIT_TIME_IN_SEC=$MIN_WAIT_TIME_IN_SEC")
-    fi
-    if [ \! -z "$MAX_WAIT_TIME_IN_SEC" ]; then
-	ENV=$(append "$ENV" "MAX_WAIT_TIME_IN_SEC=$MAX_WAIT_TIME_IN_SEC")
-    fi
-
-    echo -n "$ENV"
-}
-
-build_cypress_env_random() {
-    player_index="$1"
-    fast_mode="$2"
-    url="$3"
-    num_players="$4"
-    seed="$5"
-    
-    ENV=$(build_cypress_env_common "$player_index" "$fast_mode" "$url")
-    ENV=$(append "$ENV" "RANDOM=true,NUM_PLAYERS=$num_players,SEED=$seed")
-
-    if [ \! -z "$NUM_NAMES_PER_PLAYER" ]; then
-	ENV=$(append "$ENV" "NUM_NAMES_PER_PLAYER=$NUM_NAMES_PER_PLAYER")
-    fi
-    if [ \! -z "$NUM_ROUNDS" ]; then
-	ENV=$(append "$ENV" "NUM_ROUNDS=$NUM_ROUNDS")
-    fi
-
-    echo -n "$ENV"
-}
-
-build_cypress_env_deterministic() {
-    player_index="$1"
-    fast_mode="$2"
-    url="$3"
-    inc_restored="$4"
-
-    ENV=$(build_cypress_env_common "$player_index" "$fast_mode" "$url")
-    ENV=$(append "$ENV" "INC_RESTORED=$inc_restored")
+    ENV="TEMP_DIR=$TEMP_FILE_DIR,PLAYER_INDEX=$player_index,FAST_MODE=$fast_mode"
+    ENV=$(append_if_set "$ENV" "URL" "$URL")
+    ENV=$(append_if_set "$ENV" "SLOW_MODE" "$SLOW_MODE")
+    ENV=$(append_if_set "$ENV" "MIN_WAIT_TIME_IN_SEC" "$MIN_WAIT_TIME_IN_SEC")
+    ENV=$(append_if_set "$ENV" "MAX_WAIT_TIME_IN_SEC" "$MAX_WAIT_TIME_IN_SEC")
 
     echo -n "$ENV"
 }
 
 start_player() {
     mode="$1"
-    if [ "$mode" == "det" ]; then
-	player_index="$2"
-	fast_mode="$3"
-	url="$4"
-	inc_restored="$5"
+    player_index="$2"
+    fast_mode="$3"
 
-	ENV=$(build_cypress_env_deterministic "$player_index" "$fast_mode" "$url" "$inc_restored")
+    ENV=$(build_cypress_env_common "$player_index" "$fast_mode")
+    if [ "$mode" == "det" ]; then
+	inc_restored="$4"
+
+	ENV=$(append_if_set "$ENV" "INC_RESTORED" "$inc_restored")
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
+	
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     elif [ "$mode" == "rand" ]; then
-	player_index="$2"
-	fast_mode="$3"
-	url="$4"
-	num_players="$5"
-	seed="$6"
+	num_players="$4"
+	seed="$5"
 
-	ENV=$(build_cypress_env_random "$player_index" "$fast_mode" "$url" "$num_players" "$seed")
+	ENV=$(append_if_set "$ENV" "RANDOM" "true")
+	ENV=$(append_if_set "$ENV" "NUM_PLAYERS" "$num_players")
+	ENV=$(append_if_set "$ENV" "SEED" "$seed")
+	ENV=$(append_if_set "$ENV" "NUM_NAMES_PER_PLAYER" "$NUM_NAMES_PER_PLAYER")
+	ENV=$(append_if_set "$ENV" "NUM_ROUNDS" "$NUM_ROUNDS")
+
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
+	
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
     else
 	echo "Error: unknown mode $mode"
@@ -212,7 +190,6 @@ START_SERVER="true"
 RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
-URL="default"
 while getopts "hfjkqrswxzd:g:l:m:M:n:o:p:u:" OPT; do
     case $OPT in
 	h)
@@ -339,7 +316,7 @@ if [ "$RANDOM_GAME" == "true" ]; then
 	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
 	    sleep "$STAGGERED_DELAY_IN_SEC"
 	fi
-	start_player "rand" $player_index $FAST_MODE $URL $NUM_PLAYERS $SEED
+	start_player "rand" $player_index $FAST_MODE $NUM_PLAYERS $SEED
     done
 else
     NUM_PLAYERS=4
@@ -347,7 +324,7 @@ else
 	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
 	    sleep "$STAGGERED_DELAY_IN_SEC"
 	fi
-	start_player "det" $player_index $FAST_MODE $URL $INC_RESTORED
+	start_player "det" $player_index $FAST_MODE $INC_RESTORED
     done
 fi
 

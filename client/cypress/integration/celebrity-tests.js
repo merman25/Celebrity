@@ -17,9 +17,7 @@ if (Cypress.env('INC_RESTORED')) {
     includeRestoredGames = true;
 }
 const envURL = Cypress.env('URL');
-if (envURL
-    && envURL !== ''
-    && envURL !== 'default') {
+if (envURL) {
     URL = envURL;
 }
 export const tempDir = Cypress.env('TEMP_DIR');
