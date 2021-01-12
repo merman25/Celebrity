@@ -50,8 +50,8 @@ ee 'rm -fr release' \
     && ee 'npm install' \
     && ee 'cd ..' \
     && ee 'fix_symlink_on_windows' \
-    && ee 'bash run-tests.sh -fjx' \
-    && ee 'bash run-tests.sh -jrwx' \
+    && ee 'bash run-tests.sh -fjkx' \
+    && ee 'bash run-tests.sh -srwx' \
     && ee 'upload' \
     && ee 'cd ..' \
     && echo -e '\n\nrelease UPLOADED\n' \
