@@ -393,79 +393,30 @@ function getPreSetNames(clientState) {
             .then(testBotInfo => {
                 expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
 
-                const namesSeenOnThisTurn = new Set();
+                clientState.namesSeenOnThisTurn = new Set();
+                clientState.gotAtLeastOneName = false;
                 const scoresArray = testBotInfo.scores;
-
+                clientState.playDurationInSec = 0; // just need a value bigger than -1 to avoid deciding that there's not enough time to take the move
+                
                 if (scoresArray.find(score => score > 0)) {
                     cy.get('[id="scoresDiv"]')
                         .then(elements => {
                             const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                            takePreSetMoves(clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                            clientState.namesPreviouslyOnScoresDiv = namesPreviouslyOnScoresDiv;
+                            takeMoves(clientState);
                             cy.scrollTo(0, 0); // Looks nicer when watching
                         });
                 }
                 else {
-                    takePreSetMoves(clientState, namesSeenOnThisTurn, [[], []], false);
+                    clientState.namesPreviouslyOnScoresDiv = [[], []];
+                    takeMoves(clientState);
                     cy.scrollTo(0, 0); // Looks nicer when watching
                 }
             });
     }
 }
 
-// This function was converted from a loop to a recursive function, so that when we were in slowMode,
-// each call to cy.wait would know what the calculated delay was. Turns out that because of the delay,
-// I couldn't make the function work in slowMode. In slowMode, we always use takeContinuousRandomMoves instead.
-// So, function could probably be converted back to a simple loop if necessary.
-function takePreSetMoves(clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
-    if (clientState.moveIndex >= clientState.turnToTake.length) {
-        // Reached end of turn - do final check, then terminate recursion
-        if (gotAtLeastOneName
-            || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
-            let timeoutToHideGotNameButtonInSec = 4; // cypress default
-            checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState);
-        }
-    }
-    else {
-        const [waitDuration, adjustedEstimatedTotalWaitTimeAfterThisWaitInSec] = chooseWaitDuration(clientState);
-        const move = chooseMove(clientState);
-
-        if (waitDuration > 0) {
-            cy.wait(500);
-        }
-        
-        let buttonID = null;
-        if (move === g) {
-            buttonID = 'gotNameButton';
-            gotAtLeastOneName = true;
-
-            promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState)
-                .then(namesSeenOnThisTurn => {
-                    cy.get(`[id="${buttonID}"]`).click()
-                        .then(() => {
-                            console.log(util.formatTime(), `took move ${move}`);
-                            takePreSetMoves(clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
-                        });
-                });
-
-        }
-        else if (move === p) {
-            buttonID = 'passButton';
-        }
-        else if (move === e) {
-            buttonID = 'endTurnButton';
-        }
-
-        if (move === p || move === e) {
-            cy.get(`[id="${buttonID}"]`).click()
-                .then(() => {
-                    console.log(util.formatTime(), `took move ${move}`);
-                    takePreSetMoves(clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
-                });
-        }
-    }
-}
-
-function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState) {
+function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, clientState) {
     cy.get('[id="gotNameButton"]', { timeout: 1000 * timeoutToHideGotNameButtonInSec }).should('not.be.visible');
     cy.get('[id="scoresDiv"]')
         .then(elements => {
@@ -474,12 +425,12 @@ function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenO
             console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
             const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
 
-            for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
-                const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
+            for (let scoresSubListIndex = 0; scoresSubListIndex < clientState.namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
+                const namesPreviouslySeenInThisSubList = clientState.namesPreviouslyOnScoresDiv[scoresSubListIndex];
                 const namesNowSeenInThisSubList = namesSeenNowOnScoresDiv[scoresSubListIndex];
                 let namesExpectedOnScoresDiv;
                 if (scoresSubListIndex == clientState.teamIndex) {
-                    namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
+                    namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...clientState.namesSeenOnThisTurn];
                 }
                 else {
                     namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
@@ -495,12 +446,12 @@ function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenO
 function getContinuousRandomNames(clientState) {
     retrieveTestBotInfo()
         .then(testBotInfo => {
-            const clickIndex = testBotInfo.gameGlobalNameIndex;
+            clientState.clickIndex = testBotInfo.gameGlobalNameIndex;
             const prevIndex  = clientState.prevGlobalNameIndex ? clientState.prevGlobalNameIndex : 0;
 
             let passCount = 0;
             let randomInvocationCount = 0;
-            for (let otherPlayerClickIndex=prevIndex; otherPlayerClickIndex < clickIndex; otherPlayerClickIndex++) {
+            for (let otherPlayerClickIndex=prevIndex; otherPlayerClickIndex < clientState.clickIndex; otherPlayerClickIndex++) {
                 clientState.random(); // Other player invoked the random to decide how long to wait
                 randomInvocationCount++;
 
@@ -514,14 +465,14 @@ function getContinuousRandomNames(clientState) {
                 }
                 randomInvocationCount++;
             }
-            const indexDelta = clickIndex - prevIndex;
-            console.log(util.formatTime(), `Between the last turn and this turn, global index has gone from ${prevIndex} to ${clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
+            const indexDelta = clientState.clickIndex - prevIndex;
+            console.log(util.formatTime(), `Between the last turn and this turn, global index has gone from ${prevIndex} to ${clientState.clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
 
-            const roundDurationInSec = 60;
+            clientState.roundDurationInSec = 60;
             const roundMarginInSec = 5;
-            clientState.playDurationInSec = roundDurationInSec - roundMarginInSec;
+            clientState.playDurationInSec = clientState.roundDurationInSec - roundMarginInSec;
 
-            const namesSeenOnThisTurn = new Set();
+            clientState.namesSeenOnThisTurn = new Set();
             clientState.delayInSec = 0;
             clientState.totalExpectedWaitTimeInSec = 0;
             clientState.secondsRemainingFromDOM = null;
@@ -531,53 +482,82 @@ function getContinuousRandomNames(clientState) {
                 cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                        takeContinuousRandomMoves(clickIndex, roundDurationInSec, clientState, namesSeenOnThisTurn, false, namesPreviouslyOnScoresDiv);
+                        clientState.namesPreviouslyOnScoresDiv = namesPreviouslyOnScoresDiv;
+                        takeMoves(clientState);
                         cy.scrollTo(0, 0); // Looks nicer when watching
                     });
             }
             else {
-                takeContinuousRandomMoves(clickIndex, roundDurationInSec, clientState, namesSeenOnThisTurn, false, [[], []]);
+                clientState.namesPreviouslyOnScoresDiv = [[], []];
+                takeMoves(clientState);
             }
         });
 }
 
-function takeContinuousRandomMoves(clickIndex, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv) {
+function takeMoves(clientState) {
     const numNames = clientState.allCelebNames.length;
-    if (gotAtLeastOneName
-        && clickIndex % numNames === 0) {
-            clientState.prevGlobalNameIndex = clickIndex;
-            console.log(util.formatTime(), `Reached end of round, not taking any more turns. Global index now ${clientState.prevGlobalNameIndex}.`);
+    if (!clientState.takeContinuousRandomTurns
+            && clientState.moveIndex >= clientState.turnToTake.length) {
+        // Reached end of turn - do final check, then terminate recursion
+        if (clientState.gotAtLeastOneName
+            || clientState.namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
+            let timeoutToHideGotNameButtonInSec = 4; // cypress default
+            checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, clientState);
+        }
+
+    }
+    else if (clientState.takeContinuousRandomTurns
+                && clientState.gotAtLeastOneName
+                && clientState.clickIndex % numNames === 0) {
+        clientState.prevGlobalNameIndex = clientState.clickIndex;
+        console.log(util.formatTime(), `Reached end of round, not taking any more turns. Global index now ${clientState.prevGlobalNameIndex}.`);
     }
     else {
         const [waitDuration, adjustedEstimatedTotalWaitTimeAfterThisWaitInSec] = chooseWaitDuration(clientState);
         const move = chooseMove(clientState);
 
         if (adjustedEstimatedTotalWaitTimeAfterThisWaitInSec >= clientState.playDurationInSec) {
-            clientState.prevGlobalNameIndex = clickIndex;
+            clientState.prevGlobalNameIndex = clientState.clickIndex;
             console.log(util.formatTime(), `Total expected wait time ${clientState.totalExpectedWaitTimeInSec}s, delay ${clientState.delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${clientState.playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
 
-            if (gotAtLeastOneName
-                || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
-                const adjustedTimeRemaining = roundDurationInSec - clientState.totalExpectedWaitTimeInSec + 2 * clientState.delayInSec;
-                checkScoresDivAfterTurnEnds(adjustedTimeRemaining, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState)
+            if (clientState.gotAtLeastOneName
+                || clientState.namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
+                const adjustedTimeRemaining = clientState.roundDurationInSec - clientState.totalExpectedWaitTimeInSec + 2 * clientState.delayInSec;
+                checkScoresDivAfterTurnEnds(adjustedTimeRemaining, clientState)
             }
         }
         else {
-            cy.wait(waitDuration * 1000)
-            .then(() => {
+            const continueFunction = () => {
                 clientState.totalExpectedWaitTimeInSec += waitDuration;
-                if (clientState.random() < 0.1) {
-                    console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking pass. Total expected wait time now ${clientState.totalExpectedWaitTimeInSec}s.`);
-                    clickTurnControlButton('passButton', clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv);
+                if (move === g) {
+                    clientState.gotAtLeastOneName = true;
+                    promiseToUpdateSeenNameList(clientState)
+                        .then(clientState => {
+                            console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking Got It. Total expected wait time now ${clientState.totalExpectedWaitTimeInSec}s.`);
+                            clickTurnControlButton('gotNameButton', numNames, clientState);
+                        });
+
                 }
                 else {
-                    promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState)
-                        .then(namesSeenOnThisTurn => {
-                            console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking Got It. Total expected wait time now ${clientState.totalExpectedWaitTimeInSec}s.`);
-                            clickTurnControlButton('gotNameButton', clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv);
-                        });
+                    let buttonID;
+                    if (move === p) {
+                        buttonID = 'passButton';
+                    }
+                    else if (move === e) {
+                        buttonID = 'endTurnButton';
+                    }
+                    console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking ${buttonID}. Total expected wait time now ${clientState.totalExpectedWaitTimeInSec}s.`);
+                    clickTurnControlButton(buttonID, numNames, clientState);
                 }
-            });
+            };
+
+            if (waitDuration > 0) {
+                cy.wait(waitDuration * 1000)
+                    .then(continueFunction);
+            }
+            else {
+                continueFunction();
+            }
         }
     }
 }
@@ -599,10 +579,10 @@ function chooseWaitDuration(clientState) {
         // Allow 0.5s to make sure DOM is updated with new name, otherwise we can check the same name twice.
         // Should be a way to avoid this, but can't find it.
         // Don't bother with adjEstTotWaitTime, we won't use it
-        return [0.5, 0]; 
+        return [0.5, -1]; 
     }
     else {
-        return [0, 0];
+        return [0, -1];
     }
 }
 
@@ -624,7 +604,7 @@ function chooseMove(clientState) {
     return move;
 }
 
-function updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, clickIndex, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv) {
+function updateDelayAndTakeContinuousRandomMoves(clientState) {
     cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
         .then(elements => {
             const gameStatusDiv = elements[0];
@@ -634,16 +614,16 @@ function updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, clickIndex,
 
             const secondsRemainingText = statusDivText.substring(prefixString.length);
             clientState.secondsRemainingFromDOM = parseInt(secondsRemainingText);
-            const expectedSecondsRemaining = roundDurationInSec - clientState.totalExpectedWaitTimeInSec;
+            const expectedSecondsRemaining = clientState.roundDurationInSec - clientState.totalExpectedWaitTimeInSec;
             clientState.delayInSec = Math.max(0, expectedSecondsRemaining - clientState.secondsRemainingFromDOM);
 
             console.log(util.formatTime(), `Read ${clientState.secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${clientState.totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${clientState.delayInSec}s.`)
 
-            takeContinuousRandomMoves(clickIndex, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
+            takeMoves(clientState);
         });
 }
 
-function promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState) {
+function promiseToUpdateSeenNameList(clientState) {
     return cy.get('[id="currentNameDiv"]')
         .then(elements => {
             let currentNameDiv = elements[0];
@@ -653,25 +633,30 @@ function promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState) {
 
             const celebName = nameDivText.substring(prefixString.length);
             assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
-            assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
-            namesSeenOnThisTurn.add(celebName);
+            assert(!clientState.namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
+            clientState.namesSeenOnThisTurn.add(celebName);
 
-            return namesSeenOnThisTurn;
+            return clientState;
         });
 }
 
-function clickTurnControlButton(buttonID, clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv) {
+function clickTurnControlButton(buttonID, numNames, clientState) {
     cy.get(`[id="${buttonID}"]`).click()
         .then(() => {
-            if (buttonID === 'gotNameButton') {
-                clickIndex++;
-                gotAtLeastOneName = true;
-            }
-            if (clickIndex % numNames !== 0) {
-                updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, clickIndex, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
+            if (clientState.takeContinuousRandomTurns) {
+                if (buttonID === 'gotNameButton') {
+                    clientState.clickIndex++;
+                }
+                if (clientState.clickIndex % numNames !== 0) {
+                    updateDelayAndTakeContinuousRandomMoves(clientState);
+                }
+                else {
+                    takeMoves(clientState);
+                }
             }
             else {
-                takeContinuousRandomMoves(clickIndex, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
+                console.log(util.formatTime(), `Clicked button ${buttonID}`);
+                takeMoves(clientState);
             }
         });
 }
