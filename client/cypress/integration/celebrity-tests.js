@@ -433,19 +433,8 @@ function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisTurn
             buttonID = 'gotNameButton';
             gotAtLeastOneName = true;
 
-            cy.get('[id="currentNameDiv"]')
-                .then(elements => {
-                    let currentNameDiv = elements[0];
-                    const nameDivText = currentNameDiv.innerText;
-                    const prefixString = 'Name: ';
-                    assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
-
-                    const celebName = nameDivText.substring(prefixString.length);
-                    assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
-
-                    assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
-                    namesSeenOnThisTurn.add(celebName);
-
+            promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState)
+                .then(namesSeenOnThisTurn => {
                     cy.get(`[id="${buttonID}"]`).click()
                         .then(() => {
                             console.log(util.formatTime(), `took move ${move}`);
