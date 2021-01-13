@@ -294,7 +294,12 @@ function waitForWakeUpTrigger(clientState) {
                 // It's my turn, get the names I'm supposed to get on this turn
                 cy.get('[id="startTurnButton"]').click()
                     .then(() => {
-                        getPreSetNames(clientState);
+                        if (clientState.takeContinuousRandomTurns) {
+                            getContinuousRandomNames(clientState);
+                        }
+                        else {
+                            getPreSetNames(clientState);
+                        }
 
                         // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
                         // that the turnCounter value is now wrong. And you can't increment it back, since that code
@@ -337,86 +342,81 @@ function waitForWakeUpTrigger(clientState) {
 
 // Get the names I'm supposed to get on this turn
 function getPreSetNames(clientState) {
-    if (clientState.takeContinuousRandomTurns) {
-        getContinuousRandomNames(clientState);
+    const turnCounter = clientState.turnCounter;
+    const numPlayers = clientState.otherPlayers.length + 1;
+    const turnIndexOffset = clientState.turnIndexOffset;
+    const playerIndex = clientState.playerIndex;
+    const teamIndex = clientState.teamIndex;
+    const preSetTurns = clientState.preSetTurns;
+    const namesSeen = clientState.namesSeen;
+
+    // 'preSetTurns' is an array containing all turns taken by all players. Calculate the index we want.
+    const numTeams = 2;
+    const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
+
+    // If numPlayers is odd, team 0 has one more player than team 1.
+    const numPlayersInMyTeam = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
+    const numTurnsBetweenMyTurns = numTeams * numPlayersInMyTeam;
+    const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
+    console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
+
+    const turnToTake = preSetTurns[turnIndex];
+    console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
+
+    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+        cy.get('[id="gotNameButton"]').should('be.visible');
+        cy.get('[id="passButton"]').should('be.visible');
+        cy.get('[id="endTurnButton"]').should('be.visible');
+    }
+
+    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+        // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
+        // We also check that the names we see are elements of the celebName list rather than other strings
+        retrieveTestBotInfo()
+            .then(testBotInfo => {
+                expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
+
+                const namesSeenOnThisTurn = new Set();
+                const roundIndex = testBotInfo.roundIndex;
+
+                let namesSeenOnThisRound = namesSeen[roundIndex];
+                if (namesSeenOnThisRound == null) {
+                    namesSeenOnThisRound = new Set();
+                    namesSeen[roundIndex] = namesSeenOnThisRound;
+                }
+
+                const scoresArray = testBotInfo.scores;
+                if (scoresArray.find(score => score > 0)) {
+                    cy.get('[id="scoresDiv"]')
+                        .then(elements => {
+                            const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
+                            takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                            cy.scrollTo(0, 0); // Looks nicer when watching
+                        });
+                }
+                else {
+                    takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
+                    cy.scrollTo(0, 0); // Looks nicer when watching
+                }
+            });
     }
     else {
-        const turnCounter = clientState.turnCounter;
-        const numPlayers = clientState.otherPlayers.length + 1;
-        const turnIndexOffset = clientState.turnIndexOffset;
-        const playerIndex = clientState.playerIndex;
-        const teamIndex = clientState.teamIndex;
-        const preSetTurns = clientState.preSetTurns;
-        const namesSeen = clientState.namesSeen;
-
-        // 'preSetTurns' is an array containing all turns taken by all players. Calculate the index we want.
-        const numTeams = 2;
-        const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
-
-        // If numPlayers is odd, team 0 has one more player than team 1.
-        const numPlayersInMyTeam = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
-        const numTurnsBetweenMyTurns = numTeams * numPlayersInMyTeam;
-        const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
-        console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
-
-        const turnToTake = preSetTurns[turnIndex];
-        console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
-
-        if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
-            cy.get('[id="gotNameButton"]').should('be.visible');
-            cy.get('[id="passButton"]').should('be.visible');
-            cy.get('[id="endTurnButton"]').should('be.visible');
-        }
-
-        if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
-            // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
-            // We also check that the names we see are elements of the celebName list rather than other strings
-            retrieveTestBotInfo()
-                .then(testBotInfo => {
-                    expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
-
-                    const namesSeenOnThisTurn = new Set();
-                    const roundIndex = testBotInfo.roundIndex;
-
-                    let namesSeenOnThisRound = namesSeen[roundIndex];
-                    if (namesSeenOnThisRound == null) {
-                        namesSeenOnThisRound = new Set();
-                        namesSeen[roundIndex] = namesSeenOnThisRound;
-                    }
-
-                    const scoresArray = testBotInfo.scores;
-                    if (scoresArray.find(score => score > 0)) {
-                        cy.get('[id="scoresDiv"]')
-                            .then(elements => {
-                                const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                                takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
-                                cy.scrollTo(0, 0); // Looks nicer when watching
-                            });
-                    }
-                    else {
-                        takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
-                        cy.scrollTo(0, 0); // Looks nicer when watching
-                    }
-                });
-        }
-        else {
-            // In fast mode, just click the buttons, no 0.5s wait and no checking of names
-            for (const move of turnToTake) {
-                if (move === 'got-it') {
-                    cy.get('[id="gotNameButton"]').click();
-                }
-                else if (move === 'pass') {
-                    cy.get('[id="passButton"]').click();
-                }
-                else if (move === 'end-turn') {
-                    cy.get('[id="endTurnButton"]').click();
-                }
-                else if (typeof (move) === 'number') {
-                    cy.wait(move * 1000);
-                }
+        // In fast mode, just click the buttons, no 0.5s wait and no checking of names
+        for (const move of turnToTake) {
+            if (move === 'got-it') {
+                cy.get('[id="gotNameButton"]').click();
             }
-            cy.scrollTo(0, 0); // Looks nicer when watching
+            else if (move === 'pass') {
+                cy.get('[id="passButton"]').click();
+            }
+            else if (move === 'end-turn') {
+                cy.get('[id="endTurnButton"]').click();
+            }
+            else if (typeof (move) === 'number') {
+                cy.wait(move * 1000);
+            }
         }
+        cy.scrollTo(0, 0); // Looks nicer when watching
     }
 }
 
