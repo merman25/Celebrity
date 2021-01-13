@@ -67,7 +67,9 @@ if (Cypress.env('RANDOM')) {
         numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
         slowMode: slowMode,
         turnVersion: slowMode ? 'V2' : 'V1',
-    };
+        minWaitTimeInSec: 5,
+        maxWaitTimeInSec: 25,
+        };
     if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
         specOptions.minWaitTimeInSec = Cypress.env('MIN_WAIT_TIME_IN_SEC');
     }
@@ -580,7 +582,7 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
             console.log(util.formatTime(), `Total expected wait time ${totalExpectedWaitTimeInSec}s, delay ${delayInSec}s, new wait duration ${waitDuration} would take us to or beyond the play duration of ${playDurationInSec}s. Not taking any more turns.  Global index now ${clientState.prevGlobalNameIndex}.`);
 
             if (gotAtLeastOneName
-                || namesPreviouslyOnScoresDiv.length > 0) {
+                || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
                 const adjustedTimeRemaining = roundDurationInSec - totalExpectedWaitTimeInSec + 2 * delayInSec;
                 cy.get('[id="gotNameButton"', { timeout: 1000 * adjustedTimeRemaining }).should('not.be.visible')
                     .then(() => {
