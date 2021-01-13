@@ -31,6 +31,34 @@ export const generateGame = function (numPlayers, options = {
     if (!numRounds) {
         numRounds = 1 + Math.floor(10 * random());
     }
+
+    if (options.fastMode) {
+        let currentTurn = null;
+
+        for (let roundIndex = 0; roundIndex < numRounds; roundIndex++) {
+            currentTurn = null;
+            for (let nameIndex = 0; nameIndex < totalNames;) {
+                if (currentTurn === null) {
+                    currentTurn = [];
+                    turns.push(currentTurn);
+                }
+
+                let randomResult = random();
+                if (randomResult < 0.1) {
+                    currentTurn.push(p);
+                }
+                else if (randomResult < 0.75) {
+                    currentTurn.push(g);
+                    nameIndex++;
+                }
+                else {
+                    currentTurn.push(e);
+                    currentTurn = null;
+                }
+
+            }
+        }
+    }
   
     const gameSpec = {
         description: `${numPlayers}-player random game with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
