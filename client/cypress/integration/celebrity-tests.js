@@ -103,7 +103,6 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 preSetTurns: gameSpec.preSetTurns,
                 takeContinuousRandomTurns: gameSpec.takeContinuousRandomTurns,
                 restoredGame: gameSpec.restoredGame,
-                namesSeen: [],
                 fastMode: gameSpec.fastModeOverride ? gameSpec.fastModeOverride : Cypress.env('FAST_MODE'),
                 roundIndex: 0,
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
@@ -392,25 +391,18 @@ function getPreSetNames(clientState) {
                 expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
 
                 const namesSeenOnThisTurn = new Set();
-                const roundIndex = testBotInfo.roundIndex;
-
-                let namesSeenOnThisRound = namesSeen[roundIndex];
-                if (namesSeenOnThisRound == null) {
-                    namesSeenOnThisRound = new Set();
-                    namesSeen[roundIndex] = namesSeenOnThisRound;
-                }
-
                 const scoresArray = testBotInfo.scores;
+
                 if (scoresArray.find(score => score > 0)) {
                     cy.get('[id="scoresDiv"]')
                         .then(elements => {
                             const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                            takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                            takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
                             cy.scrollTo(0, 0); // Looks nicer when watching
                         });
                 }
                 else {
-                    takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
+                    takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisTurn, [[], []], false);
                     cy.scrollTo(0, 0); // Looks nicer when watching
                 }
             });
@@ -421,13 +413,13 @@ function getPreSetNames(clientState) {
 // each call to cy.wait would know what the calculated delay was. Turns out that because of the delay,
 // I couldn't make the function work in slowMode. In slowMode, we always use takeContinuousRandomMoves instead.
 // So, function could probably be converted back to a simple loop if necessary.
-function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
+function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
     if (moveIndex >= turnToTake.length) {
         // Reached end of turn - do final check, then terminate recursion
         if (gotAtLeastOneName
             || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
             let timeoutToHideGotNameButtonInSec = 4; // cypress default
-            checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState);
+            checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState);
         }
     }
     else {
@@ -451,14 +443,13 @@ function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRoun
                     const celebName = nameDivText.substring(prefixString.length);
                     assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
 
-                    assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                     assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
                     namesSeenOnThisTurn.add(celebName);
 
                     cy.get(`[id="${buttonID}"]`).click()
                         .then(() => {
                             console.log(util.formatTime(), `took move ${move}`);
-                            takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                            takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                         });
                 });
 
@@ -474,18 +465,17 @@ function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRoun
             cy.get(`[id="${buttonID}"]`).click()
                 .then(() => {
                     console.log(util.formatTime(), `took move ${move}`);
-                    takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                    takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                 });
         }
     }
 }
 
-function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState) {
+function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState) {
     cy.get('[id="gotNameButton"]', { timeout: 1000 * timeoutToHideGotNameButtonInSec }).should('not.be.visible');
     cy.get('[id="scoresDiv"]')
         .then(elements => {
             // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-            namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
 
             console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
             const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
@@ -538,14 +528,6 @@ function getContinuousRandomNames(clientState) {
             const playDurationInSec = roundDurationInSec - roundMarginInSec;
 
             const namesSeenOnThisTurn = new Set();
-            const roundIndex = testBotInfo.roundIndex;
-
-            let namesSeenOnThisRound = clientState.namesSeen[roundIndex];
-            if (namesSeenOnThisRound == null) {
-                namesSeenOnThisRound = new Set();
-                clientState.namesSeen[roundIndex] = namesSeenOnThisRound;
-            }
-
             let delayInSec = 0;
             let totalExpectedWaitTimeInSec = 0;
 
@@ -554,17 +536,17 @@ function getContinuousRandomNames(clientState) {
                 cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, namesPreviouslyOnScoresDiv);
+                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, false, null, namesPreviouslyOnScoresDiv);
                         cy.scrollTo(0, 0); // Looks nicer when watching
                     });
             }
             else {
-                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, [[], []]);
+                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, false, null, [[], []]);
             }
         });
 }
 
-function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
+function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
     const numNames = clientState.allCelebNames.length;
     if (gotAtLeastOneName
         && clickIndex % numNames === 0) {
@@ -588,7 +570,7 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
             if (gotAtLeastOneName
                 || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
                 const adjustedTimeRemaining = roundDurationInSec - totalExpectedWaitTimeInSec + 2 * delayInSec;
-                checkScoresDivAfterTurnEnds(adjustedTimeRemaining, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState)
+                checkScoresDivAfterTurnEnds(adjustedTimeRemaining, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, clientState)
             }
         }
         else {
@@ -621,11 +603,11 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
         
                                     console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
         
-                                    takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                    takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                                 });
                         }
                         else {
-                            takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                            takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                         }
                     });
                 }
@@ -639,8 +621,6 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
         
                         const celebName = nameDivText.substring(prefixString.length);
                         assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
-        
-                        assert(!namesSeenOnThisRound.has(celebName), `Celeb name '${celebName}' should not have been seen before on this round`);
                         assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
                         namesSeenOnThisTurn.add(celebName);
 
@@ -666,11 +646,11 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
             
                                         console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
             
-                                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                                     });
                             }
                             else {
-                                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                             }
                         });
                     });
