@@ -32,6 +32,7 @@ export const generateGame = function (numPlayers, options = {
         numRounds = 1 + Math.floor(10 * random());
     }
 
+    let preSetTurns = []
     if (options.fastMode) {
         let currentTurn = null;
 
@@ -40,7 +41,7 @@ export const generateGame = function (numPlayers, options = {
             for (let nameIndex = 0; nameIndex < totalNames;) {
                 if (currentTurn === null) {
                     currentTurn = [];
-                    turns.push(currentTurn);
+                    preSetTurns.push(currentTurn);
                 }
 
                 let randomResult = random();
@@ -66,7 +67,8 @@ export const generateGame = function (numPlayers, options = {
         playerNames: selectedPlayers,
         celebrityNames: selectedCelebNames,
         turnIndexOffset: 0,
-        takeContinuousRandomTurns: true,
+        preSetTurns: preSetTurns,
+        takeContinuousRandomTurns: ! options.fastMode,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
         slowMode: options.slowMode,
