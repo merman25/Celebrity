@@ -66,7 +66,6 @@ if (Cypress.env('RANDOM')) {
         numRounds: Cypress.env('NUM_ROUNDS'),
         numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
         slowMode: slowMode,
-        turnVersion: slowMode ? 'V2' : 'V1',
         minWaitTimeInSec: 5,
         maxWaitTimeInSec: 25,
         };
@@ -427,31 +426,8 @@ function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRoun
         // Reached end of turn - do final check, then terminate recursion
         if (gotAtLeastOneName
             || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
-            cy.get('[id="gotNameButton"]').should('not.be.visible');
-            cy.get('[id="scoresDiv"]')
-                .then(elements => {
-                    // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                    namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-
-                    console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
-                    const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
-
-                    for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
-                        const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
-                        const namesNowSeenInThisSubList = namesSeenNowOnScoresDiv[scoresSubListIndex];
-                        let namesExpectedOnScoresDiv;
-                        if (scoresSubListIndex == clientState.teamIndex) {
-                            namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
-                        }
-                        else {
-                            namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
-                        }
-                        assert.equal(namesNowSeenInThisSubList.length, namesExpectedOnScoresDiv.length, 'There should be the right number of names now listed in scores');
-                        for (let nameIndex = 0; nameIndex < namesNowSeenInThisSubList.length; nameIndex++) {
-                            assert.equal(namesNowSeenInThisSubList[nameIndex], namesExpectedOnScoresDiv[nameIndex], `Expect ${nameIndex}th element of scores list to have the right value`);
-                        }
-                    }
-                });
+            let timeoutToHideGotNameButtonInSec = 4; // cypress default
+            checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState);
         }
     }
     else {
@@ -502,6 +478,34 @@ function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRoun
                 });
         }
     }
+}
+
+function checkScoresDivAfterTurnEnds(timeoutToHideGotNameButtonInSec, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState) {
+    cy.get('[id="gotNameButton"]', { timeout: 1000 * timeoutToHideGotNameButtonInSec }).should('not.be.visible');
+    cy.get('[id="scoresDiv"]')
+        .then(elements => {
+            // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
+            namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
+
+            console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
+            const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
+
+            for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
+                const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
+                const namesNowSeenInThisSubList = namesSeenNowOnScoresDiv[scoresSubListIndex];
+                let namesExpectedOnScoresDiv;
+                if (scoresSubListIndex == clientState.teamIndex) {
+                    namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
+                }
+                else {
+                    namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
+                }
+                assert.equal(namesNowSeenInThisSubList.length, namesExpectedOnScoresDiv.length, 'There should be the right number of names now listed in scores');
+                for (let nameIndex = 0; nameIndex < namesNowSeenInThisSubList.length; nameIndex++) {
+                    assert.equal(namesNowSeenInThisSubList[nameIndex], namesExpectedOnScoresDiv[nameIndex], `Expect ${nameIndex}th element of scores list to have the right value`);
+                }
+            }
+        });
 }
 
 function getContinuousRandomNames(clientState) {
@@ -584,34 +588,7 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
             if (gotAtLeastOneName
                 || namesPreviouslyOnScoresDiv.find(arr => arr.length > 0)) {
                 const adjustedTimeRemaining = roundDurationInSec - totalExpectedWaitTimeInSec + 2 * delayInSec;
-                cy.get('[id="gotNameButton"', { timeout: 1000 * adjustedTimeRemaining }).should('not.be.visible')
-                    .then(() => {
-                        cy.get('[id="scoresDiv"]')
-                            .then(elements => {
-                                // This code has to be in a 'then' to make sure it's executed after the Sets of names are updated
-                                namesSeenOnThisTurn.forEach(name => namesSeenOnThisRound.add(name));
-
-                                console.log(util.formatTime(), 'Checking ScoresDiv has the names I saw on this turn');
-                                const [totalScore, namesSeenNowOnScoresDiv] = readScoresDiv(elements[0]);
-
-                                for (let scoresSubListIndex = 0; scoresSubListIndex < namesPreviouslyOnScoresDiv.length; scoresSubListIndex++) {
-                                    const namesPreviouslySeenInThisSubList = namesPreviouslyOnScoresDiv[scoresSubListIndex];
-                                    const namesNowSeenInThisSubList = namesSeenNowOnScoresDiv[scoresSubListIndex];
-                                    let namesExpectedOnScoresDiv;
-                                    if (scoresSubListIndex == clientState.teamIndex) {
-                                        namesExpectedOnScoresDiv = [...namesPreviouslySeenInThisSubList, ...namesSeenOnThisTurn];
-                                    }
-                                    else {
-                                        namesExpectedOnScoresDiv = namesPreviouslySeenInThisSubList;
-                                    }
-                                    assert.equal(namesNowSeenInThisSubList.length, namesExpectedOnScoresDiv.length, 'There should be the right number of names now listed in scores');
-                                    for (let nameIndex = 0; nameIndex < namesNowSeenInThisSubList.length; nameIndex++) {
-                                        assert.equal(namesNowSeenInThisSubList[nameIndex], namesExpectedOnScoresDiv[nameIndex], `Expect ${nameIndex}th element of scores list to have the right value`);
-                                    }
-                                }
-                            });
-                    });
-
+                checkScoresDivAfterTurnEnds(adjustedTimeRemaining, namesSeenOnThisTurn, namesSeenOnThisRound, namesPreviouslyOnScoresDiv, clientState)
             }
         }
         else {

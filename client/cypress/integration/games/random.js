@@ -25,7 +25,7 @@ export const generateGame = function (numPlayers, options) {
     }
 
     let preSetTurns = []
-    if (options.fastMode) {
+    if (options.fastMode || ! options.slowMode) {
         let currentTurn = null;
 
         for (let roundIndex = 0; roundIndex < numRounds; roundIndex++) {
@@ -60,7 +60,7 @@ export const generateGame = function (numPlayers, options) {
         celebrityNames: selectedCelebNames,
         turnIndexOffset: 0,
         preSetTurns: preSetTurns,
-        takeContinuousRandomTurns: ! options.fastMode,
+        takeContinuousRandomTurns: ! options.fastMode && options.slowMode,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
         slowMode: options.slowMode,
