@@ -1,8 +1,5 @@
+import { g, p, e } from "../constants";
 const index = Cypress.env('PLAYER_INDEX');
-const g = 'got-it';
-const p = 'pass';
-const e = 'end-turn';
-
 
 
 export const gameSpec = {

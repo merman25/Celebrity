@@ -1,9 +1,7 @@
 import * as common from "../celebrity-tests";
+import { g, p, e } from "../constants";
 
 const index = Cypress.env('PLAYER_INDEX');
-const g = 'got-it';
-const p = 'pass';
-const e = 'end-turn';
 
 let doneCustomAction = false;
 
