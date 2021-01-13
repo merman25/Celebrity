@@ -150,7 +150,7 @@ export function playGame(clientState) {
 
     // Check I and the other players are listed, ready to be put into teams
     cy.contains('.teamlessPlayerLiClass', clientState.playerName, { timeout: 20000 });
-    const checkTeamlessPromise = checkTeamlessPlayerList(clientState.otherPlayers);
+    checkTeamlessPlayerList(clientState.otherPlayers);
 
     // Set the game parameters (num rounds, num names per player, etc)
     if (clientState.iAmHosting
@@ -577,53 +577,16 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
             cy.wait(waitDuration * 1000)
             .then(() => {
                 totalExpectedWaitTimeInSec += waitDuration;
-                let buttonID = 'gotNameButton';
                 if (clientState.random() < 0.1) {
-                    buttonID = 'passButton';
-
-                    cy.get(`[id="${buttonID}"]`).click()
-                    .then(() => {
-                        console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
-                        if (buttonID === 'gotNameButton') {
-                            clickIndex++;
-                            gotAtLeastOneName = true;
-                        }
-                        if (clickIndex % numNames !== 0) {
-                            updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
-                        }
-                        else {
-                            takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
-                        }
-                    });
+                    console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking pass. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+                    clickTurnControlButton('passButton', clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, totalExpectedWaitTimeInSec, playDurationInSec, delayInSec, clientState, namesSeenOnThisTurn, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                 }
                 else {
-                    cy.get('[id="currentNameDiv"]')
-                    .then(elements => {
-                        let currentNameDiv = elements[0];
-                        const nameDivText = currentNameDiv.innerText;
-                        const prefixString = 'Name: ';
-                        assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
-        
-                        const celebName = nameDivText.substring(prefixString.length);
-                        assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
-                        assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
-                        namesSeenOnThisTurn.add(celebName);
-
-                        cy.get(`[id="${buttonID}"]`).click()
-                        .then(() => {
-                            console.log(util.formatTime(), `Waited ${waitDuration}s and clicked ${buttonID}. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
-                            if (buttonID === 'gotNameButton') {
-                                clickIndex++;
-                                gotAtLeastOneName = true;
-                            }
-                            if (clickIndex % numNames !== 0) {
-                                updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
-                            }
-                            else {
-                                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
-                            }
+                    promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState)
+                        .then(namesSeenOnThisTurn => {
+                            console.log(util.formatTime(), `Waited ${waitDuration}s and now clicking Got It. Total expected wait time now ${totalExpectedWaitTimeInSec}s.`);
+                            clickTurnControlButton('gotNameButton', clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, totalExpectedWaitTimeInSec, playDurationInSec, delayInSec, clientState, namesSeenOnThisTurn, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                         });
-                    });
                 }
             });
         }
@@ -646,6 +609,39 @@ function updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpect
             console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
 
             takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+        });
+}
+
+function promiseToUpdateSeenNameList(namesSeenOnThisTurn, clientState) {
+    return cy.get('[id="currentNameDiv"]')
+        .then(elements => {
+            let currentNameDiv = elements[0];
+            const nameDivText = currentNameDiv.innerText;
+            const prefixString = 'Name: ';
+            assert(nameDivText.startsWith(prefixString), 'name div starts with prefix');
+
+            const celebName = nameDivText.substring(prefixString.length);
+            assert(clientState.allCelebNames.includes(celebName), `Celeb name '${celebName}' should be contained in celeb name list`);
+            assert(!namesSeenOnThisTurn.has(celebName), `Celeb name '${celebName}' should not have been seen before on this turn`);
+            namesSeenOnThisTurn.add(celebName);
+
+            return namesSeenOnThisTurn;
+        });
+}
+
+function clickTurnControlButton(buttonID, clickIndex, gotAtLeastOneName, numNames, roundDurationInSec, totalExpectedWaitTimeInSec, playDurationInSec, delayInSec, clientState, namesSeenOnThisTurn, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
+    cy.get(`[id="${buttonID}"]`).click()
+        .then(() => {
+            if (buttonID === 'gotNameButton') {
+                clickIndex++;
+                gotAtLeastOneName = true;
+            }
+            if (clickIndex % numNames !== 0) {
+                updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
+            }
+            else {
+                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+            }
         });
 }
 
