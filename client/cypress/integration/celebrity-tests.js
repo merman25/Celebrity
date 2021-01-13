@@ -34,7 +34,7 @@ describe('Initialisation', () => {
  * Default game spec if non-random
 */
 
-let gameSpecs = [spec4Players.gameSpec];
+let gameSpecs = [];//[spec4Players.gameSpec];
 if (Cypress.env('INC_RESTORED')) {
   gameSpecs.push(specRestoredMiddle.gameSpec);
   gameSpecs.push(specRestoredEnd.gameSpec);
