@@ -363,13 +363,29 @@ function getPreSetNames(clientState) {
     const turnToTake = preSetTurns[turnIndex];
     console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
-    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+    if (clientState.fastMode || ! clientState.fullChecksWhenNotInFastMode) {
+        // In fast mode, just click the buttons, no 0.5s wait and no checking of names
+        for (const move of turnToTake) {
+            if (move === 'got-it') {
+                cy.get('[id="gotNameButton"]').click();
+            }
+            else if (move === 'pass') {
+                cy.get('[id="passButton"]').click();
+            }
+            else if (move === 'end-turn') {
+                cy.get('[id="endTurnButton"]').click();
+            }
+            else if (typeof (move) === 'number') {
+                cy.wait(move * 1000);
+            }
+        }
+        cy.scrollTo(0, 0); // Looks nicer when watching
+    }
+    else {
         cy.get('[id="gotNameButton"]').should('be.visible');
         cy.get('[id="passButton"]').should('be.visible');
         cy.get('[id="endTurnButton"]').should('be.visible');
-    }
 
-    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
         // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
         // We also check that the names we see are elements of the celebName list rather than other strings
         retrieveTestBotInfo()
@@ -399,24 +415,6 @@ function getPreSetNames(clientState) {
                     cy.scrollTo(0, 0); // Looks nicer when watching
                 }
             });
-    }
-    else {
-        // In fast mode, just click the buttons, no 0.5s wait and no checking of names
-        for (const move of turnToTake) {
-            if (move === 'got-it') {
-                cy.get('[id="gotNameButton"]').click();
-            }
-            else if (move === 'pass') {
-                cy.get('[id="passButton"]').click();
-            }
-            else if (move === 'end-turn') {
-                cy.get('[id="endTurnButton"]').click();
-            }
-            else if (typeof (move) === 'number') {
-                cy.wait(move * 1000);
-            }
-        }
-        cy.scrollTo(0, 0); // Looks nicer when watching
     }
 }
 
