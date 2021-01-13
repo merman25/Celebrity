@@ -589,22 +589,7 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
                             gotAtLeastOneName = true;
                         }
                         if (clickIndex % numNames !== 0) {
-                            cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
-                                .then(elements => {
-                                    const gameStatusDiv = elements[0];
-                                    const statusDivText = gameStatusDiv.innerText;
-                                    const prefixString = 'Seconds remaining: ';
-                                    assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
-        
-                                    const secondsRemainingText = statusDivText.substring(prefixString.length);
-                                    secondsRemainingFromDOM = parseInt(secondsRemainingText);
-                                    const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
-                                    delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
-        
-                                    console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
-        
-                                    takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
-                                });
+                            updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
                         }
                         else {
                             takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
@@ -632,22 +617,7 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
                                 gotAtLeastOneName = true;
                             }
                             if (clickIndex % numNames !== 0) {
-                                cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
-                                    .then(elements => {
-                                        const gameStatusDiv = elements[0];
-                                        const statusDivText = gameStatusDiv.innerText;
-                                        const prefixString = 'Seconds remaining: ';
-                                        assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
-            
-                                        const secondsRemainingText = statusDivText.substring(prefixString.length);
-                                        secondsRemainingFromDOM = parseInt(secondsRemainingText);
-                                        const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
-                                        delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
-            
-                                        console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
-            
-                                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
-                                    });
+                                updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv);
                             }
                             else {
                                 takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
@@ -660,7 +630,24 @@ function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, click
     }
 }
 
+function updateDelayAndTakeContinuousRandomMoves(roundDurationInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, namesPreviouslyOnScoresDiv) {
+    cy.get('[id="gameStatusDiv"]').contains('Seconds remaining:')
+        .then(elements => {
+            const gameStatusDiv = elements[0];
+            const statusDivText = gameStatusDiv.innerText;
+            const prefixString = 'Seconds remaining: ';
+            assert(statusDivText.startsWith(prefixString), `status div starts with ${prefixString}`);
 
+            const secondsRemainingText = statusDivText.substring(prefixString.length);
+            const secondsRemainingFromDOM = parseInt(secondsRemainingText);
+            const expectedSecondsRemaining = roundDurationInSec - totalExpectedWaitTimeInSec;
+            const delayInSec = Math.max(0, expectedSecondsRemaining - secondsRemainingFromDOM);
+
+            console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
+
+            takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+        });
+}
 
 function startHostingNewGame(playerName, gameID, clientState) {
     cy.get('[id="nameField"]').type(playerName);
