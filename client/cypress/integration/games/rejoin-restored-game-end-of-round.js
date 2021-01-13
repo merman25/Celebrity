@@ -20,7 +20,7 @@ export const gameSpec = {
     ],
 
     turnIndexOffset: 14,
-    fullChecksWhenNotInFastMode: false,
+    fastModeOverride: true,
 
     // 24 total
     preSetTurns: [

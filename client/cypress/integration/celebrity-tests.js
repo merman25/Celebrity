@@ -66,7 +66,6 @@ if (Cypress.env('RANDOM')) {
         numRounds: Cypress.env('NUM_ROUNDS'),
         numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
         slowMode: slowMode,
-        fullChecksWhenNotInFastMode: true,
         turnVersion: slowMode ? 'V2' : 'V1',
     };
     if (Cypress.env('MIN_WAIT_TIME_IN_SEC')) {
@@ -104,8 +103,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 takeContinuousRandomTurns: gameSpec.takeContinuousRandomTurns,
                 restoredGame: gameSpec.restoredGame,
                 namesSeen: [],
-                fastMode: Cypress.env('FAST_MODE'),
-                fullChecksWhenNotInFastMode: gameSpec.fullChecksWhenNotInFastMode,
+                fastMode: gameSpec.fastModeOverride ? gameSpec.fastModeOverride : Cypress.env('FAST_MODE'),
                 roundIndex: 0,
                 numNamesPerPlayer: gameSpec.numNamesPerPlayer,
                 numRounds: gameSpec.numRounds,
@@ -265,7 +263,7 @@ function waitForWakeUpTrigger(clientState) {
 
             console.log(util.formatTime(), `found test trigger ${triggerElement.innerText}`);
 
-            if (clientState.fullChecksWhenNotInFastMode) {
+            if (! clientState.fastMode) {
                 checkDOMContent(DOMSpecs, clientState);
             }
 
@@ -285,7 +283,7 @@ function waitForWakeUpTrigger(clientState) {
             }
             else if (triggerElement.innerText === 'bot-game-over') {
                 // Finished game, stop here
-                if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+                if (!clientState.fastMode) {
                     checkFinalScoreForRound(clientState);
                 }
                 console.log(util.formatTime(), 'Finished!!');
@@ -314,13 +312,13 @@ function waitForWakeUpTrigger(clientState) {
                 // Only the host needs to click something now, but all players will see the same trigger text.
 
                 clientState.roundIndex = clientState.roundIndex + 1;
-                if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+                if (!clientState.fastMode) {
                     checkFinalScoreForRound(clientState);
                 }
 
                 if (clientState.iAmHosting) {
                     // Host clicks the start next round button
-                    if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+                    if (!clientState.fastMode) {
                         cy.wait(5000); // Give player who finished the round time to check the scores div
                     }
                     cy.get('[id="startNextRoundButton"]').click();
@@ -363,7 +361,7 @@ function getPreSetNames(clientState) {
     const turnToTake = preSetTurns[turnIndex];
     console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
-    if (clientState.fastMode || ! clientState.fullChecksWhenNotInFastMode) {
+    if (clientState.fastMode) {
         // In fast mode, just click the buttons, no 0.5s wait and no checking of names
         for (const move of turnToTake) {
             if (move === 'got-it') {
@@ -531,7 +529,7 @@ function getContinuousRandomNames(clientState) {
 
             const roundDurationInSec = 60;
             let roundMarginInSec = 3;
-            if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
+            if (!clientState.fastMode) {
                 roundMarginInSec = 5;
             }
             const playDurationInSec = roundDurationInSec - roundMarginInSec;

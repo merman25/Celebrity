@@ -15,7 +15,6 @@ export const generateGame = function (numPlayers, options = {
     numRounds: null,
     numNamesPerPlayer: null,
     slowMode: false,
-    fullChecksWhenNotInFastMode: true,
     minWaitTimeInSec: 5,
     maxWaitTimeInSec: 25,
 }) {
@@ -39,7 +38,6 @@ export const generateGame = function (numPlayers, options = {
         playerNames: selectedPlayers,
         celebrityNames: selectedCelebNames,
         turnIndexOffset: 0,
-        fullChecksWhenNotInFastMode: options.fullChecksWhenNotInFastMode,
         takeContinuousRandomTurns: true,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
