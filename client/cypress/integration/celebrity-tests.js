@@ -383,6 +383,7 @@ function getNames(clientState) {
     else {
         // In complete test (non-fast mode), we check that the names we see during this turn, and during other turns, appear in the Scores.
         // We also check that the names we see are elements of the celebName list rather than other strings
+        cy.get('[id="startTurnButton"]').should('not.be.visible'); // Wait until DOM is updated for playing a turn, otherwise we get stale testBotInfo
         retrieveTestBotInfo()
             .then(testBotInfo => {
                 expect(turnIndex - turnIndexOffset, 'calculated turn index').to.equal(testBotInfo.turnCount - 1);
