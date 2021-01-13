@@ -528,10 +528,7 @@ function getContinuousRandomNames(clientState) {
             console.log(util.formatTime(), `Between the last turn and this turn, global index has gone from ${prevIndex} to ${clickIndex}, a change of ${indexDelta}. There were also ${passCount} passes, so the random has been invoked ${randomInvocationCount} times.`)
 
             const roundDurationInSec = 60;
-            let roundMarginInSec = 3;
-            if (!clientState.fastMode) {
-                roundMarginInSec = 5;
-            }
+            const roundMarginInSec = 5;
             const playDurationInSec = roundDurationInSec - roundMarginInSec;
 
             const namesSeenOnThisTurn = new Set();
