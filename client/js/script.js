@@ -562,8 +562,26 @@ function processGameStateObject(newGameStateObject) {
 	if (serverGameState.roundIndex)
 		testBotInfo.roundIndex = serverGameState.roundIndex;
 	setTestBotInfo(testBotInfo);
+	setTestTriggerIfNecessary(myGameState, serverGameState);
 
 	applyTheme();
+}
+
+function setTestTriggerIfNecessary(myGameState, serverGameState) {
+	if (serverGameState.status === 'READY_TO_START_NEXT_TURN') {
+		if (myGameState.iAmPlaying) {
+			addTestTrigger('bot-start-turn');
+		}
+		else {
+			addTestTrigger('bot-wait-for-turn');
+		}
+	}
+	else if (serverGameState.status === 'READY_TO_START_NEXT_ROUND') {
+		addTestTrigger('bot-ready-to-start-next-round');
+	}
+	else if (serverGameState.status === 'ENDED') {
+		addTestTrigger('bot-game-over');
+	}
 }
 
 function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
@@ -572,11 +590,9 @@ function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 
 	if (readyToStartNextTurn) {
 		if (myGameState.iAmPlaying) {
-			addTestTrigger('bot-start-turn');
 			document.getElementById('gameStatusDiv').textContent = 'It\'s your turn!';
 		}
 		else {
-			addTestTrigger('bot-wait-for-turn');
 			const currentPlayer = serverGameState.currentPlayer;
 			if (currentPlayer != null) {
 				let currentPlayerName = currentPlayer.name;
@@ -1118,8 +1134,6 @@ function setGameStatus(newStatus) {
 	if (newStatus == 'READY_TO_START_NEXT_ROUND') {
 		document.getElementById('gameStatusDiv').textContent = 'Finished Round! See scores below';
 		setDOMElementVisibility(myGameState, serverGameState);
-
-		addTestTrigger('bot-ready-to-start-next-round');
 	}
 	else {
 		setDOMElementVisibility(myGameState, serverGameState);
@@ -1132,7 +1146,6 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == 'ENDED') {
 		updateGameInfo('Game Over!');
-		addTestTrigger('bot-game-over');
 	}
 
 	myGameState.statusAtLastUpdate = newStatus;
