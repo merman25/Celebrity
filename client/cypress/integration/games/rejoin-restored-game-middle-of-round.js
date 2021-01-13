@@ -25,7 +25,7 @@ export const gameSpec = {
     fullChecksWhenNotInFastMode: false,
 
     // 24 total
-    turns: [
+    preSetTurns: [
         // Round 1
         [g, g, p, g, p, g, g, e], // 5
         [g, g, g, g, e], // 9

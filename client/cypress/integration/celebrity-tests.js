@@ -50,7 +50,7 @@ if (Cypress.env('RANDOM')) {
     
     if (seed) {
         /* Not specifying the seed is an error: it means the players will generate
-        *  inconsistent series of turns, and not play correctly. But this is checked
+        *  inconsistent series of continuousRandomTurns, and not play correctly. But this is checked
         *  in describe('Initialisation') with an informative error message - the check
         *  here is just to avoid the problem of just seeing an NPE instead.
         */
@@ -100,8 +100,8 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 iAmHosting: index === 0,
                 gameID: gameSpec.gameID,
                 turnIndexOffset: gameSpec.turnIndexOffset,
-                turns: gameSpec.turns,
-                turnsV2: gameSpec.turnsV2,
+                preSetTurns: gameSpec.preSetTurns,
+                takeContinuousRandomTurns: gameSpec.takeContinuousRandomTurns,
                 restoredGame: gameSpec.restoredGame,
                 namesSeen: [],
                 fastMode: Cypress.env('FAST_MODE'),
@@ -294,7 +294,7 @@ function waitForWakeUpTrigger(clientState) {
                 // It's my turn, get the names I'm supposed to get on this turn
                 cy.get('[id="startTurnButton"]').click()
                     .then(() => {
-                        getNames(clientState);
+                        getPreSetNames(clientState);
 
                         // WARNING: if you do anything else after the call to waitForWakeUpTrigger, don't forget
                         // that the turnCounter value is now wrong. And you can't increment it back, since that code
@@ -336,9 +336,9 @@ function waitForWakeUpTrigger(clientState) {
 }
 
 // Get the names I'm supposed to get on this turn
-function getNames(clientState) {
-    if (clientState.turnsV2) {
-        getNamesV2(clientState);
+function getPreSetNames(clientState) {
+    if (clientState.takeContinuousRandomTurns) {
+        getContinuousRandomNames(clientState);
     }
     else {
         const turnCounter = clientState.turnCounter;
@@ -346,10 +346,10 @@ function getNames(clientState) {
         const turnIndexOffset = clientState.turnIndexOffset;
         const playerIndex = clientState.playerIndex;
         const teamIndex = clientState.teamIndex;
-        const turns = clientState.turns;
+        const preSetTurns = clientState.preSetTurns;
         const namesSeen = clientState.namesSeen;
 
-        // 'turns' is an array containing all turns taken by all players. Calculate the index we want.
+        // 'preSetTurns' is an array containing all turns taken by all players. Calculate the index we want.
         const numTeams = 2;
         const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
 
@@ -359,7 +359,7 @@ function getNames(clientState) {
         const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
         console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
-        const turnToTake = turns[turnIndex];
+        const turnToTake = preSetTurns[turnIndex];
         console.log(util.formatTime(), `turnToTake: ${turnToTake}`);
 
         if (!clientState.fastMode && clientState.fullChecksWhenNotInFastMode) {
@@ -389,12 +389,12 @@ function getNames(clientState) {
                         cy.get('[id="scoresDiv"]')
                             .then(elements => {
                                 const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                                takeMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
+                                takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, false);
                                 cy.scrollTo(0, 0); // Looks nicer when watching
                             });
                     }
                     else {
-                        takeMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
+                        takePreSetMoves(0, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, [[], []], false);
                         cy.scrollTo(0, 0); // Looks nicer when watching
                     }
                 });
@@ -422,9 +422,9 @@ function getNames(clientState) {
 
 // This function was converted from a loop to a recursive function, so that when we were in slowMode,
 // each call to cy.wait would know what the calculated delay was. Turns out that because of the delay,
-// I couldn't make the function work in slowMode. In slowMode, we always use takeMovesV2 instead.
+// I couldn't make the function work in slowMode. In slowMode, we always use takeContinuousRandomMoves instead.
 // So, function could probably be converted back to a simple loop if necessary.
-function takeMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
+function takePreSetMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName) {
     if (moveIndex >= turnToTake.length) {
         // Reached end of turn - do final check, then terminate recursion
         if (gotAtLeastOneName
@@ -484,7 +484,7 @@ function takeMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, nam
                     cy.get(`[id="${buttonID}"]`).click()
                         .then(() => {
                             console.log(util.formatTime(), `took move ${move}`);
-                            takeMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                            takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                         });
                 });
 
@@ -500,13 +500,13 @@ function takeMoves(moveIndex, turnToTake, clientState, namesSeenOnThisRound, nam
             cy.get(`[id="${buttonID}"]`).click()
                 .then(() => {
                     console.log(util.formatTime(), `took move ${move}`);
-                    takeMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
+                    takePreSetMoves(moveIndex + 1, turnToTake, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, namesPreviouslyOnScoresDiv, gotAtLeastOneName);
                 });
         }
     }
 }
 
-function getNamesV2(clientState) {
+function getContinuousRandomNames(clientState) {
     retrieveTestBotInfo()
         .then(testBotInfo => {
             const clickIndex = testBotInfo.gameGlobalNameIndex;
@@ -555,17 +555,17 @@ function getNamesV2(clientState) {
                 cy.get('[id="scoresDiv"]')
                     .then(elements => {
                         const [totalScore, namesPreviouslyOnScoresDiv] = readScoresDiv(elements[0]);
-                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, namesPreviouslyOnScoresDiv);
+                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, namesPreviouslyOnScoresDiv);
                         cy.scrollTo(0, 0); // Looks nicer when watching
                     });
             }
             else {
-                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, [[], []]);
+                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, false, null, [[], []]);
             }
         });
 }
 
-function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
+function takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv) {
     const numNames = clientState.allCelebNames.length;
     if (gotAtLeastOneName
         && clickIndex % numNames === 0) {
@@ -649,11 +649,11 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
         
                                     console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
         
-                                    takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                    takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                                 });
                         }
                         else {
-                            takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                            takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                         }
                     });
                 }
@@ -694,11 +694,11 @@ function takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDur
             
                                         console.log(util.formatTime(), `Read ${secondsRemainingFromDOM}s remaining from page. Total expected wait time was ${totalExpectedWaitTimeInSec}, so expected ${expectedSecondsRemaining}s. Delay ${delayInSec}s.`)
             
-                                        takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                        takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                                     });
                             }
                             else {
-                                takeMovesV2(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
+                                takeContinuousRandomMoves(delayInSec, totalExpectedWaitTimeInSec, clickIndex, playDurationInSec, roundDurationInSec, clientState, namesSeenOnThisRound, namesSeenOnThisTurn, gotAtLeastOneName, secondsRemainingFromDOM, namesPreviouslyOnScoresDiv);
                             }
                         });
                     });
@@ -770,7 +770,7 @@ export function checkTeamList(clientState) {
         cy.get('[id="teamList"]').contains(player);
     }
 
-    // Find out my team index and player index, so I know which turn to select from the turns array
+    // Find out my team index and player index, so I know which turn to select from the preSetTurns array
     cy.get('.playerInTeamTDClass').contains(clientState.playerName)
         .then(elements => {
             const element = elements[0];

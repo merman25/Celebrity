@@ -16,7 +16,6 @@ export const generateGame = function (numPlayers, options = {
     numNamesPerPlayer: null,
     slowMode: false,
     fullChecksWhenNotInFastMode: true,
-    turnVersion: 'V1',
     minWaitTimeInSec: 5,
     maxWaitTimeInSec: 25,
 }) {
@@ -33,80 +32,7 @@ export const generateGame = function (numPlayers, options = {
     if (!numRounds) {
         numRounds = 1 + Math.floor(10 * random());
     }
-    const turns = [];
-    let turnsV2 = false;
-    if (options.turnVersion === 'V1') {
-        let currentTurn = null;
-
-        for (let roundIndex = 0; roundIndex < numRounds; roundIndex++) {
-            currentTurn = null;
-            for (let nameIndex = 0; nameIndex < totalNames;) {
-                if (currentTurn === null) {
-                    currentTurn = [];
-                    turns.push(currentTurn);
-                }
-
-                if (options.slowMode) {
-                    const roundDurationInSec = 60;
-                    let roundMarginInSec = 3;
-                    if (!options.fastMode && options.fullChecksWhenNotInFastMode) {
-                        roundMarginInSec = 10;
-                    }
-                    const playDurationInSec = roundDurationInSec - roundMarginInSec;
-
-                    let playDurationSoFar = 0;
-                    while (playDurationSoFar < playDurationInSec
-                        && nameIndex < totalNames) {
-                        const waitDurationRangeInSec = options.maxWaitTimeInSec - options.minWaitTimeInSec;
-                        let playDurationForThisName = minWaitTimeInSec + Math.floor(waitDurationRangeInSec * random());
-                        playDurationSoFar += playDurationForThisName;
-                        currentTurn.push(playDurationForThisName);
-
-                        if (playDurationSoFar < playDurationInSec) {
-                            let randomResult = random();
-                            if (randomResult < 0.1) {
-                                currentTurn.push(p);
-                            }
-                            else {
-                                currentTurn.push(g);
-                                nameIndex++;
-                                if (nameIndex >= totalNames) {
-                                    // console.log('end of round');
-                                    currentTurn = null;
-                                }
-                            }
-                        }
-                        else {
-                            currentTurn = null;
-                        }
-                    }
-
-                    if (currentTurn) {
-                        currentTurn.push(playDurationSoFar - playDurationInSec + roundMarginInSec);
-                        currentTurn = null;
-                    }
-                }
-                else {
-                    let randomResult = random();
-                    if (randomResult < 0.1) {
-                        currentTurn.push(p);
-                    }
-                    else if (randomResult < 0.75) {
-                        currentTurn.push(g);
-                        nameIndex++;
-                    }
-                    else {
-                        currentTurn.push(e);
-                        currentTurn = null;
-                    }
-                }
-            }
-        }
-    }
-    else if (options.turnVersion === 'V2') {
-        turnsV2 = true;
-    }
-
+  
     const gameSpec = {
         description: `${numPlayers}-player random game with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
         restoredGame: false,
@@ -114,8 +40,7 @@ export const generateGame = function (numPlayers, options = {
         celebrityNames: selectedCelebNames,
         turnIndexOffset: 0,
         fullChecksWhenNotInFastMode: options.fullChecksWhenNotInFastMode,
-        turns: turns,
-        turnsV2: turnsV2,
+        takeContinuousRandomTurns: true,
         numNamesPerPlayer: numNamesPerPlayer,
         numRounds: numRounds,
         slowMode: options.slowMode,
