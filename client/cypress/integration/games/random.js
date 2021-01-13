@@ -1,5 +1,5 @@
 import * as util from "../util.js"
-import { g, p, e } from "../celebrity-tests";
+import { g, p, e } from "../constants";
 
 const playerNames = ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2', 'HAL 9000', 'Wall-E', 'T-1000', 'Soundwave', 'Robocop', 'CHAPPiE',
                     'Data', 'C3PO', 'Arnie', 'Toadborg', 'Sentinel', 'Samantha', 'Dot Matrix', 'Optimus Prime', 'Deep Thought'];
