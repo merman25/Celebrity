@@ -319,6 +319,7 @@ if [ "$RANDOM_GAME" == "true" ]; then
 
     if [ -z "$NUM_PLAYERS" ]; then
 	NUM_PLAYERS=$((2 + $RANDOM % 9));
+	echo "Num players: $NUM_PLAYERS"
     fi
 
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
