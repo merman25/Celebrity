@@ -508,6 +508,22 @@ function updateGameInfo(text) {
 function processGameStateObject(newGameStateObject) {
 	serverGameState = newGameStateObject;
 
+	/* Set testBotInfo before updating the DOM, because sometimes the test bots
+	 * will wait for a DOM update (e.g. the hiding of the startTurn button)
+	 * before trying to read the testBotInfo
+	*/
+	const testBotInfo = {
+		gameStatus: serverGameState.status,
+		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
+		teamsAllocated: serverGameState.teams.length > 0,
+		turnCount: serverGameState.turnCount,
+		gameGlobalNameIndex: serverGameState.gameGlobalNameIndex,
+		scores: serverGameState.namesAchieved.map(({name, namesAchieved}) => namesAchieved.length),
+	};
+	if (serverGameState.roundIndex)
+		testBotInfo.roundIndex = serverGameState.roundIndex;
+	setTestBotInfo(testBotInfo);
+
 	myGameState.myPlayerID = serverGameState.publicIDOfRecipient;
 	myGameState.iAmPlaying = iAmCurrentPlayer();
 	myGameState.iAmHosting = iAmHost();
@@ -547,24 +563,12 @@ function processGameStateObject(newGameStateObject) {
 	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
 
-	
-	const testBotInfo = {
-		gameStatus: serverGameState.status,
-		gameParamsSet: serverGameState.numNames != null && serverGameState.numNames > 0,
-		teamsAllocated: myGameState.teamsAllocated,
-		turnCount: serverGameState.turnCount,
-		gameGlobalNameIndex: serverGameState.gameGlobalNameIndex,
-		scores: serverGameState.namesAchieved.map(({name, namesAchieved}) => namesAchieved.length),
-	};
-
 	setDOMElementVisibility(myGameState, serverGameState);
 
-	if (serverGameState.roundIndex)
-		testBotInfo.roundIndex = serverGameState.roundIndex;
-	setTestBotInfo(testBotInfo);
-	setTestTriggerIfNecessary(myGameState, serverGameState);
-
 	applyTheme();
+
+	// Add test trigger last, so that when bots see it, DOM updates have been done.
+	setTestTriggerIfNecessary(myGameState, serverGameState);
 }
 
 function setTestTriggerIfNecessary(myGameState, serverGameState) {
