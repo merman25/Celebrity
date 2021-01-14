@@ -6,7 +6,7 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-m MIN_WAIT_TIME_IN_SEC] [-M MAX_WAIT_TIME_IN_SEC] [-g STAGGERED_DELAY_IN_SEC] [-p PORT]\n"
+    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-m MIN_WAIT_TIME_IN_SEC] [-M MAX_WAIT_TIME_IN_SEC] [-g STAGGERED_DELAY_IN_SEC] [-p PORT] [-b BROWSER]\n"
     printf "\n"
     printf "\t-h:\t\t\t\tPrint this message and exit\n"
     printf "\t-f:\t\t\t\tFast mode (default off)\n"
@@ -18,6 +18,7 @@ print_usage() {
     printf "\t-w:\t\t\t\tOpen browser windows (default off)\n"
     printf "\t-x:\t\t\t\tExit browser at end of test (default off)\n"
     printf "\t-z:\t\t\t\tSlow mode (default off)\n"
+    printf "\t-b BROWSER:\t\t\tWhich browser to use (default electron)\n"
     printf "\t-d SEED:\t\t\tSpecify seed for random game\n"
     printf "\t-g STAGGERED_DELAY_IN_SEC:\tStaggered start of each player, with specified delay (default 0)\n"
     printf "\t-l NUM_PLAYERS:\t\t\tNumber of players\n"
@@ -157,7 +158,7 @@ start_player() {
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	
-	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
+	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file"  &
     elif [ "$mode" == "rand" ]; then
 	num_players="$4"
 	seed="$5"
@@ -171,7 +172,7 @@ start_player() {
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	
-	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT -p $port '>' "$result_file"  &
+	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file" &
     else
 	echo "Error: unknown mode $mode"
 	print_usage
@@ -190,7 +191,7 @@ START_SERVER="true"
 RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
-while getopts "hfjkqrswxzd:g:l:m:M:n:o:p:u:" OPT; do
+while getopts "hfjkqrswxzb:d:g:l:m:M:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -222,6 +223,9 @@ while getopts "hfjkqrswxzd:g:l:m:M:n:o:p:u:" OPT; do
 	    ;;
 	z)
 	    SLOW_MODE="true"
+	    ;;
+	b)
+	    BROWSER="$OPTARG"
 	    ;;
 	d)
 	    SEED="$OPTARG"
@@ -256,6 +260,11 @@ while getopts "hfjkqrswxzd:g:l:m:M:n:o:p:u:" OPT; do
 	    ;;
     esac
 done
+
+BROWSER_STRING=""
+if [ \! -z "$BROWSER" ]; then
+    BROWSER_STRING="--browser $BROWSER"
+fi
 
 
 TSTAMP=$(date +%Y-%m-%d_%H%M%S)
@@ -313,7 +322,7 @@ if [ "$RANDOM_GAME" == "true" ]; then
     fi
 
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
-	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
+	if [ $player_index -gt 0 ] && [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
 	    sleep "$STAGGERED_DELAY_IN_SEC"
 	fi
 	start_player "rand" $player_index $FAST_MODE $NUM_PLAYERS $SEED
@@ -321,7 +330,7 @@ if [ "$RANDOM_GAME" == "true" ]; then
 else
     NUM_PLAYERS=4
     for player_index in $(seq 0 $(( $NUM_PLAYERS - 1 )) ); do
-	if [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
+	if [ $player_index -gt 0 ] && [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
 	    sleep "$STAGGERED_DELAY_IN_SEC"
 	fi
 	start_player "det" $player_index $FAST_MODE $INC_RESTORED
