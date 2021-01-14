@@ -395,7 +395,7 @@ function getNames(clientState) {
                 clientState.namesSeenOnThisTurn = new Set();
                 clientState.delayInSec = 0;
                 clientState.totalExpectedWaitTimeInSec = 0;
-                clientState.secondsRemainingFromDOM = null;
+                clientState.secondsRemainingFromDOM = clientState.roundDurationInSec; // Initial value is just for the logs
                 clientState.gotAtLeastOneName = false;
 
 
@@ -470,8 +470,9 @@ function takeMoves(clientState) {
     }
     else {
         // At least one more move to make
-        const [waitDuration, adjustedEstimatedTotalWaitTimeAfterThisWaitInSec] = chooseWaitDuration(clientState);
         const move = chooseMove(clientState);
+        console.log(util.formatTime(), `next move ${move}`);
+        const [waitDuration, adjustedEstimatedTotalWaitTimeAfterThisWaitInSec] = chooseWaitDuration(clientState);
 
         if (adjustedEstimatedTotalWaitTimeAfterThisWaitInSec >= clientState.playDurationInSec) {
             // With that wait time, we won't have enough time to click the button. Just wait until the turn ends.
@@ -529,9 +530,9 @@ function chooseWaitDuration(clientState) {
 
         const totalActualWaitTimeInSec = clientState.totalExpectedWaitTimeInSec + clientState.delayInSec;
         const estimatedTotalWaitTimeAfterThisWaitInSec = waitDuration + totalActualWaitTimeInSec;
-        const estimatedSecondsRemainingAfterThisWaitInSec = clientState.playDurationInSec - estimatedTotalWaitTimeAfterThisWaitInSec;
+        const estimatedSecondsRemainingAfterThisWaitInSec = clientState.roundDurationInSec - estimatedTotalWaitTimeAfterThisWaitInSec;
         const adjustedEstimatedTotalWaitTimeAfterThisWaitInSec = estimatedTotalWaitTimeAfterThisWaitInSec + clientState.delayInSec; // Add the delay on a second time, to give a bigger margin
-        console.log(util.formatTime(), `totalExpectedWaitTime [${clientState.totalExpectedWaitTimeInSec}s], delay [${clientState.delayInSec}s], actual wait time [${totalActualWaitTimeInSec}s], wait time for this turn [${waitDuration}s], estimated total after this wait [${estimatedTotalWaitTimeAfterThisWaitInSec}s], adjusted to [${adjustedEstimatedTotalWaitTimeAfterThisWaitInSec}s], play duration [${clientState.playDurationInSec}s], seconds remaining after estimate [${estimatedSecondsRemainingAfterThisWaitInSec}s, margin applied], seconds remaining from DOM [${clientState.secondsRemainingFromDOM}s]`);
+        console.log(util.formatTime(), `totalExpectedWaitTime [${clientState.totalExpectedWaitTimeInSec}s], delay [${clientState.delayInSec}s], actual wait time [${totalActualWaitTimeInSec}s], wait time for this turn [${waitDuration}s], estimated total after this wait [${estimatedTotalWaitTimeAfterThisWaitInSec}s], adjusted to [${adjustedEstimatedTotalWaitTimeAfterThisWaitInSec}s], play duration [${clientState.playDurationInSec}s], estimated seconds remaining after wait [${estimatedSecondsRemainingAfterThisWaitInSec}s], seconds remaining from DOM [${clientState.secondsRemainingFromDOM}s]`);
 
         return [waitDuration, adjustedEstimatedTotalWaitTimeAfterThisWaitInSec];
     }
