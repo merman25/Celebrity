@@ -78,9 +78,10 @@ export const gameSpec = {
             // Moves Johnny 5 to Team1 and Bender to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam1');
             cy.get(`.playerInTeamTDClass[teamindex="1"][playerindex="3"]:contains("${clientState.otherPlayers[1]}")`);
+            cy.get('[id="teamList"]').click(); // scroll to check visually
+
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
             cy.get(`.playerInTeamTDClass[teamindex="0"][playerindex="0"]:contains("${clientState.otherPlayers[0]}")`);
-
 
             // Moves R2D2 to Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'changePlayerInTeamToTeam0');
@@ -90,12 +91,15 @@ export const gameSpec = {
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveUp');
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'moveDown');
 
+            cy.get('[id="teamList"]').click(); // scroll to check visually
+
             cy.get('.playerInTeamTDClass').first().contains(clientState.otherPlayers[2]);
             // the others report that they've verified by writing a file
             cy.readFile(`${common.tempDir}/1.1`, { timeout: 10000 });
             cy.readFile(`${common.tempDir}/1.2`, { timeout: 10000 });
             cy.readFile(`${common.tempDir}/1.3`, { timeout: 10000 });
 
+            cy.get('[id="gameIDDiv"]').click(); // scroll to check visually
             cy.contains('.teamlessPlayerLiClass', clientState.otherPlayers[1]);
             cy.readFile(`${common.tempDir}/2.1`, { timeout: 10000 });
             cy.readFile(`${common.tempDir}/2.2`, { timeout: 10000 });
@@ -128,6 +132,46 @@ export const gameSpec = {
             // Make R2D2 next in Team0
             common.selectContextMenuItemForPlayer(clientState.otherPlayers[2], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
             cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`);
+            cy.readFile(`${common.tempDir}/6.1`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/6.2`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/6.3`, { timeout: 10000 });
+
+            cy.get('[id="teamList"]').click(); // scroll to check visually
+
+            // Make Team 1 go next (clicking on Johnny 5)
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makeTeamGoNext');
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`);
+            cy.get('[id="gameIDDiv"]').click(); // scroll to check visually
+            cy.readFile(`${common.tempDir}/7.1`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/7.2`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/7.3`, { timeout: 10000 });
+
+            
+            // Make Team 0 go next (clicking on Bender, making R2 the next player)
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makeTeamGoNext');
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`);
+            cy.get('[id="gameIDDiv"]').click(); // scroll to check visually
+            cy.readFile(`${common.tempDir}/8.1`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/8.2`, { timeout: 10000 });
+            cy.readFile(`${common.tempDir}/8.3`, { timeout: 10000 });
+
+            // Make Johnny 5 the host
+            cy.on('window:confirm', (alertText) => {
+                assert(alertText.startsWith('Are you sure you want to stop hosting'), 'Alert should ask if you\'re sure');
+                return true;
+              })
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerHost');
+            cy.get('[id="gameIDDiv"]').click(); // scroll to check visually
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[1]} is hosting.`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/9.2`, '0');
+
+            // Johnny 5 makes me the host again
+            cy.get('[id="gameIDDiv"]').click(); // scroll to check visually
+            cy.get('[id="gameParamsDiv"]').contains( 'You\'re the host.', { timeout: 20000 });
+
+            // Something in the stuff above sets Team1.playerIndex to 1, should be 0. Could be a bug, but can't find it right now.
+            // Force Johnny 5 (index 0) to go next in team 1.
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[1], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerNextInTeam');
 
             // Put the correct teamIndex and playerIndex values into clientState
             common.checkTeamList(clientState);
@@ -162,6 +206,22 @@ export const gameSpec = {
 
             // Check it gets set to R2D2's turn
             cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/6.1`, '0');
+
+            // Check it gets set to Team1's turn (Johnny 5)
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[1]} to start turn`, { timeout: 20000 } );
+            cy.writeFile(`${common.tempDir}/7.1`, '0');
+
+            // Check it gets set back to Team0's turn (R2D2)
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/8.1`, '0');
+
+            // Check Johnny 5 becomes host
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[1]} is hosting.`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/9.1`, '0');
+
+            // Check Marvin goes back to being host
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[0]} is hosting.`, { timeout: 20000 });
 
             // Put the correct teamIndex and playerIndex values into clientState
             common.checkTeamList(clientState);
@@ -199,6 +259,29 @@ export const gameSpec = {
 
             // Check it gets set to R2D2's turn
             cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/6.2`, '0');
+
+            // Check it gets set to Team1's turn (Johnny 5)
+            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 20000 } );
+            cy.writeFile(`${common.tempDir}/7.2`, '0');
+
+            // Check it gets set back to Team0's turn (R2D2)
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/8.2`, '0');
+
+            // Check Johnny 5 becomes host
+            cy.get('[id="gameParamsDiv"]').contains( 'You\'re the host.', { timeout: 20000 });
+            cy.readFile(`${common.tempDir}/9.1`, { timeout: 20000 });
+            cy.readFile(`${common.tempDir}/9.2`, { timeout: 20000 });
+            cy.readFile(`${common.tempDir}/9.3`, { timeout: 20000 });
+
+            // Make Marvin the host
+            cy.on('window:confirm', (alertText) => {
+                assert(alertText.startsWith('Are you sure you want to stop hosting'), 'Alert should ask if you\'re sure');
+                return true;
+              })
+            common.selectContextMenuItemForPlayer(clientState.otherPlayers[0], '.playerInTeamTDClass', 'playerInTeamContextMenu', 'makePlayerHost');
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[0]} is hosting.`, { timeout: 20000 });
 
             // Put the correct teamIndex and playerIndex values into clientState
             common.checkTeamList(clientState);
@@ -233,6 +316,23 @@ export const gameSpec = {
 
             // Check it gets set to my (R2D2's) turn
             cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/6.3`, '0');
+
+            // Check it gets set to Team1's turn (Johnny 5)
+            cy.get('[id="gameStatusDiv"]').contains(`Waiting for ${clientState.otherPlayers[2]} to start turn`, { timeout: 20000 } );
+            cy.writeFile(`${common.tempDir}/7.3`, '0');
+
+            // Check it gets set back to Team0's turn (R2D2)
+            cy.get('[id="gameStatusDiv"]').contains('It\'s your turn!', { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/8.3`, '0');
+
+            // Check Johnny 5 becomes host
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[2]} is hosting.`, { timeout: 20000 });
+            cy.writeFile(`${common.tempDir}/9.3`, '0');
+
+            // Check Marvin goes back to being host
+            cy.get('[id="gameParamsDiv"]').contains( `${clientState.otherPlayers[0]} is hosting.`, { timeout: 20000 });
+
 
             // Put the correct teamIndex and playerIndex values into clientState
             common.checkTeamList(clientState);
