@@ -285,7 +285,7 @@ public class Game implements ICanExpire {
 		return currentPlayer;
 	}
 	
-	public void incrementPlayer() {
+	public synchronized void incrementPlayer() {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "incrementPlayer");
 		if ( teamList.size() > 0 ) {
 			nextTeamIndex++;
@@ -508,7 +508,7 @@ public class Game implements ICanExpire {
 		return mapTeamsToScores;
 	}
 
-	public void putPlayerInTeam(int aPlayerPublicID, int aTeamIndex) {
+	public synchronized void putPlayerInTeam(int aPlayerPublicID, int aTeamIndex) {
 		Player player = PlayerManager.getPlayer(aPlayerPublicID);
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "putPlayerInTeam", aPlayerPublicID, "player", player, "team index", aTeamIndex);
 		if ( player != null ) {
@@ -542,7 +542,7 @@ public class Game implements ICanExpire {
 		}
 	}
 
-	public void removePlayer(int aPlayerPublicID) {
+	public synchronized void removePlayer(int aPlayerPublicID) {
 		Player player = PlayerManager.getPlayer(aPlayerPublicID);
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "removePlayer", aPlayerPublicID, "player", player);
 		if ( player != null ) {
@@ -589,7 +589,7 @@ public class Game implements ICanExpire {
 		return new ArrayList<>(allPlayerSet);
 	}
 
-	public void movePlayerInTeamOrder(int aPlayerID, boolean aMovePlayerLater) {
+	public synchronized void movePlayerInTeamOrder(int aPlayerID, boolean aMovePlayerLater) {
 		Player player = PlayerManager.getPlayer(aPlayerID);
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "movePlayerInTeamOrder", aPlayerID, "player", player, "later?", aMovePlayerLater);
 		if ( player != null ) {
@@ -604,7 +604,7 @@ public class Game implements ICanExpire {
 		}
 	}
 
-	public void makePlayerNextInTeam(Integer aPlayerID) {
+	public synchronized void makePlayerNextInTeam(Integer aPlayerID) {
 		Player player = PlayerManager.getPlayer(aPlayerID);
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "makePlayerNextInTeam", aPlayerID, "player", player);
 		if ( player != null ) {
@@ -662,7 +662,7 @@ public class Game implements ICanExpire {
 		}
 	}
 
-	public void setRoundIndex(int aRoundIndex) {
+	public synchronized void setRoundIndex(int aRoundIndex) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setRoundIndex", aRoundIndex);
 		roundIndex = aRoundIndex;
 	}
@@ -671,7 +671,7 @@ public class Game implements ICanExpire {
 		return masterNameList;
 	}
 
-	public void setPreviousNameIndex(int aPreviousNameIndex) {
+	public synchronized void setPreviousNameIndex(int aPreviousNameIndex) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setPreviousNameIndex", aPreviousNameIndex);
 		previousNameIndex = aPreviousNameIndex;
 	}
@@ -719,7 +719,7 @@ public class Game implements ICanExpire {
 		return getID();
 	}
 	
-	public void setTeamIndex(int aIndex) {
+	public synchronized void setTeamIndex(int aIndex) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setTeamIndex", aIndex);
 		if (aIndex < 0 || aIndex >= teamList.size()) {
 			throw new IndexOutOfBoundsException(aIndex + ": list size " + teamList.size());
