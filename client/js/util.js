@@ -82,5 +82,3 @@ export function generateRandomFunction(stringSeed = null) {
 
 	return randFn;
 }
-
-window.generateRandomFunction = generateRandomFunction;

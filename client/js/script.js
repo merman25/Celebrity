@@ -1,11 +1,9 @@
 import * as util from './util.js';
+import * as api from './api-calls.js';
 
 let webSocket = null;
 let firstSocketMessage = true;
 let gameEventLogging = false;
-
-// Hack to be able to change gameEventLogging variable from console
-window.setGameEventLogging = (trueFalse) => gameEventLogging = trueFalse;
 
 let serverGameState = {};
 
@@ -27,6 +25,12 @@ const myGameState = {
 	sentStartTurn: false,
 	sentStartRound: false,
 	sentStartGame: false,
+};
+
+window.hackExport = {
+	setGameEventLogging: (trueFalse) => gameEventLogging = trueFalse,
+	webSocket: webSocket,
+	api: api,
 };
 
 /* Might be useful later: event when DOM is fully loaded 
@@ -92,7 +96,7 @@ const addServerRequestClickListener = function(
 
 addServerRequestClickListener(
 	document.getElementById('nameSubmitButton'),
-	sendUsername,
+	api.sendUsername,
 	() => document.getElementById('nameField').value,
 	([username], myGameState) => myGameState.myName = username,
 	null,
@@ -120,7 +124,7 @@ document.getElementById('join').addEventListener('click', () => {
 
 addServerRequestClickListener(
 	document.getElementById('gameIDSubmitButton'),
-	sendGameIDResponseRequest,
+	api.sendGameIDResponseRequest,
 	() => document.getElementById('gameIDField').value.trim(),
 	null,
 	null,
@@ -149,14 +153,14 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('host'),
-	sendIWillHost,
+	api.sendIWillHost,
 	null,
 	(_, myGameState) => myGameState.willHost = true
 );
 
 addServerRequestClickListener(
 	document.getElementById('submitGameParamsButton'),
-	sendGameParams,
+	api.sendGameParams,
 	() => [document.getElementById('numRoundsField').value,
 			document.getElementById('roundDurationField').value,
 			document.getElementById('numNamesField').value],
@@ -183,19 +187,19 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('teamsButton'),
-	sendAllocateTeamsRequest
+	api.sendAllocateTeamsRequest
 );
 
 addServerRequestClickListener(
 	document.getElementById('requestNamesButton'),
-	sendNameRequest,
+	api.sendNameRequest,
 	null,
 	(_, myGameState) => myGameState.namesRequested = true
 );
 
 addServerRequestClickListener(
 	document.getElementById('startGameButton'),
-	sendStartGameRequest,
+	api.sendStartGameRequest,
 	null,
 	(_, myGameState) => myGameState.sentStartGame = true,
 	myGameState => myGameState.sentStartGame = false
@@ -207,7 +211,7 @@ document.getElementById('startNextRoundButton').addEventListener('click', async 
 
 addServerRequestClickListener(
 	document.getElementById('startNextRoundButton'),
-	sendStartNextRoundRequest,
+	api.sendStartNextRoundRequest,
 	null,
 	(_, myGameState) => myGameState.sentStartRound = true,
 	(myGameState) => myGameState.sentStartRound = false
@@ -219,7 +223,7 @@ document.getElementById('startTurnButton').addEventListener('click', async () =>
 
 addServerRequestClickListener(
 	document.getElementById('startTurnButton'),
-	sendStartTurnRequest,
+	api.sendStartTurnRequest,
 	null,
 	(_, myGameState) => myGameState.sentStartTurn = true,
 	(myGameState) => myGameState.sentStartTurn = false
@@ -227,7 +231,7 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('gotNameButton'),
-	sendUpdateCurrentNameIndex,
+	api.sendUpdateCurrentNameIndex,
 	() => {
 		myGameState.currentNameIndex++;
 
@@ -242,7 +246,7 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('passButton'),
-	sendPassRequest,
+	api.sendPassRequest,
 	() => myGameState.currentNameIndex,
 	null,
 	null,
@@ -255,12 +259,12 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('endTurnButton'),
-	sendEndTurnRequest
+	api.sendEndTurnRequest
 );
 
 addServerRequestClickListener(
 	document.getElementById('restoreGameButton'),
-	sendGetRestorableGameListRequest,
+	api.sendGetRestorableGameListRequest,
 	null, null, null, null,
 	(result) => {
 		if (! result.gameList
@@ -278,7 +282,7 @@ addServerRequestClickListener(
 
 					addServerRequestClickListener(
 						button,
-						sendRestoreGameRequest,
+						api.sendRestoreGameRequest,
 						() => gameIDToSend,
 						null, null, null,
 						(response) => {
@@ -348,7 +352,7 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('changeNameListButton'),
-	sendRevokeSubmittedNamesRequest,
+	api.sendRevokeSubmittedNamesRequest,
 );
 
 document.getElementById('exitGameButton').addEventListener('click', async () => {
@@ -356,7 +360,7 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 	if (answer) {
 		document.getElementById('exitGameButton').disabled = true;
 		if (myGameState.myPlayerID && serverGameState.gameID)
-			await sendRemoveFromGameRequest(myGameState.myPlayerID);
+			await api.sendRemoveFromGameRequest(myGameState.myPlayerID);
 
 		// clear cookies
 		const cookies = document.cookie.split(/ *; */);
@@ -439,6 +443,7 @@ function tryToOpenSocket() {
 			webSocket.close();
 
 		webSocket = new WebSocket(`ws://${currentHostName}:8001/`);
+		window.hackExport.webSocket = webSocket;
 		webSocket.onerror = evt => {
 			console.error('Error in websocket');
 			console.error(evt);
@@ -654,7 +659,7 @@ function addTeamlessPlayerContextMenu() {
 		const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removeTeamlessPlayerFromGame', classList: ['menuItem'] });
 		addServerRequestClickListener(
 			removePlayerLi,
-			sendRemoveFromGameRequest,
+			api.sendRemoveFromGameRequest,
 			() => playerID,
 			null, null, null,
 			hideAllContextMenus
@@ -667,7 +672,7 @@ function addTeamlessPlayerContextMenu() {
 			const changeToTeamLi = createDOMElement('li', `Put in ${team.name}`, { id: `changeToTeam${teamIndex}`, classList: ['menuItem'] });
 			addServerRequestClickListener(
 				changeToTeamLi,
-				sendPutInTeamRequest,
+				api.sendPutInTeamRequest,
 				() => [playerID, teamIndex],
 				null, null, null,
 				hideAllContextMenus
@@ -680,7 +685,7 @@ function addTeamlessPlayerContextMenu() {
 			const playerName = teamlessPlayerLi.textContent;
 			addServerRequestClickListener(
 				makePlayerHostLi,
-				sendMakePlayerHostRequest,
+				api.sendMakePlayerHostRequest,
 				() => playerID,
 				null, null,
 				() => confirm(`Are you sure you want to stop hosting and make ${playerName} the host?`)
@@ -781,7 +786,7 @@ function addPlayerInTeamContextMenu() {
 		const removePlayerLi = createDOMElement('li', 'Remove From Game', { id: 'removePlayerInTeamFromGame', classList: ['menuItem'] });
 		addServerRequestClickListener(
 			removePlayerLi,
-			sendRemoveFromGameRequest,
+			api.sendRemoveFromGameRequest,
 			() => playerID,
 			null, null, null,
 			hideAllContextMenus
@@ -796,7 +801,7 @@ function addPlayerInTeamContextMenu() {
 				const li = createDOMElement('li', `Put in ${team.name}`, { id: `changePlayerInTeamToTeam${otherTeamIndex}`, classList: ['menuItem'] });
 				addServerRequestClickListener(
 					li,
-					sendPutInTeamRequest,
+					api.sendPutInTeamRequest,
 					() => [playerID, otherTeamIndex],
 					null, null, null,
 					hideAllContextMenus
@@ -808,11 +813,11 @@ function addPlayerInTeamContextMenu() {
 		const moveUpLi = createDOMElement('li', 'Move up', { id: 'moveUp', classList: ['menuItem'] });
 		const moveDownLi = createDOMElement('li', 'Move down', { id: 'moveDown', classList: ['menuItem'] });
 		const makePlayerNextInTeamLi = createDOMElement('li', `Make this player next in ${serverGameState.teams[teamIndex].name}`, { id: 'makePlayerNextInTeam', classList: ['menuItem'] });
-		const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', { classList: ['menuItem'] });
+		const makeThisTeamNextLi = createDOMElement('li', 'Make this team go next', { id: 'makeTeamGoNext', classList: ['menuItem'] });
 
 		addServerRequestClickListener(
 			moveUpLi,
-			sendMoveInTeamRequest,
+			api.sendMoveInTeamRequest,
 			() => [playerID, false],
 			null, null, null,
 			hideAllContextMenus
@@ -820,7 +825,7 @@ function addPlayerInTeamContextMenu() {
 
 		addServerRequestClickListener(
 			moveDownLi,
-			sendMoveInTeamRequest,
+			api.sendMoveInTeamRequest,
 			() => [playerID, true],
 			null, null, null,
 			hideAllContextMenus
@@ -828,7 +833,7 @@ function addPlayerInTeamContextMenu() {
 
 		addServerRequestClickListener(
 			makePlayerNextInTeamLi,
-			sendMakePlayerNextInTeamRequest,
+			api.sendMakePlayerNextInTeamRequest,
 			() => playerID,
 			null, null, null,
 			hideAllContextMenus
@@ -836,7 +841,7 @@ function addPlayerInTeamContextMenu() {
 
 		addServerRequestClickListener(
 			makeThisTeamNextLi,
-			sendMakeThisTeamNextRequest,
+			api.sendMakeThisTeamNextRequest,
 			() => teamIndex,
 			null, null, null,
 			hideAllContextMenus
@@ -845,14 +850,15 @@ function addPlayerInTeamContextMenu() {
 		appendChildren(ul, moveUpLi, moveDownLi, makePlayerNextInTeamLi, makeThisTeamNextLi);
 
 		if (Number(playerID) !== myGameState.myPlayerID) {
-			const makePlayerHostLi = createDOMElement('li', 'Make this player the host', { classList: ['menuItem'] });
+			const makePlayerHostLi = createDOMElement('li', 'Make this player the host', { id: 'makePlayerHost', classList: ['menuItem'] });
 			const playerName = playerInTeamTD.textContent;
 			addServerRequestClickListener(
 				makePlayerHostLi,
-				sendMakePlayerHostRequest,
+				api.sendMakePlayerHostRequest,
 				() => playerID,
 				null, null,
-				() => confirm(`Are you sure you want to stop hosting and make ${playerName} the host?`)
+				() => confirm(`Are you sure you want to stop hosting and make ${playerName} the host?`),
+				hideAllContextMenus
 			);
 			ul.appendChild(makePlayerHostLi);
 		}
@@ -1192,7 +1198,7 @@ function addNameRequestForm() {
 
 	addServerRequestClickListener(
 		nameListSubmitButton,
-		sendNameList,
+		api.sendNameList,
 		() => {
 			const nameArr = [];
 			for (let i = 1; i <= serverGameState.numNames; i++) {
@@ -1268,7 +1274,7 @@ function setTestBotInfo(testBotInfo) {
 	}
 }
 
-function showNotification(message) {
+export function showNotification(message) {
 	const footer = document.getElementById('notificationFooterDiv');
 	const closeButton = createDOMElement('span', '\xd7', { classList: ['close'] });
 	setChildren(footer,
@@ -1285,7 +1291,7 @@ function clearNotification() {
 	footer.style.display = 'none';
 }
 
-function restoreWebsocketIfNecessary() {
+export function restoreWebsocketIfNecessary() {
 	if (webSocket == null
 		|| webSocket.readyState === WebSocket.CLOSED
 		|| webSocket.readyState === WebSocket.CLOSING) {

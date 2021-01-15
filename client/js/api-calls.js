@@ -4,6 +4,8 @@
  * when calling the api function.
 */
 
+import * as common from './script.js';
+
 /* Function to send a request to the server. All other functions in this file delegate
  * to this function. It provides error handling by ensuring the appropriate notification
  * is shown to the user if the server returns an error response.
@@ -40,13 +42,15 @@ async function sendRequest(requestName, data = null) {
                     errorMessage = 'An unknown error occurred';
                 }
 
-                setCookie('messageOnReload', errorMessage);
-                location.reload();
+                // setCookie('messageOnReload', errorMessage);
+                // location.reload();
+                common.showNotification(errorMessage);
+                common.restoreWebsocketIfNecessary();
                 return null;
             }
             else {
                 console.log(`Unknown error code: ${response.Error}. Full response: ${response}`);
-                showNotification(`The server is reporting an error called '${response.Error}', but I don't know what that means :(`);
+                common.showNotification(`The server is reporting an error called '${response.Error}', but I don't know what that means :(`);
                 return null;
             }
         }
@@ -55,95 +59,95 @@ async function sendRequest(requestName, data = null) {
     }
 }
 
-async function sendUsername(name) {
+export async function sendUsername(name) {
     const data = JSON.stringify({ username: name });
     const requestResult = await sendRequest('username', data);
 
     return requestResult;
 }
 
-async function sendIWillHost() {
+export async function sendIWillHost() {
     const requestResult = await sendRequest('hostNewGame');
 
     return requestResult;
 }
 
-async function sendGameParams(numRounds, roundDuration, numNames) {
+export async function sendGameParams(numRounds, roundDuration, numNames) {
     const data = JSON.stringify({ numRounds, roundDuration, numNames });
     const requestResult = await sendRequest('gameParams', data);
 
     return requestResult;
 }
 
-async function sendAllocateTeamsRequest() {
+export async function sendAllocateTeamsRequest() {
     await sendRequest('allocateTeams');
 }
 
-async function sendGameIDResponseRequest(enteredGameID) {
+export async function sendGameIDResponseRequest(enteredGameID) {
     const data = JSON.stringify({ gameID: enteredGameID });
     const requestResult = await sendRequest('askGameIDResponse', data);
 
     return requestResult;
 }
 
-async function sendNameRequest() {
+export async function sendNameRequest() {
     await sendRequest('sendNameRequest');
 }
 
-async function sendNameList(nameArr) {
+export async function sendNameList(nameArr) {
     const data = JSON.stringify({ nameList: nameArr });
     const requestResult = await sendRequest('nameList', data);
 
     return requestResult;
 }
 
-async function sendStartGameRequest() {
+export async function sendStartGameRequest() {
     await sendRequest('startGame')
 }
 
-async function sendStartTurnRequest() {
+export async function sendStartTurnRequest() {
     const requestResult = sendRequest('startTurn');
 
     return requestResult;
 }
 
-async function sendUpdateCurrentNameIndex(newNameIndex) {
+export async function sendUpdateCurrentNameIndex(newNameIndex) {
     const data = JSON.stringify({ newNameIndex });
     const requestResult = await sendRequest('setCurrentNameIndex', data);
 
     return requestResult;
 }
 
-async function sendStartNextRoundRequest() {
+export async function sendStartNextRoundRequest() {
     await sendRequest('startNextRound');
 }
 
-async function sendPassRequest(passNameIndex) {
+export async function sendPassRequest(passNameIndex) {
     const data = JSON.stringify({ passNameIndex });
     const requestResult = await sendRequest('pass', data);
 
     return requestResult;
 }
 
-async function sendEndTurnRequest() {
+export async function sendEndTurnRequest() {
     await sendRequest('endTurn');
 }
 
-async function sendPutInTeamRequest(playerID, teamIndex) {
+export async function sendPutInTeamRequest(playerID, teamIndex) {
     const data = JSON.stringify({ playerID, teamIndex });
     const requestResult = await sendRequest('putInTeam', data);
 
     return requestResult;
 }
 
-async function sendRemoveFromGameRequest(playerID) {
+export async function sendRemoveFromGameRequest(playerID) {
     const data = JSON.stringify({ playerID });
     const requestResult = await sendRequest('removeFromGame', data);
 
     return requestResult;
 }
 
-async function sendMoveInTeamRequest(playerID, moveDownOrLater) {
+export async function sendMoveInTeamRequest(playerID, moveDownOrLater) {
     const data = JSON.stringify({ playerID });
     const apiCall = moveDownOrLater ? "moveLater" : "moveEarlier";
 
@@ -152,39 +156,39 @@ async function sendMoveInTeamRequest(playerID, moveDownOrLater) {
     return requestResult;
 }
 
-async function sendMakePlayerNextInTeamRequest(playerID) {
+export async function sendMakePlayerNextInTeamRequest(playerID) {
     const data = JSON.stringify({ playerID });
     const requestResult = await sendRequest('makeNextInTeam', data);
 
     return requestResult;
 }
 
-async function sendMakeThisTeamNextRequest(teamIndex) {
+export async function sendMakeThisTeamNextRequest(teamIndex) {
     const data = JSON.stringify({ index: teamIndex });
     const requestResult = await sendRequest('setTeamIndex', data);
 
     return requestResult;
 }
 
-async function sendGetRestorableGameListRequest() {
+export async function sendGetRestorableGameListRequest() {
     const requestResult = await sendRequest('getRestorableGameList');
     return requestResult;
 }
 
-async function sendRestoreGameRequest(gameID) {
+export async function sendRestoreGameRequest(gameID) {
     const data = JSON.stringify({ gameID });
     const requestResult = await sendRequest('restoreGame', data);
 
     return requestResult;
 }
 
-async function sendMakePlayerHostRequest(playerID) {
+export async function sendMakePlayerHostRequest(playerID) {
     const data = JSON.stringify({ playerID });
     const requestResult = await sendRequest('makePlayerHost', data);
 
     return requestResult;   
 }
 
-async function sendRevokeSubmittedNamesRequest() {
+export async function sendRevokeSubmittedNamesRequest() {
     return await sendRequest('revokeSubmittedNames');
 }
