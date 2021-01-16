@@ -32,7 +32,9 @@ public class PlayerManager {
 
 		@Override
 		public Iterator<Player> iterator() {
-			return new ArrayList(playerMap.values()).iterator();
+			synchronized (PlayerManager.class) {
+				return new ArrayList(playerMap.values()).iterator();
+			}
 		}
 	}
 	
