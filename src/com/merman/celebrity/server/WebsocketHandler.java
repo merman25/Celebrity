@@ -164,7 +164,6 @@ public class WebsocketHandler {
 			}
 			catch ( IOException e ) {
 				log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException in handler", e);
-				e.printStackTrace();
 			}
 		}
 	}
@@ -244,7 +243,10 @@ public class WebsocketHandler {
 						WebsocketHandler.this.stop();
 					}
 					catch ( Exception e ) {
-						e.printStackTrace();
+						Session 	session 		= getSession();
+						Player 		player 			= session == null ? null : session.getPlayer();
+						Game 		game 			= player == null  ? null : player.getGame();
+						Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Hander for session", session, "player", player, "game", game, "trying to stop from stopSoon() method, exception", e);
 					}
 				}
 				
@@ -457,7 +459,10 @@ public class WebsocketHandler {
 			}
 		}
 		catch ( InterruptedException e ) {
-			e.printStackTrace();
+			Session 	session 		= getSession();
+			Player 		player 			= session == null ? null : session.getPlayer();
+			Game 		game 			= player == null  ? null : player.getGame();
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Hander for session", session, "player", player, "game", game, "interrupted when enqueuing output message", aMessage, "Exception", e);
 		}
 	}
 

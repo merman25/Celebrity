@@ -176,7 +176,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				throw (RuntimeException) cause;
 			}
 			else {
-				e.printStackTrace();
+				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Handler", getName(), "Session", aSession, "Player", aSession.getPlayer(), "Game", aSession.getPlayer().getGame(), "exception", e, "caused by", cause );
 			}
 		} catch (IllegalAccessException | IllegalArgumentException e) {
 			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", aSession, "Player", aSession.getPlayer(), "HTTPHandler", getName(), "Exception", e);

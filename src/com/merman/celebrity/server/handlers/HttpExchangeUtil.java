@@ -14,6 +14,9 @@ import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
@@ -36,7 +39,7 @@ public class HttpExchangeUtil {
 					}
 				}
 				catch (NumberFormatException e) {
-					e.printStackTrace();
+					Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Content length cannot be parsed as int", reportedContentLengthString);
 				}
 			}
 			try {
@@ -56,7 +59,7 @@ public class HttpExchangeUtil {
 
 			}
 			catch ( IOException e ) {
-				e.printStackTrace();
+				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException reading HTTP request body", e);
 			}
 
 			requestBodyCache.put(aExchange, requestBody);

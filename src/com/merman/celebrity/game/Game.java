@@ -424,7 +424,7 @@ public class Game implements ICanExpire {
 					p.print(GameManager.serialise(this, null, false));
 				}
 				catch ( IOException e ) {
-					e.printStackTrace();
+					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when trying to save game", this, "at end of turn", getTurnCount(), "to file", fileToCreate, "exception", e);
 				}
 			}
 		}
@@ -656,7 +656,7 @@ public class Game implements ICanExpire {
 					listener.gameEvent(aGameEvent);
 				}
 				catch ( RuntimeException e ) {
-					e.printStackTrace();
+					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Game", this, "firing event", aGameEvent, "listener", listener, "exception", e);
 				}
 			}
 		}

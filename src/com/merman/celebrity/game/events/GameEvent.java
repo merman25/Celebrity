@@ -19,4 +19,9 @@ public class GameEvent {
 	public Map<String, String> toPropertyMap() {
 		return new HashMap<>();
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("%s [game %s] %s", getClass().getSimpleName(), getGame(), toPropertyMap());
+	}
 }

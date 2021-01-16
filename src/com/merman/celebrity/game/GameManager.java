@@ -395,7 +395,7 @@ public class GameManager {
 			String	fileAsString = new String(fileAsByteArr);
 			testStringList = Arrays.asList( fileAsString.split( "\\s+" ) );
 		} catch (IOException e) {
-			e.printStackTrace();
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException trying to read lorem-ipsum file", e);
 			testStringList = Arrays.asList( "couldn't", "read", "file" );
 		}
 	}
