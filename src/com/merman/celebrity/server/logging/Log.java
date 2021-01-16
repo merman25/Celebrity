@@ -18,7 +18,7 @@ public class Log {
 		log(logInfo);
 	}
 	
-	public static void log(LogInfo aLogInfo) {
+	private static void log(LogInfo aLogInfo) {
 		Iterable<Logger>	loggerList 		= getLoggerList(aLogInfo);
 		
 		for (Logger logger : loggerList ) {
