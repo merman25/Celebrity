@@ -19,7 +19,7 @@ import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.logging.Logger;
-import com.merman.celebrity.server.logging.outputters.FileOutputter;
+import com.merman.celebrity.server.logging.outputters.DateBasedFileOutputter;
 import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 import com.merman.celebrity.util.SharedRandom;
 
@@ -111,12 +111,12 @@ public class CelebrityMain {
 			if ( ! logDir.exists() ) {
 				logDir.mkdir();
 			}
-			Log.addLogger(LogMessageSubject.GENERAL, new Logger(LogMessageType.INFO, null, new FileOutputter(new File(logDir, "general.txt"))));
-			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new FileOutputter(new File(logDir, "all.txt"))));
-			Log.addLogger(LogMessageSubject.ANALYTICS, new Logger(null, new FileOutputter(new File(logDir, "stats.txt"))));
-			Log.addLogger(LogMessageSubject.HTTP_REQUESTS, new Logger(null, new FileOutputter(new File(logDir, "httprequests.txt"))));
-			Log.addLogger(LogMessageSubject.RESTARTS, new Logger(null, new FileOutputter(new File(logDir, "restarts.txt"))));
-			Log.addLogger(LogMessageSubject.SESSIONS, new Logger(null, new FileOutputter(new File(logDir, "sessions.txt"))));
+			Log.addLogger(LogMessageSubject.GENERAL, new Logger(LogMessageType.INFO, null, new DateBasedFileOutputter(new File(logDir, "general.txt"))));
+			Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new DateBasedFileOutputter(new File(logDir, "all.txt"))));
+			Log.addLogger(LogMessageSubject.ANALYTICS, new Logger(null, new DateBasedFileOutputter(new File(logDir, "stats.txt"))));
+			Log.addLogger(LogMessageSubject.HTTP_REQUESTS, new Logger(null, new DateBasedFileOutputter(new File(logDir, "httprequests.txt"))));
+			Log.addLogger(LogMessageSubject.RESTARTS, new Logger(null, new DateBasedFileOutputter(new File(logDir, "restarts.txt"))));
+			Log.addLogger(LogMessageSubject.SESSIONS, new Logger(null, new DateBasedFileOutputter(new File(logDir, "sessions.txt"))));
 		}
 	}
 

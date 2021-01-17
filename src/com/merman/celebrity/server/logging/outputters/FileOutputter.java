@@ -9,8 +9,11 @@ public class FileOutputter extends PrintStreamOutputter {
 	private File file;
 	private PrintStream printStream;
 
+	public FileOutputter() {
+	}
+	
 	public FileOutputter(File aFile) {
-		file = aFile;
+		setFile(aFile);
 	}
 
 	@Override
@@ -30,10 +33,22 @@ public class FileOutputter extends PrintStreamOutputter {
 		}
 	}
 
+	protected void setPrintStream(PrintStream aPrintStream) {
+		printStream = aPrintStream;
+	}
+	
 	@Override
 	public void close() {
 		if (printStream != null) {
 			printStream.close();
 		}
+	}
+
+	protected File getFile() {
+		return file;
+	}
+
+	protected void setFile(File aFile) {
+		file = aFile;
 	}
 }
