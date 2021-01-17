@@ -100,6 +100,7 @@ public abstract class AHttpHandler implements IContextHandler {
 	protected void dumpRequest(HttpExchange aExchange) {
 		Headers requestHeaders = aExchange.getRequestHeaders();
 		System.out.println( "Received request: " + getContextName() );
+		System.out.format("Request Method: %s\n", aExchange.getRequestMethod() );
 		System.out.format("Request URI: %s\n", aExchange.getRequestURI() );
 		System.out.format("Path: %s\n", aExchange.getHttpContext().getPath() );
 		System.out.format("From: %s\n", aExchange.getRemoteAddress().getAddress() );
