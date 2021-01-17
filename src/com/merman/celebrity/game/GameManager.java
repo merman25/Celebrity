@@ -31,6 +31,7 @@ import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.logging.Logger;
 import com.merman.celebrity.server.logging.PerGameLogFilter;
 import com.merman.celebrity.server.logging.outputters.FileOutputter;
+import com.merman.celebrity.util.FileUtil;
 import com.merman.celebrity.util.SharedRandom;
 
 public class GameManager {
@@ -108,22 +109,15 @@ public class GameManager {
 			if ( Files.isDirectory(gameLoggingDirectory) ) {
 				if ( deleteExisting ) {
 					try {
-						Files.walk(gameLoggingDirectory)
-						.forEach(path ->  {
-							try {
-								Files.delete(path);
-							}
-							catch (IOException e) {
-								Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to delete file", path, "exception", e);
-							}
-						});
+						FileUtil.deleteRecursively(gameLoggingDirectory);
 					}
 					catch (IOException e) {
-						Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to walk directory", gameLoggingDirectory, "exception", e);
+						Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Failed to delete directory", gameLoggingDirectory, "exception", e);
 					}
 				}
 			}
-			else if ( ! Files.exists(gameLoggingDirectory) ) {
+			
+			if ( ! Files.exists(gameLoggingDirectory) ) {
 				try {
 					Files.createDirectories(gameLoggingDirectory);
 				}
