@@ -55,7 +55,9 @@ public class GameManager {
 
 		@Override
 		public Iterator<Game> iterator() {
-			return new ArrayList(gamesMap.values()).iterator();
+			synchronized (GameManager.class) {
+				return new ArrayList(gamesMap.values()).iterator();
+			}
 		}
 	}
 	

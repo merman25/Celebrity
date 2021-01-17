@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
+
 public class CleanupHelper {
 	public static int                                   defaultExpiryDurationInS = 3600;
 
@@ -18,19 +22,24 @@ public class CleanupHelper {
 	extends TimerTask {
 		@Override
 		public void run() {
-			synchronized (CleanupHelper.class) {
-				boolean somethingRemoved = false;
-				for ( CleanupHelper cleanupHelper : cleanupHelperList ) {
-					for ( ICanExpire canExpire : cleanupHelper.getCanExpireIterable() ) {
-						if (canExpire.isExpired()) {
-							somethingRemoved = true;
-							cleanupHelper.getExpiredEntityRemover().remove(canExpire);
+			try {
+				synchronized (CleanupHelper.class) {
+					boolean somethingRemoved = false;
+					for ( CleanupHelper cleanupHelper : cleanupHelperList ) {
+						for ( ICanExpire canExpire : cleanupHelper.getCanExpireIterable() ) {
+							if (canExpire.isExpired()) {
+								somethingRemoved = true;
+								cleanupHelper.getExpiredEntityRemover().remove(canExpire);
+							}
 						}
 					}
+
+					if (somethingRemoved)
+						System.gc();
 				}
-				
-				if (somethingRemoved)
-					System.gc();
+			}
+			catch (RuntimeException e) {
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception during cleanup", e);
 			}
 		}
 	}

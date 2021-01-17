@@ -37,7 +37,9 @@ public class SessionManager {
 
 		@Override
 		public Iterator<Session> iterator() {
-			return new ArrayList(sessionsMap.values()).iterator();
+			synchronized (SessionManager.class) {
+				return new ArrayList(sessionsMap.values()).iterator();
+			}
 		}
 	}
 	
