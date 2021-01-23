@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.merman.celebrity.server.HTTPExchange;
+import com.merman.celebrity.server.HTTPRequestTooLongException;
 
 public class HTTPExchangeTest {
 	private static String getRequest = "GET / HTTP/1.1\r\n" +
@@ -24,7 +25,7 @@ public class HTTPExchangeTest {
 			"Accept-Encoding: gzip, deflate, br\r\n" +
 			"Accept-Language: en-GB,en-US;q=0.9,en;q=0.8\r\n" +
 			"\r\n";
-
+	
 	@Test
 	public void testAddBytesOneAtATime() {
 		HTTPExchange httpExchange = new HTTPExchange();
@@ -305,5 +306,32 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
 			Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
 		}
+	}
+	
+	@Test
+	public void testMaxRequestSize() {
+		int numBytes = 446;
+		byte[] bytes = getRequest.getBytes(StandardCharsets.US_ASCII);
+		Assert.assertEquals("Num bytes in request should be as expected", numBytes, bytes.length);
+
+		byte[] almostCompleteRequest = new byte[numBytes - 1];
+		System.arraycopy(bytes, 0, almostCompleteRequest, 0, numBytes - 1);
+
+		HTTPExchange httpExchange = new HTTPExchange();
+		httpExchange.setMaxRequestSizeInBytes(numBytes - 1);
+		httpExchange.addBytes(almostCompleteRequest);
+
+		byte[] strawThatBreaksTheCamelsBack = new byte[1];
+		strawThatBreaksTheCamelsBack[0] = bytes[numBytes - 1];
+
+		boolean exceptionThrown = false;
+		try {
+			httpExchange.addBytes(strawThatBreaksTheCamelsBack);
+			Assert.assertFalse("Should never reach here due to exception being thrown", true);
+		}
+		catch (HTTPRequestTooLongException e) {
+			exceptionThrown = true;
+		}
+		Assert.assertTrue("Exception thrown", exceptionThrown);
 	}
 }

@@ -67,27 +67,38 @@ public class HTTPChannelHandler {
 											readWriteBuffer.get(byteArr);
 											
 											HTTPExchange exchange = mapSocketChannelsToHTTPExchanges.computeIfAbsent(clientChannel, sc -> new HTTPExchange(sc));
-											exchange.addBytes(byteArr);
 											
-											if (exchange.isFinishedReadingRequestHeaders()) {
-												Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request Headers ===");
-												exchange.getRequestHeaders().entrySet().stream().forEach(mapEntry -> System.out.format("%s: %s\n", mapEntry.getKey(), mapEntry.getValue()));
+											try {
+												exchange.addBytes(byteArr);
 
-//												String response = "HTTP/1.1 200 OK\r\n" +
-//														"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
-//														"Content-length: 33\r\n" +
-//														"\r\n" +
-//														"<html>Here is your website</html>";
-//
-//												readWriteBuffer.clear();
-//												readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
-//												readWriteBuffer.flip();
-//												clientChannel.write(readWriteBuffer);
-//
-//												clientChannel.close();
-//												key.cancel();
-//												mapSelectionKeysToClientChannels.remove(key);
-//												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+												if (exchange.isFinishedReadingRequestHeaders()) {
+													Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request Headers ===");
+													exchange.getRequestHeaders().entrySet().stream().forEach(mapEntry -> System.out.format("%s: %s\n", mapEntry.getKey(), mapEntry.getValue()));
+
+													//												String response = "HTTP/1.1 200 OK\r\n" +
+													//														"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
+													//														"Content-length: 33\r\n" +
+													//														"\r\n" +
+													//														"<html>Here is your website</html>";
+													//
+													//												readWriteBuffer.clear();
+													//												readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
+													//												readWriteBuffer.flip();
+													//												clientChannel.write(readWriteBuffer);
+													//
+													//												clientChannel.close();
+													//												key.cancel();
+													//												mapSelectionKeysToClientChannels.remove(key);
+													//												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+												}
+											}
+											catch (HTTPRequestTooLongException e) {
+												clientChannel.close();
+												key.cancel();
+												mapSelectionKeysToClientChannels.remove(key);
+												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+												
+												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, e);
 											}
 										}
 

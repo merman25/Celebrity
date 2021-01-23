@@ -14,6 +14,9 @@ import com.merman.celebrity.server.logging.LogMessageType;
 public class HTTPExchange {
 	private static final String HEADER_DELIMITER = "\r\n";
 	private static final char	HEADER_NAME_VALUE_SEPARATOR = ':';
+	public static final int DEFAULT_MAX_REQUEST_SIZE_IN_BYTES = 0x2000; // 8kb
+	
+	private int    maxRequestSizeInBytes = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
 	
 	private SocketChannel clientSocketChannel;
 	
@@ -22,6 +25,7 @@ public class HTTPExchange {
 	private String path;
 	private String httpVersion;
 	
+	private StringBuilder		completeRequest		= new StringBuilder(1024);
 	private Map<String, List<String>> requestHeaders = new LinkedHashMap<>();
 	private Map<String, List<String>> responseHeaders = new LinkedHashMap<>();
 	
@@ -37,6 +41,8 @@ public class HTTPExchange {
 	private String responseBodyString;
 	private byte[] responseBody;
 
+
+	// Buffer for reading a single header element, and indices into that buffer
 	private int currentHeaderElementNameValueSeparatorIndex = -1;
 	private int currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = -1;
 	private int currentHeaderElementBufferOffset = 0;
@@ -62,6 +68,23 @@ public class HTTPExchange {
 		 * Since we need to do some of that anyway, we parse the whole thing byte by byte, rather than using
 		 * regex or similar.
 		 */
+		
+		// Check size
+		int maxRequestSizeInBytes = getMaxRequestSizeInBytes();
+		if ( completeRequest.length() + aByteArr.length > maxRequestSizeInBytes ) {
+			completeRequest.append(new String(aByteArr, 0, maxRequestSizeInBytes - completeRequest.length(), StandardCharsets.US_ASCII));
+			throw new HTTPRequestTooLongException(String.format("HTTP request exceeded max size [%,d B]", maxRequestSizeInBytes), completeRequest.toString());
+		}
+		
+		// Check we can fit everything into buffer
+		if ( currentHeaderElementBufferOffset + aByteArr.length >= currentHeaderElementBuffer.length ) {
+			// Will never get too big, since we are checking max size of entire request
+			byte[] newBuffer = new byte[ currentHeaderElementBuffer.length * 2 ];
+			System.arraycopy(currentHeaderElementBuffer, 0, newBuffer, 0, currentHeaderElementBuffer.length);
+			currentHeaderElementBuffer = newBuffer;
+		}
+		
+		// Number of bytes already read into arg byte array, before starting the current header element or the body
 		int offsetIntoNewByteArr = 0;
 		if (! finishedReadingRequestHeaders) {
 			byte prevByte = -1;
@@ -69,14 +92,28 @@ public class HTTPExchange {
 				prevByte = currentHeaderElementBuffer[ currentHeaderElementBufferOffset - 1 ];
 			}
 			
+			// Index of first occurrence of HEADER_NAME_VALUE_SEPARATOR, after offsetIntoNewByteArr, within arg byte array
 			int nameValueSeparatorIndexWithinNewBytes = -1;
-			int startOfValueIndexWithinNewBytes = -1;
-			boolean lookingForStartOfValue = currentHeaderElementNameValueSeparatorIndex >= 0 && currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator == -1;
-			int headerElementBufferOffsetBeforeReadingNewBytes = currentHeaderElementBufferOffset;
 			
+			// Index of first non-whitespace character after nameValueSeparatorIndexWithinNewBytes
+			int startOfValueIndexWithinNewBytes = -1;
+			
+			// True if we have seen HEADER_NAME_VALUE_SEPARATOR within the current header element, and are waiting for the next non-whitespace character.
+			boolean lookingForStartOfValue = currentHeaderElementNameValueSeparatorIndex >= 0 && currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator == -1;
+			
+			// Value of currentHeaderElementBufferOffset at the time we started reading the current header element
+			int headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes = currentHeaderElementBufferOffset;
+			
+			/* Process arg byte array one by one, putting header elements into currentHeaderElementBuffer
+			 * and remembering the significant indices.
+			 * 
+			 * When we encounter HEADER_DELIMITER, convert the content of currentHeaderElementBuffer into two Strings,
+			 * a name and a value, and continue.
+			 */
 			for (int newByteIndex = 0; newByteIndex < aByteArr.length; newByteIndex++) {
 				byte newByte = aByteArr[newByteIndex];
-				currentHeaderElementBuffer[ currentHeaderElementBufferOffset++ ] = newByte; // TODO make sure we can't exceed size
+				currentHeaderElementBuffer[ currentHeaderElementBufferOffset++ ] = newByte;
+				completeRequest.append((char) newByte);
 
 				if (newByte == HEADER_DELIMITER.charAt(1)) {
 					// Might have reached a delimiter, let's check
@@ -87,19 +124,22 @@ public class HTTPExchange {
 
 						if (currentHeaderElementNameValueSeparatorIndex == -1
 								&& nameValueSeparatorIndexWithinNewBytes != -1 ) {
-							currentHeaderElementNameValueSeparatorIndex = headerElementBufferOffsetBeforeReadingNewBytes + nameValueSeparatorIndexWithinNewBytes - offsetIntoNewByteArr;
+							// We found the index of HEADER_NAME_VALUE_SEPARATOR in the arg byte array, let's remember it
+							currentHeaderElementNameValueSeparatorIndex = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + nameValueSeparatorIndexWithinNewBytes - offsetIntoNewByteArr;
 						}
 						if (currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator == -1
 								&& startOfValueIndexWithinNewBytes != -1 ) {
-							currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeReadingNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
+							// We found the index of the first non-whitespace character after the HEADER_NAME_VALUE_SEPARATOR in the arg byte array, let's remember it
+							currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
 						}
 
 						addRequestHeaderFromBytesReadSoFar(2);
 
+						// Reset variables
 						offsetIntoNewByteArr = newByteIndex + 1;
 						nameValueSeparatorIndexWithinNewBytes = -1;
 						startOfValueIndexWithinNewBytes = -1;
-						headerElementBufferOffsetBeforeReadingNewBytes = 0; // TODO rename var
+						headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes = 0;
 
 						if ( finishedReadingRequestHeaders ) {
 							break;
@@ -109,11 +149,13 @@ public class HTTPExchange {
 				else if (currentHeaderElementNameValueSeparatorIndex == -1
 						&& nameValueSeparatorIndexWithinNewBytes == -1
 						&& newByte == HEADER_NAME_VALUE_SEPARATOR ) {
+					// Found HEADER_NAME_VALUE_SEPARATOR, let's remember its index, and remember that we're now looking for the next non-whitespace character.
 					nameValueSeparatorIndexWithinNewBytes = newByteIndex;
 					lookingForStartOfValue = true;
 				}
 				else if (lookingForStartOfValue
 							&& ! Character.isWhitespace(newByte)) {
+					// Found first non-whitespace character after HEADER_NAME_VALUE_SEPARATOR, let's remember its index
 					startOfValueIndexWithinNewBytes = newByteIndex;
 					lookingForStartOfValue = false;
 				}
@@ -123,11 +165,13 @@ public class HTTPExchange {
 			
 			if (currentHeaderElementNameValueSeparatorIndex == -1
 					&& nameValueSeparatorIndexWithinNewBytes != -1 ) {
-				currentHeaderElementNameValueSeparatorIndex = headerElementBufferOffsetBeforeReadingNewBytes + nameValueSeparatorIndexWithinNewBytes - offsetIntoNewByteArr;
+				// We found the index of HEADER_NAME_VALUE_SEPARATOR in the arg byte array, let's remember it
+				currentHeaderElementNameValueSeparatorIndex = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + nameValueSeparatorIndexWithinNewBytes - offsetIntoNewByteArr;
 			}
 			if (currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator == -1
 					&& startOfValueIndexWithinNewBytes != -1 ) {
-				currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeReadingNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
+				// We found the index of the first non-whitespace character after the HEADER_NAME_VALUE_SEPARATOR in the arg byte array, let's remember it
+				currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
 			}
 		}
 	}
@@ -184,5 +228,13 @@ public class HTTPExchange {
 
 	public String getFirstLine() {
 		return firstLine;
+	}
+
+	public int getMaxRequestSizeInBytes() {
+		return maxRequestSizeInBytes;
+	}
+
+	public void setMaxRequestSizeInBytes(int aMaxRequestSizeInBytes) {
+		maxRequestSizeInBytes = aMaxRequestSizeInBytes;
 	}
 }
