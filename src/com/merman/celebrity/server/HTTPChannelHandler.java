@@ -72,29 +72,23 @@ public class HTTPChannelHandler {
 											if (exchange.isFinishedReadingRequestHeaders()) {
 												Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request Headers ===");
 												exchange.getRequestHeaders().entrySet().stream().forEach(mapEntry -> System.out.format("%s: %s\n", mapEntry.getKey(), mapEntry.getValue()));
-											}
 
-//											String string = new String(byteArr, StandardCharsets.US_ASCII);
-////											string = string.replaceAll("\r(?!\n)", "\\r\r")
-////															.replaceAll("(?<!\r)\n", "\\n\n")
-////															.replace("\r\n", "\\r\\n\r\n");
+//												String response = "HTTP/1.1 200 OK\r\n" +
+//														"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
+//														"Content-length: 33\r\n" +
+//														"\r\n" +
+//														"<html>Here is your website</html>";
 //
-////											System.out.println("=== BEGIN MESSAGE ===");
-//											System.out.print(string);
-////											System.out.println("=== END MESSAGE ===");
+//												readWriteBuffer.clear();
+//												readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
+//												readWriteBuffer.flip();
+//												clientChannel.write(readWriteBuffer);
 //
-//											String response = "HTTP/1.1 200 OK\r\n" +
-//													"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
-//													"Content-length: 28\r\n" +
-//													"Set-cookie: session=e1262a4b-9953-4699-a8cb-446ec496d7e9; Max-Age=3600\r\n" +
-//													"Set-cookie: theme=default; Max-Age=7200\r\n" +
-//													"\r\n" +
-//													"<html>Does this work?</html>";
-//
-//											readWriteBuffer.clear();
-//											readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
-//											readWriteBuffer.flip();
-//											clientChannel.write(readWriteBuffer);
+//												clientChannel.close();
+//												key.cancel();
+//												mapSelectionKeysToClientChannels.remove(key);
+//												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+											}
 										}
 
 									} catch (IOException e) {
@@ -126,14 +120,31 @@ public class HTTPChannelHandler {
 		
 		aClientSocketChannel.configureBlocking(false);
 		SelectionKey clientKey = aClientSocketChannel.register(selector, SelectionKey.OP_READ);
-		
 		mapSelectionKeysToClientChannels.put(clientKey, aClientSocketChannel);
+		selector.wakeup();
 	}
 	
 	protected synchronized void start() throws IOException {
 		if (selector == null) {
 			selector = Selector.open();
 			new Thread(new MyReadFromChannelRunnable(), "HTTPChannelHandler").start();
+			
+//			new JFrame("HTTP Server") {{
+//				getContentPane().add( new JPanel() {{
+//					add( new JButton( new AbstractAction("Stop") {
+//
+//						@Override
+//						public void actionPerformed(ActionEvent aArg0) {
+//							HTTPChannelHandler.this.stop();
+//						}
+//					}) );
+//				}} );
+//
+//				pack();
+//				setLocationRelativeTo(null);
+//				setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//				setVisible(true);
+//			}};
 		}
 	}
 	
