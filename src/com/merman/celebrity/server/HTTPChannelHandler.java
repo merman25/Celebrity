@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,25 +72,30 @@ public class HTTPChannelHandler {
 											try {
 												exchange.addBytes(byteArr);
 
-												if (exchange.isFinishedReadingRequestHeaders()) {
-													Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request Headers ===");
+												if (exchange.isFinishedReadingRequestBody()) {
+													Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request ===");
+													System.out.println(exchange.getFirstLine());
 													exchange.getRequestHeaders().entrySet().stream().forEach(mapEntry -> System.out.format("%s: %s\n", mapEntry.getKey(), mapEntry.getValue()));
+													System.out.println();
+													if (! exchange.getRequestBody().isEmpty() ) {
+														System.out.println(exchange.getRequestBody());
+													}
 
-													//												String response = "HTTP/1.1 200 OK\r\n" +
-													//														"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
-													//														"Content-length: 33\r\n" +
-													//														"\r\n" +
-													//														"<html>Here is your website</html>";
-													//
-													//												readWriteBuffer.clear();
-													//												readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
-													//												readWriteBuffer.flip();
-													//												clientChannel.write(readWriteBuffer);
-													//
-													//												clientChannel.close();
-													//												key.cancel();
-													//												mapSelectionKeysToClientChannels.remove(key);
-													//												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+													String response = "HTTP/1.1 200 OK\r\n" +
+															"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
+															"Content-length: 33\r\n" +
+															"\r\n" +
+															"<html>Here is your website</html>";
+
+													readWriteBuffer.clear();
+													readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
+													readWriteBuffer.flip();
+													clientChannel.write(readWriteBuffer);
+
+													clientChannel.close();
+													key.cancel();
+													mapSelectionKeysToClientChannels.remove(key);
+													mapSocketChannelsToHTTPExchanges.remove(clientChannel);
 												}
 											}
 											catch (HTTPRequestTooLongException e) {

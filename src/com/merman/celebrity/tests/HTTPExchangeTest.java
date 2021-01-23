@@ -55,7 +55,7 @@ public class HTTPExchangeTest {
 				case 7:
 					Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
 				case 6:
-					Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+					Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 				case 5:
 					Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 				case 4:
@@ -105,7 +105,7 @@ public class HTTPExchangeTest {
 			case 7:
 				Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
 			case 6:
-				Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+				Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 			case 5:
 				Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 			case 4:
@@ -150,7 +150,7 @@ public class HTTPExchangeTest {
 				Assert.assertEquals( Arrays.asList( "none" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Site" ) );
 				Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
 			case 6:
-				Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+				Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 				Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 			case 4:
 				Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
@@ -186,7 +186,7 @@ public class HTTPExchangeTest {
 		Assert.assertEquals( Arrays.asList( "navigate" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Mode" ) );
 		Assert.assertEquals( Arrays.asList( "none" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Site" ) );
 		Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
-		Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+		Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 		Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 		Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 		Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
@@ -223,7 +223,7 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "navigate" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Mode" ) );
 			Assert.assertEquals( Arrays.asList( "none" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Site" ) );
 			Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
-			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
@@ -261,7 +261,7 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "navigate" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Mode" ) );
 			Assert.assertEquals( Arrays.asList( "none" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Site" ) );
 			Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
-			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
@@ -299,7 +299,7 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "navigate" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Mode" ) );
 			Assert.assertEquals( Arrays.asList( "none" ), httpExchange.getRequestHeaders().get( "Sec-Fetch-Site" ) );
 			Assert.assertEquals( Arrays.asList( "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9" ), httpExchange.getRequestHeaders().get( "Accept" ) );
-			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "User-Agent" ) );
+			Assert.assertEquals( Arrays.asList( "JUnit Test" ), httpExchange.getRequestHeaders().get( "USER-AGENT" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "Upgrade-Insecure-Requests" ) );
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );

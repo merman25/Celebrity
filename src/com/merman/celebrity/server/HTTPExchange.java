@@ -3,9 +3,12 @@ package com.merman.celebrity.server;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
@@ -26,11 +29,16 @@ public class HTTPExchange {
 	private String httpVersion;
 	
 	private StringBuilder		completeRequest		= new StringBuilder(1024);
-	private Map<String, List<String>> requestHeaders = new LinkedHashMap<>();
+	private Map<String, List<String>> modifiableRequestHeaders = new LinkedHashMap<>();
+	private Map<String, List<String>> unmodifiableRequestHeaders;
 	private Map<String, List<String>> responseHeaders = new LinkedHashMap<>();
+	private boolean staleUnmodifiableRequestHeaders = true;
 	
 	private boolean finishedReadingRequestHeaders;
+	private boolean finishedReadingRequestBody;
+	private int reportedRequestBodyLength = -1;
 	
+	private StringBuilder requestBodyBuilder = new StringBuilder();
 	private String requestBody;
 	
 	/**
@@ -174,6 +182,23 @@ public class HTTPExchange {
 				currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
 			}
 		}
+		
+		if ( finishedReadingRequestHeaders ) {
+			if ( getReportedRequestBodyLength() > 0) {
+				for(int newByteIndex = offsetIntoNewByteArr; newByteIndex < aByteArr.length && requestBodyBuilder.length() < getReportedRequestBodyLength(); newByteIndex++ ) {
+					requestBodyBuilder.append((char) aByteArr[newByteIndex]);
+				}
+
+				if ( requestBodyBuilder.length() >= getReportedRequestBodyLength() ) {
+					requestBody = requestBodyBuilder.toString();
+					finishedReadingRequestBody = true;
+				}
+			}
+			else {
+				requestBody = "";
+				finishedReadingRequestBody = true;
+			}
+		}
 	}
 	
 	private void addRequestHeaderFromBytesReadSoFar(int aNumCharsToIgnoreAtEnd) {
@@ -188,8 +213,17 @@ public class HTTPExchange {
 				headerValue = new String(currentHeaderElementBuffer, currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator, currentHeaderElementBufferOffset - aNumCharsToIgnoreAtEnd - currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator, StandardCharsets.US_ASCII);
 			}
 			
-			requestHeaders.computeIfAbsent(headerName, s -> new ArrayList<>()).add(headerValue);
+			modifiableRequestHeaders.computeIfAbsent(headerName, s -> new ArrayList<>()).add(headerValue);
 			Log.log(LogMessageType.INFO, LogMessageSubject.HTTP_REQUESTS, "Put header name", headerName, "value", headerValue);
+			
+			if (headerName.equalsIgnoreCase("content-length")) {
+				try {
+					reportedRequestBodyLength = Integer.parseInt(headerValue);
+				}
+				catch (NumberFormatException e) {
+					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Cannot parse content-length string", headerValue);
+				}
+			}
 		}
 		else {
 			if (currentHeaderElementBufferOffset == aNumCharsToIgnoreAtEnd) {
@@ -202,6 +236,7 @@ public class HTTPExchange {
 			}
 		}
 
+		staleUnmodifiableRequestHeaders = true;
 		currentHeaderElementNameValueSeparatorIndex = -1;
 		currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = -1;
 		currentHeaderElementBufferOffset = 0;
@@ -223,7 +258,31 @@ public class HTTPExchange {
 	}
 
 	public Map<String, List<String>> getRequestHeaders() {
-		return requestHeaders;
+		// If this is called repeatedly before we've finished reading the headers, it will create
+		// a lot of objects, which is a bit inefficient. But this only happens during the junit test.
+		if (staleUnmodifiableRequestHeaders) {
+			LinkedHashMap<String, List<String>> caseInsenitiveMap = new LinkedHashMap<String, List<String>>() {
+				@Override
+				public List<String> get(Object aKey) {
+					return super.get(((String) aKey).toLowerCase(Locale.US));
+				}
+
+				@Override
+				public List<String> put(String aKey, List<String> aValue) {
+					return super.put(aKey.toLowerCase(Locale.US), aValue);
+				}
+				
+			};
+			
+			for (Entry<String, List<String>> mapEntry : modifiableRequestHeaders.entrySet()) {
+				// putAll does not use the overridden put method
+				caseInsenitiveMap.put(mapEntry.getKey(), mapEntry.getValue());
+			}
+			unmodifiableRequestHeaders = Collections.unmodifiableMap(caseInsenitiveMap);
+			
+			staleUnmodifiableRequestHeaders = false;
+		}
+		return unmodifiableRequestHeaders;
 	}
 
 	public String getFirstLine() {
@@ -236,5 +295,17 @@ public class HTTPExchange {
 
 	public void setMaxRequestSizeInBytes(int aMaxRequestSizeInBytes) {
 		maxRequestSizeInBytes = aMaxRequestSizeInBytes;
+	}
+
+	public int getReportedRequestBodyLength() {
+		return reportedRequestBodyLength;
+	}
+
+	public boolean isFinishedReadingRequestBody() {
+		return finishedReadingRequestBody;
+	}
+
+	public String getRequestBody() {
+		return requestBody;
 	}
 }
