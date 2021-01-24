@@ -24,7 +24,7 @@ public class Turn {
 		if ( ! started ) {
 			started = true;
 			startTime = System.nanoTime();
-			timer = new Timer();
+			timer = new Timer("Turn Timer (game " + game.getID() + ")", false);
 			timer.schedule(new TimerTask() {
 				
 				@Override
