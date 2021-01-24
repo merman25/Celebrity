@@ -3,6 +3,7 @@ package com.merman.celebrity.server.handlers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,24 +14,24 @@ import java.util.WeakHashMap;
 import org.json.JSONObject;
 
 import com.merman.celebrity.server.CelebrityMain;
+import com.merman.celebrity.server.HTTPExchangeWrapper;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpExchange;
 
 public class HttpExchangeUtil {
 	public static final String COOKIE_RESTORE_KEY = "restore";
 	public static final String COOKIE_RESTORE_VALUE = "true";
 	
-	private static WeakHashMap<HttpExchange, String> requestBodyCache		= new WeakHashMap<>();
+	private static WeakHashMap<HTTPExchangeWrapper, String> requestBodyCache		= new WeakHashMap<>();
 	
-	public static synchronized String getRequestBody(HttpExchange aExchange) {
-		String requestBody = requestBodyCache.get(aExchange);
+	public static synchronized String getRequestBody(HTTPExchangeWrapper aExchangeWrapper) {
+		String requestBody = requestBodyCache.get(aExchangeWrapper);
 		if ( requestBody == null ) {
 			int bufferSize = 1024 * 1024;
-			String reportedContentLengthString = HttpExchangeUtil.getHeaderValue("Content-Length", aExchange);
+			String reportedContentLengthString = HttpExchangeUtil.getHeaderValue("Content-Length", aExchangeWrapper);
 			if ( reportedContentLengthString != null ) {
 				try {
 					int reportedContentLength = Integer.parseInt(reportedContentLengthString);
@@ -43,33 +44,38 @@ public class HttpExchangeUtil {
 				}
 			}
 			try {
-				InputStream inputStream = aExchange.getRequestBody();
-				int totalBytesRead = 0;
-				byte[] buffer = new byte[bufferSize];
-				for (int bytesRead = 0;
-						( bytesRead = inputStream.read(buffer, totalBytesRead, buffer.length - totalBytesRead ) ) != -1; ) {
-					totalBytesRead += bytesRead;
-					if (totalBytesRead == buffer.length) {
-						byte[] newBuffer = new byte[2 * buffer.length];
-						System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-						buffer = newBuffer;
+				InputStream inputStream = aExchangeWrapper.getRequestBody();
+				if (inputStream != null) {
+					int totalBytesRead = 0;
+					byte[] buffer = new byte[bufferSize];
+					for (int bytesRead = 0;
+							( bytesRead = inputStream.read(buffer, totalBytesRead, buffer.length - totalBytesRead ) ) != -1; ) {
+						totalBytesRead += bytesRead;
+						if (totalBytesRead == buffer.length) {
+							byte[] newBuffer = new byte[2 * buffer.length];
+							System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+							buffer = newBuffer;
+						}
 					}
+					requestBody = new String(buffer, 0, totalBytesRead, StandardCharsets.UTF_8);
 				}
-				requestBody = new String(buffer, 0, totalBytesRead, StandardCharsets.UTF_8);
+				else {
+					requestBody = aExchangeWrapper.getRequestBodyString();
+				}
 
 			}
 			catch ( IOException e ) {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException reading HTTP request body", e);
 			}
 
-			requestBodyCache.put(aExchange, requestBody);
+			requestBodyCache.put(aExchangeWrapper, requestBody);
 		}
 
 		return requestBody;
 	}
 	
-	public static LinkedHashMap<String, Object> getRequestBodyAsMap( HttpExchange aExchange ) {
-		String requestBody = getRequestBody(aExchange);
+	public static LinkedHashMap<String, Object> getRequestBodyAsMap( HTTPExchangeWrapper aExchangeWrapper ) {
+		String requestBody = getRequestBody(aExchangeWrapper);
 		return toMap(requestBody);
 	}
 	
@@ -98,14 +104,14 @@ public class HttpExchangeUtil {
 	}
 		
 
-	public static String getSessionID(HttpExchange aExchange) {
-		LinkedHashMap<String, String>		cookie		= getCookie( aExchange );
+	public static String getSessionID(HTTPExchangeWrapper aExchangeWrapper) {
+		LinkedHashMap<String, String>		cookie		= getCookie( aExchangeWrapper );
 		return cookie.get("session");
 	}
 
-	public static LinkedHashMap<String, String> getCookie(HttpExchange aExchange) {
+	public static LinkedHashMap<String, String> getCookie(HTTPExchangeWrapper aExchangeWrapper) {
 		LinkedHashMap<String, String>		cookie		= new LinkedHashMap<>();
-		List<String> cookieElementList = aExchange.getRequestHeaders().get("Cookie");
+		List<String> cookieElementList = aExchangeWrapper.getRequestHeaders().get("Cookie");
 		if (cookieElementList != null) {
 			for ( String cookieElement : cookieElementList ) {
 
@@ -134,9 +140,9 @@ public class HttpExchangeUtil {
 		}
 	}
 	
-	public static void logBytesReceived(HttpExchange aExchange) {
+	public static void logBytesReceived(HTTPExchangeWrapper aExchangeWrapper) {
 		int headerBytesReceived = 0;
-		for ( Entry<String, List<String>> l_mapEntry : aExchange.getRequestHeaders().entrySet() ) {
+		for ( Entry<String, List<String>> l_mapEntry : aExchangeWrapper.getRequestHeaders().entrySet() ) {
 			headerBytesReceived += l_mapEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
 			List<String> l_headerValue = l_mapEntry.getValue();
 			for (String string : l_headerValue) {
@@ -144,7 +150,7 @@ public class HttpExchangeUtil {
 			}
 		}
 
-		String requestBody = getRequestBody(aExchange);
+		String requestBody = getRequestBody(aExchangeWrapper);
 		if (requestBody != null) {
 			int bodyBytesReceived = requestBody.getBytes(StandardCharsets.UTF_8).length;
 
@@ -152,9 +158,9 @@ public class HttpExchangeUtil {
 		}
 	}
 	
-	public static void logBytesSent(HttpExchange aExchange, int aBodyLength) {
+	public static void logBytesSent(HTTPExchangeWrapper aExchangeWrapper, int aBodyLength) {
 		long headerBytesSent = 0;
-		for ( Entry<String, List<String>> l_mapEntry : aExchange.getResponseHeaders().entrySet() ) {
+		for ( Entry<String, List<String>> l_mapEntry : aExchangeWrapper.getResponseHeaders().entrySet() ) {
 			headerBytesSent += l_mapEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
 			List<String> l_headerValue = l_mapEntry.getValue();
 			for (String string : l_headerValue) {
@@ -165,9 +171,9 @@ public class HttpExchangeUtil {
 		CelebrityMain.bytesSent.accumulateAndGet(headerBytesSent + aBodyLength, Long::sum);
 	}
 
-	public static void setCookieResponseHeader(Session aSession, HttpExchange aHttpExchange) {
+	public static void setCookieResponseHeader(Session aSession, HTTPExchangeWrapper aHttpExchangeWrapper) {
 		String cookieString = String.format("session=%s; Max-Age=%s", aSession.getSessionID(), aSession.getExpiryTime().getDurationToExpirySeconds());
-		aHttpExchange.getResponseHeaders().add("Set-Cookie", cookieString);
+		aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add(cookieString);
 	}
 
 	/**
@@ -178,11 +184,11 @@ public class HttpExchangeUtil {
 	 * there's only one element, containing the header value we want. So this is a convenience method
 	 * to use in the typical case.
 	 * @param aHeaderName The name of an HTTP header.
-	 * @param aExchange The current {@link HttpExchange}.
+	 * @param aExchangeWrapper The current {@link HTTPExchangeWrapper}.
 	 * @return The first element of the list returned by querying for this header name. If the list is null or empty, the method returns <code>null</code>.
 	 */
-	public static String getHeaderValue(String aHeaderName, HttpExchange aExchange) {
-		List<String> headerValueList = aExchange.getRequestHeaders().get( aHeaderName );
+	public static String getHeaderValue(String aHeaderName, HTTPExchangeWrapper aExchangeWrapper) {
+		List<String> headerValueList = aExchangeWrapper.getRequestHeaders().get( aHeaderName );
 		String headerValue = headerValueList != null && ! headerValueList.isEmpty() ? headerValueList.get( 0 ) : null;
 		return headerValue;
 	}

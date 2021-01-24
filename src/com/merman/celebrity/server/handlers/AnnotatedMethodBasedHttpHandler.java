@@ -1,6 +1,7 @@
 package com.merman.celebrity.server.handlers;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -16,6 +17,7 @@ import org.json.JSONObject;
 import com.merman.celebrity.client.theme.ThemeManager;
 import com.merman.celebrity.game.Game;
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.server.HTTPExchangeWrapper;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.annotations.HTTPRequest;
@@ -26,7 +28,6 @@ import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.server.parameter_parsers.ParameterParserRegistry;
 import com.merman.celebrity.util.JSONUtil;
-import com.sun.net.httpserver.HttpExchange;
 
 public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	private final String name;
@@ -92,7 +93,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	}
 
 	@Override
-	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException {
+	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HTTPExchangeWrapper aHttpExchangeWrapper) throws IOException {
 		if (aSession == null) {
 			throw new NullSessionException();
 		}
@@ -148,27 +149,34 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			}
 		}
 
-		HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchange);
+		HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchangeWrapper);
 
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			
 			Game game = aSession.getPlayer().getGame();
 			if (game != null) {
-				aHttpExchange.getResponseHeaders().add( "Set-Cookie", String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
+				aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
 			}
 
 			if ( responseObject == null ) {
-				aHttpExchange.sendResponseHeaders(HTTPResponseConstants.No_Content, -1);
-				aHttpExchange.getResponseBody().close();
-				HttpExchangeUtil.logBytesSent(aHttpExchange, 0);
+				aHttpExchangeWrapper.sendResponseHeaders(HTTPResponseConstants.No_Content_204, -1);
+				OutputStream responseBody = aHttpExchangeWrapper.getResponseBody();
+				if (responseBody != null) {
+					responseBody.close();
+				}
+				else {
+					aHttpExchangeWrapper.sendResponse();
+					aHttpExchangeWrapper.close();
+				}
+				HttpExchangeUtil.logBytesSent(aHttpExchangeWrapper, 0);
 			}
 			else if ( responseObject instanceof String ) {
-				sendResponse(aHttpExchange, HTTPResponseConstants.OK, (String) responseObject);
+				sendResponse(aHttpExchangeWrapper, HTTPResponseConstants.OK_200, (String) responseObject);
 			}
 			else if ( responseObject instanceof Map ) {
 				String responseString = JSONUtil.serialiseMap( (Map) responseObject );
-				sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
+				sendResponse(aHttpExchangeWrapper, HTTPResponseConstants.OK_200, responseString);
 			}
 		} catch (InvocationTargetException e) {
 			Throwable cause = e.getCause();
@@ -185,7 +193,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	}
 
 	public static List<AnnotatedMethodBasedHttpHandler> createHandlers( Class aClass ) {
-		List<AnnotatedMethodBasedHttpHandler> handlerList = new ArrayList<AnnotatedMethodBasedHttpHandler>();
+		List<AnnotatedMethodBasedHttpHandler> handlerList = new ArrayList<>();
 		
 		Method[] methods = aClass.getMethods();
 		for ( Method method : methods ) {

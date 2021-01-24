@@ -1,9 +1,18 @@
 package com.merman.celebrity.server;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -18,14 +27,27 @@ public class HTTPExchange {
 	private static final String HEADER_DELIMITER = "\r\n";
 	private static final char	HEADER_NAME_VALUE_SEPARATOR = ':';
 	public static final int DEFAULT_MAX_REQUEST_SIZE_IN_BYTES = 0x2000; // 8kb
+	private static final String HTTP_PROTOCOL_CODE_IN_RESPONSE_HEADER = "HTTP/1.1";
+	private static final String DATE_FORMAT_STRING = "EEE, dd MMM yyyy HH:mm:ss z";
 	
 	private int    maxRequestSizeInBytes = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
 	
-	private SocketChannel clientSocketChannel;
+	private static final ThreadLocal<SimpleDateFormat> THREAD_LOCAL_DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+
+		@Override
+		protected SimpleDateFormat initialValue() {
+			return new SimpleDateFormat(DATE_FORMAT_STRING, Locale.US);
+		}
+	};
 	
+	private SocketChannel clientSocketChannel;
+	private HTTPChannelHandler channelHandler;
+	private SelectionKey selectionKey;
+
 	private String firstLine; // Line saying GET/POST etc, giving the URL, HTTP version, etc
 	private String method;
-	private String path;
+	private String requestURIPath;
+	private URI requestURI;
 	private String httpVersion;
 	
 	private StringBuilder		completeRequest		= new StringBuilder(1024);
@@ -47,7 +69,7 @@ public class HTTPExchange {
 	 * when it is text data.
 	 */
 	private String responseBodyString;
-	private byte[] responseBody;
+	private byte[] responseBody = new byte[0];
 
 
 	// Buffer for reading a single header element, and indices into that buffer
@@ -55,12 +77,17 @@ public class HTTPExchange {
 	private int currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = -1;
 	private int currentHeaderElementBufferOffset = 0;
 	private byte[] currentHeaderElementBuffer = new byte[1024];
+
+	private HTTPResponseConstants responseCode = HTTPResponseConstants.Not_Found_404;
+	private int responseContentLength = -1;
 	
 	
 	public HTTPExchange() {}
 
-	public HTTPExchange(SocketChannel aClientSocketChannel) {
+	public HTTPExchange(SocketChannel aClientSocketChannel, HTTPChannelHandler aHttpChannelHandler, SelectionKey aKey) {
 		clientSocketChannel = aClientSocketChannel;
+		channelHandler = aHttpChannelHandler;
+		selectionKey = aKey;
 	}
 
 	public SocketChannel getClientSocketChannel() {
@@ -214,7 +241,6 @@ public class HTTPExchange {
 			}
 			
 			modifiableRequestHeaders.computeIfAbsent(headerName, s -> new ArrayList<>()).add(headerValue);
-			Log.log(LogMessageType.INFO, LogMessageSubject.HTTP_REQUESTS, "Put header name", headerName, "value", headerValue);
 			
 			if (headerName.equalsIgnoreCase("content-length")) {
 				try {
@@ -243,13 +269,19 @@ public class HTTPExchange {
 	}
 
 	private void processFirstLine(String aFirstLine) {
-		Log.log(LogMessageType.INFO, LogMessageSubject.HTTP_REQUESTS, "First Line", aFirstLine);
 		String[] componentArray = aFirstLine.split(" "); // can't be bothered going byte by byte any more
 		if ( componentArray.length < 3 ) {
 			throw new IllegalArgumentException("Not a valid first line of an HTTP request: " + aFirstLine);
 		}
 		method = componentArray[0];
-		path = componentArray[1];
+		requestURIPath = componentArray[1];
+		try {
+			requestURI = new URI(requestURIPath);
+		}
+		catch (URISyntaxException e) {
+			// TODO stop handling this exchange
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "URISyntax exception for string", requestURIPath, "exception", e);
+		}
 		httpVersion = componentArray[2];
 	}
 
@@ -307,5 +339,82 @@ public class HTTPExchange {
 
 	public String getRequestBody() {
 		return requestBody;
+	}
+
+	public InetSocketAddress getRemoteAddress() throws IOException {
+		return (InetSocketAddress) clientSocketChannel.getRemoteAddress();
+	}
+
+	public Map<String, List<String>> getResponseHeaders() {
+		return responseHeaders;
+	}
+
+	public void setResponseHeaders(HTTPResponseConstants aResponseConstant, int aContentLength) {
+		responseCode = aResponseConstant;
+		responseContentLength = aContentLength;
+		
+		if (aContentLength >= 0) {
+			getResponseHeaders().put("content-length", Arrays.asList(String.valueOf(aContentLength)));
+		}
+	}
+
+	public void setResponseBody(String aResponse, byte[] aResponseBytes) {
+		responseBodyString = aResponse;
+		responseBody = aResponseBytes;
+	}
+	
+	public void setResponseBody(byte[] aResponseBytes) {
+		responseBody = aResponseBytes;
+	}
+	
+	public String getCompleteRequest() {
+		return completeRequest.toString();
+	}
+
+	public URI getRequestURI() {
+		return requestURI;
+	}
+
+	public void sendResponse() throws IOException {
+		getResponseHeaders().put("Date", Arrays.asList( THREAD_LOCAL_DATE_FORMAT.get().format(new Date()) ));
+		
+		int sizeAllocationPerHeader = 100; // should be enough, if not StringBuilder will just expand
+		StringBuilder headerBuilder = new StringBuilder(sizeAllocationPerHeader * getResponseHeaders().size());
+		
+		headerBuilder.append(HTTP_PROTOCOL_CODE_IN_RESPONSE_HEADER);
+		headerBuilder.append(' ');
+		headerBuilder.append(responseCode.getCodePlusTextResponse());
+		headerBuilder.append(HEADER_DELIMITER);
+		getResponseHeaders().entrySet().stream()
+							.forEach( mapEntry -> {
+								String headerName = mapEntry.getKey();
+								mapEntry.getValue().stream()
+										.forEach(headerValue -> {
+											headerBuilder.append(headerName);
+											headerBuilder.append(HEADER_NAME_VALUE_SEPARATOR);
+											headerBuilder.append(' ');
+											headerBuilder.append(headerValue);
+											headerBuilder.append(HEADER_DELIMITER);
+								});
+							});
+		
+		headerBuilder.append(HEADER_DELIMITER);
+		
+		String header = headerBuilder.toString();
+		byte[] headerBytes = header.getBytes(StandardCharsets.US_ASCII);
+		
+		byte[] responseBytes = new byte[headerBytes.length + responseBody.length];
+		
+		System.arraycopy(headerBytes, 0, responseBytes, 0, headerBytes.length);
+		System.arraycopy(responseBody, 0, responseBytes, headerBytes.length, responseBody.length);
+		
+		ByteBuffer buffer = ByteBuffer.allocate(responseBytes.length); // TODO don't allocate new buffers all the time
+		buffer.put(responseBytes);
+		buffer.flip();
+		clientSocketChannel.write(buffer);
+	}
+
+	public void close() {
+		channelHandler.remove(selectionKey);
 	}
 }

@@ -14,6 +14,8 @@ import java.util.Map.Entry;
 import org.json.JSONException;
 
 import com.merman.celebrity.game.Player;
+import com.merman.celebrity.server.HTTPExchange;
+import com.merman.celebrity.server.HTTPExchangeWrapper;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
@@ -23,23 +25,22 @@ import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.util.JSONUtil;
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 public abstract class AHttpHandler implements IContextHandler {
 
 	@Override
-	public void handle(HttpExchange aHttpExchange) throws IOException {
+	public void handleWrapper(HTTPExchangeWrapper aHttpExchangeWrapper) throws IOException {
 		String sessionID = null;
 		Session session = null;
-		InetSocketAddress remoteAddress = aHttpExchange.getRemoteAddress();
+		InetSocketAddress remoteAddress = aHttpExchangeWrapper.getRemoteAddress();
 		InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
 
 		try {
-//			dumpRequest(aHttpExchange);
+//			dumpRequest(aHttpExchangeWrapper);
 			
-			HttpExchangeUtil.logBytesReceived(aHttpExchange);
-			sessionID = HttpExchangeUtil.getSessionID(aHttpExchange);
+			HttpExchangeUtil.logBytesReceived(aHttpExchangeWrapper);
+			sessionID = HttpExchangeUtil.getSessionID(aHttpExchangeWrapper);
 			session = null;
 			if ( sessionID != null ) {
 				session = SessionManager.getSession(sessionID);
@@ -49,17 +50,17 @@ public abstract class AHttpHandler implements IContextHandler {
 				}
 			}
 			
-			Log.log(LogMessageType.DEBUG, LogMessageSubject.HTTP_REQUESTS, "context", getContextName(), "player", session == null ? null : session.getPlayer(), "session", session, "game", session == null ? null : session.getPlayer().getGame(), "request body", HttpExchangeUtil.getRequestBody(aHttpExchange));
+			Log.log(LogMessageType.DEBUG, LogMessageSubject.HTTP_REQUESTS, "context", getContextName(), "player", session == null ? null : session.getPlayer(), "session", session, "game", session == null ? null : session.getPlayer().getGame(), "request body", HttpExchangeUtil.getRequestBody(aHttpExchangeWrapper));
 			
-			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchange);
-			_handle( session, requestBodyAsMap, aHttpExchange );
+			Map<String,Object> requestBodyAsMap = HttpExchangeUtil.getRequestBodyAsMap(aHttpExchangeWrapper);
+			_handle( session, requestBodyAsMap, aHttpExchangeWrapper );
 		}
 		catch (NullSessionException e) {
-			sendErrorResponse(aHttpExchange, ServerErrors.NO_SESSION);
+			sendErrorResponse(aHttpExchangeWrapper, ServerErrors.NO_SESSION);
 		}
 		catch (IllegalServerRequestException e) {
 			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, e.getClass().getName(), "==>", e.getMessage());
-			sendErrorResponse(aHttpExchange, ServerErrors.ILLEGAL_REQUEST, e.getEndUserMessage());
+			sendErrorResponse(aHttpExchangeWrapper, ServerErrors.ILLEGAL_REQUEST, e.getEndUserMessage());
 		}
 		catch (InvalidJSONException e) {
 			Player player = session == null ? null : session.getPlayer();
@@ -71,53 +72,67 @@ public abstract class AHttpHandler implements IContextHandler {
 		}
 		catch (RuntimeException e) {
 			Player player = session == null ? null : session.getPlayer();
-			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Session", session, "Player", player, "Handler", getContextName(), "Request body", HttpExchangeUtil.getRequestBody(aHttpExchange), "IP", address, "Exception on HTTP request", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Session", session, "Player", player, "Handler", getContextName(), "Request body", HttpExchangeUtil.getRequestBody(aHttpExchangeWrapper), "IP", address, "Exception on HTTP request", e);
 		}
 	}
 
-	protected abstract void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aHttpExchange) throws IOException;
+	protected abstract void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HTTPExchangeWrapper aHttpExchangeWrapper) throws IOException;
 	
-	protected void sendResponse( HttpExchange aExchange, int aCode, String aResponse ) throws IOException {
+	protected void sendResponse( HTTPExchangeWrapper aExchangeWrapper, HTTPResponseConstants aResponseConstant, String aResponse ) throws IOException {
 		byte[] responseBytes = aResponse.getBytes(StandardCharsets.UTF_8);
 		int bodyLength = responseBytes.length;
 		if (aResponse != null ) {
 			if ( aResponse.startsWith("{")
 					&& aResponse.endsWith("}") ) {
-				aExchange.getResponseHeaders().put("content-type", Arrays.asList( "application/json" ));
+				aExchangeWrapper.getResponseHeaders().put("content-type", Arrays.asList( "application/json" ));
 			}
 			else {
-				aExchange.getResponseHeaders().put("content-type", Arrays.asList( "text/html" ) );
+				aExchangeWrapper.getResponseHeaders().put("content-type", Arrays.asList( "text/html" ) );
 			}
 		}
-		aExchange.sendResponseHeaders(aCode, bodyLength);
-		OutputStream os = aExchange.getResponseBody();
-		os.write(responseBytes);
-		os.close();
+		aExchangeWrapper.sendResponseHeaders(aResponseConstant, bodyLength);
+		OutputStream os = aExchangeWrapper.getResponseBody();
+		if (os != null) {
+			os.write(responseBytes);
+			os.close();
+		}
+		else {
+			aExchangeWrapper.setResponseBody( aResponse, responseBytes );
+			aExchangeWrapper.sendResponse();
+			aExchangeWrapper.close();
+		}
 		
-		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);
+		HttpExchangeUtil.logBytesSent(aExchangeWrapper, bodyLength);
 	}
 
-	protected void dumpRequest(HttpExchange aExchange) {
-		Headers requestHeaders = aExchange.getRequestHeaders();
-		System.out.println( "Received request: " + getContextName() );
-		System.out.format("Request Method: %s\n", aExchange.getRequestMethod() );
-		System.out.format("Request URI: %s\n", aExchange.getRequestURI() );
-		System.out.format("Path: %s\n", aExchange.getHttpContext().getPath() );
-		System.out.format("From: %s\n", aExchange.getRemoteAddress().getAddress() );
-		for ( Entry<String, List<String>> l_mapEntry : requestHeaders.entrySet() ) {
-			System.out.format("%s:\t%s\n", l_mapEntry.getKey(), String.join( ",", l_mapEntry.getValue() ));
+	protected void dumpRequest(HTTPExchangeWrapper aExchangeWrapper) {
+		Object delegate = aExchangeWrapper.getDelegate();
+		if (delegate instanceof HttpExchange) {
+			HttpExchange sunHTTPExchange = (HttpExchange) delegate;
+			Map<String, List<String>> requestHeaders = sunHTTPExchange.getRequestHeaders();
+			System.out.println( "Received request: " + getContextName() );
+			System.out.format("Request Method: %s\n", sunHTTPExchange.getRequestMethod() );
+			System.out.format("Request URI: %s\n", sunHTTPExchange.getRequestURI() );
+			System.out.format("Path: %s\n", sunHTTPExchange.getHttpContext().getPath() );
+			System.out.format("From: %s\n", sunHTTPExchange.getRemoteAddress().getAddress() );
+			for ( Entry<String, List<String>> l_mapEntry : requestHeaders.entrySet() ) {
+				System.out.format("%s:\t%s\n", l_mapEntry.getKey(), String.join( ",", l_mapEntry.getValue() ));
+			}
+			System.out.println("\n");
+			System.out.println("Request body:");
+			System.out.println( String.join("\n", HttpExchangeUtil.getRequestBody(aExchangeWrapper) ) );
+			System.out.println( "End request body\n\n" );
 		}
-		System.out.println("\n");
-		System.out.println("Request body:");
-		System.out.println( String.join("\n", HttpExchangeUtil.getRequestBody(aExchange) ) );
-		System.out.println( "End request body\n\n" );
+		else {
+			System.out.print(((HTTPExchange) delegate).getCompleteRequest());
+		}
 	}
 	
-	protected void sendErrorResponse(HttpExchange aHttpExchange, ServerErrors aServerError) throws IOException {
-		sendErrorResponse(aHttpExchange, aServerError, null);
+	protected void sendErrorResponse(HTTPExchangeWrapper aHttpExchangeWrapper, ServerErrors aServerError) throws IOException {
+		sendErrorResponse(aHttpExchangeWrapper, aServerError, null);
 	}
 	
-	protected void sendErrorResponse(HttpExchange aHttpExchange, ServerErrors aServerError, String aErrorMessage) throws IOException {
+	protected void sendErrorResponse(HTTPExchangeWrapper aHttpExchangeWrapper, ServerErrors aServerError, String aErrorMessage) throws IOException {
 		Map<String, String>	responseObject		= new HashMap<>();
 		responseObject.put("Error", aServerError.toString());
 		if ( aErrorMessage != null ) {
@@ -134,6 +149,6 @@ public abstract class AHttpHandler implements IContextHandler {
 		 * 
 		 * Try using https://www.w3schools.com/howto/tryit.asp?filename=tryhow_css_modal_bottom
 		 */
-		sendResponse(aHttpExchange, HTTPResponseConstants.OK, responseString);
+		sendResponse(aHttpExchangeWrapper, HTTPResponseConstants.OK_200, responseString);
 	}
 }

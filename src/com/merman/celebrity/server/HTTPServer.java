@@ -1,19 +1,18 @@
 package com.merman.celebrity.server;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.net.StandardSocketOptions;
-import java.nio.ByteBuffer;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.merman.celebrity.server.handlers.AHttpHandler;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
@@ -30,10 +29,10 @@ public class HTTPServer {
 	private SelectionKey serverKey;
 	private Selector selector;
 	
-	private ByteBuffer readWriteBuffer = ByteBuffer.allocate(1024 * 1024); // 1 MB buffer. As of 16/1/21, total size of client directory is 312 kB, so 1 MB is loads.
-	
 	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
-	private HTTPChannelHandler                      channelHandler							= new HTTPChannelHandler();
+	private HTTPChannelHandler                      channelHandler							= new HTTPChannelHandler(this);
+	
+	private Map<URI, AHttpHandler>               	handlerMap								= new HashMap<>();
 	
 	private class MyListenForConnectionsRunnable
 	implements Runnable {
@@ -72,12 +71,7 @@ public class HTTPServer {
 										}
 										
 										channelHandler.add(clientSocketChannel);
-//										clientSocketChannel.configureBlocking(false);
-//										SelectionKey clientKey = clientSocketChannel.register(selector, SelectionKey.OP_READ); // Not registered for writing. TBC if we can write regardless
-//
-//										mapSelectionKeysToClientChannels.put(clientKey, clientSocketChannel);
 
-										Log.log(LogMessageType.DEBUG, LogMessageSubject.HTTP_REQUESTS, "New connection accepted from address", clientSocketChannel.getRemoteAddress(), "Num connections", mapSelectionKeysToClientChannels.size());
 									}
 									catch (IOException e) {
 										Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException on accepting new connection to ServerSocketChannel. ClientSocketChannel", clientSocketChannel, "exception", e);
@@ -167,32 +161,38 @@ public class HTTPServer {
 			throw new IllegalStateException("Already started");
 		}
 		
-		InetSocketAddress inetSocketAddress = null;
-		if (isLocalHost()) {
-			inetSocketAddress = new InetSocketAddress("localhost", portNumber);
-		}
-		else {
-			InetAddress inetAddressToUse = null;
-			Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-			while ( networkInterfaces.hasMoreElements() ) {
-				NetworkInterface networkInterface = networkInterfaces.nextElement();
-				if ( networkInterface.isUp()
-						&& ! networkInterface.isLoopback() ) {
-					Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
-					while ( inetAddresses.hasMoreElements() ) {
-						InetAddress inetAddress = inetAddresses.nextElement();
-						if ( inetAddress.getHostAddress() != null
-								&& inetAddress.getHostAddress().matches("\\d{1,3}(\\.\\d{1,3}){3}" ) ) {
-							inetAddressToUse = inetAddress;
-						}
-					}
-				}
-			}
-			
-			if (inetAddressToUse != null) {
-				inetSocketAddress = new InetSocketAddress(inetAddressToUse, portNumber);
-			}
-		}
+		InetSocketAddress inetSocketAddress = new InetSocketAddress(getPortNumber());
+		
+		/* Turns out we don't need all this. Can just give only the port number, and
+		 * then both localhost and external connections will work.
+		 * 
+		 * TODO make the same fix for websocket server
+		 */
+//		if (isLocalHost()) {
+//			inetSocketAddress = new InetSocketAddress("localhost", portNumber);
+//		}
+//		else {
+//			InetAddress inetAddressToUse = null;
+//			Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+//			while ( networkInterfaces.hasMoreElements() ) {
+//				NetworkInterface networkInterface = networkInterfaces.nextElement();
+//				if ( networkInterface.isUp()
+//						&& ! networkInterface.isLoopback() ) {
+//					Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+//					while ( inetAddresses.hasMoreElements() ) {
+//						InetAddress inetAddress = inetAddresses.nextElement();
+//						if ( inetAddress.getHostAddress() != null
+//								&& inetAddress.getHostAddress().matches("\\d{1,3}(\\.\\d{1,3}){3}" ) ) {
+//							inetAddressToUse = inetAddress;
+//						}
+//					}
+//				}
+//			}
+//
+//			if (inetAddressToUse != null) {
+//				inetSocketAddress = new InetSocketAddress(inetAddressToUse, portNumber);
+//			}
+//		}
 		
 		if ( inetSocketAddress == null ) {
 			System.err.println("Couldn't find valid inetAddress for HTTP server");
@@ -248,5 +248,36 @@ public class HTTPServer {
 	public static void main(String[] args) throws IOException {
 		Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new PrintStreamOutputter(System.out)));
 		new HTTPServer(8000, true).start();
+	}
+	
+	public void addHandler(AHttpHandler aHandler) {
+		addHandler(aHandler.getContextName(), aHandler);
+	}
+	
+	public void addHandler(String aURI, AHttpHandler aHandler) {
+		try {
+			URI uri = new URI(aURI);
+			handlerMap.put(uri, aHandler);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException("URISyntaxException", e);
+		}
+	}
+
+	public void handle(HTTPExchange aExchange) {
+		URI uri = aExchange.getRequestURI();
+		AHttpHandler handler = handlerMap.get(uri);
+		try {
+			if (handler == null) {
+				aExchange.setResponseHeaders(HTTPResponseConstants.Not_Found_404, 0);
+				aExchange.sendResponse();
+				aExchange.close();
+			}
+			else {
+				handler.handleWrapper(new HTTPExchangeWrapper(aExchange));
+			}
+		}
+		catch (IOException e) {
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException handling exchange", aExchange, "URI", uri, "handler", handler, "exception", e);
+		}
 	}
 }

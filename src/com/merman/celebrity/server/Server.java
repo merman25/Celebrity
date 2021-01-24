@@ -61,40 +61,78 @@ public class Server {
 			}
 		}
 		
-		HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
+		boolean oldCode = true;
 		
-		for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
-			if (fileRelativePath.endsWith("/*")) {
-				String directoryPath = fileRelativePath.substring(0, fileRelativePath.length() - "/*".length());
-				Path directory = CLIENT_FILE_DIRECTORY.resolve( Paths.get( directoryPath ) );
-				if ( Files.isDirectory( directory ) ) {
-					Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding entire directory", directoryPath);
-					Files.walk( directory )
+		if (oldCode) {
+			HttpServer server = HttpServer.create(new InetSocketAddress( portNumber ), 10);
+
+			for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
+				if (fileRelativePath.endsWith("/*")) {
+					String directoryPath = fileRelativePath.substring(0, fileRelativePath.length() - "/*".length());
+					Path directory = CLIENT_FILE_DIRECTORY.resolve( Paths.get( directoryPath ) );
+					if ( Files.isDirectory( directory ) ) {
+						Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding entire directory", directoryPath);
+						Files.walk( directory )
 						.filter( path -> Files.isRegularFile(path) )
 						.map( path -> CLIENT_FILE_DIRECTORY.relativize(path).toString().replace( File.separator, "/" ) )
 						.forEach( filePath -> server.createContext("/" + filePath, new ServeFileHandler(filePath) ) );
+					}
+				}
+				else if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
+					Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding file", fileRelativePath);
+					String context = "/" + fileRelativePath;
+					if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
+						context = "/";
+					}
+					server.createContext(context, new ServeFileHandler(fileRelativePath));
 				}
 			}
-			else if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
-				Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding file", fileRelativePath);
-				String context = "/" + fileRelativePath;
-				if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
-					context = "/";
-				}
-				server.createContext(context, new ServeFileHandler(fileRelativePath));
-			}
-		}
-		server.createContext("/version", new ServeFileHandler("version"));
+			server.createContext("/version", new ServeFileHandler("version"));
 
-		List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
-		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding", handlers.size(), "method-based contexts");
-		for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
-			server.createContext("/" + handler.getContextName(), handler);
+			List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding", handlers.size(), "method-based contexts");
+			for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
+				server.createContext("/" + handler.getContextName(), handler);
+			}
+
+			server.setExecutor( Executors.newFixedThreadPool(10, runnable -> new Thread(runnable, "HTTPServer-" + httpServerThreadCounter.incrementAndGet()) ));
+			server.start();
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Serving HTTP requests on port", portNumber);
 		}
-		
-		server.setExecutor( Executors.newFixedThreadPool(10, runnable -> new Thread(runnable, "HTTPServer-" + httpServerThreadCounter.incrementAndGet()) ));
-		server.start();
-		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Serving HTTP requests on port", portNumber);
+		else {
+			HTTPServer httpServer = new HTTPServer(portNumber, true);
+			for ( String fileRelativePath : FILE_TO_ADD_WHITELIST ) {
+				if (fileRelativePath.endsWith("/*")) {
+					String directoryPath = fileRelativePath.substring(0, fileRelativePath.length() - "/*".length());
+					Path directory = CLIENT_FILE_DIRECTORY.resolve( Paths.get( directoryPath ) );
+					if ( Files.isDirectory( directory ) ) {
+						Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding entire directory", directoryPath);
+						Files.walk( directory )
+						.filter( path -> Files.isRegularFile(path) )
+						.map( path -> CLIENT_FILE_DIRECTORY.relativize(path).toString().replace( File.separator, "/" ) )
+						.forEach( filePath -> httpServer.addHandler( new ServeFileHandler(filePath) ) );
+					}
+				}
+				else if ( Files.exists( CLIENT_FILE_DIRECTORY.resolve( Paths.get(fileRelativePath) ))) {
+					Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding file", fileRelativePath);
+					if ( MAIN_FILE_NAME.equals(fileRelativePath)) {
+						httpServer.addHandler("/", new ServeFileHandler(fileRelativePath));
+					}
+					else {
+						httpServer.addHandler(new ServeFileHandler(fileRelativePath));
+					}
+				}
+			}
+			httpServer.addHandler(new ServeFileHandler("version"));
+
+			List<AnnotatedMethodBasedHttpHandler> handlers = AnnotatedMethodBasedHttpHandler.createHandlers(AnnotatedHandlers.class);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "adding", handlers.size(), "method-based contexts");
+			for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
+				httpServer.addHandler("/" + handler.getContextName(), handler);
+			}
+
+			httpServer.start();
+		}
 		
 		/* The client computes the URL at which to open a WebSocket by looking at the URL of the current page.
 		 * Having a listener at address localhost means that local testing can always be done at

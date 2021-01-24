@@ -5,9 +5,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
@@ -19,8 +21,11 @@ public class HTTPChannelHandler {
 	private Selector selector;
 	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
 	private Map<SocketChannel, HTTPExchange>		mapSocketChannelsToHTTPExchanges		= new HashMap<>();
+	private Set<SelectionKey>                       selectionKeysToRemove					= Collections.synchronizedSet(new HashSet<>());
 	
 	private ByteBuffer readWriteBuffer = ByteBuffer.allocate(1024 * 1024); // 1 MB buffer. As of 16/1/21, total size of client directory is 312 kB, so 1 MB is loads.
+
+	private HTTPServer HTTPServer;
 	
 	private class MyReadFromChannelRunnable
 	implements Runnable {
@@ -39,6 +44,23 @@ public class HTTPChannelHandler {
 							Thread.sleep(3000);
 						} catch (InterruptedException e1) {}
 
+						continue;
+					}
+					
+					if (! selectionKeysToRemove.isEmpty()) {
+						for (SelectionKey key : selectionKeysToRemove) {
+							try {
+								key.cancel();
+								SocketChannel clientChannel = mapSelectionKeysToClientChannels.remove(key);
+								mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+								clientChannel.close();
+							}
+							catch (IOException e) {
+								Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException closing client channel", e);
+							}
+						}
+						
+						selectionKeysToRemove.clear();
 						continue;
 					}
 					
@@ -67,35 +89,13 @@ public class HTTPChannelHandler {
 											readWriteBuffer.flip();
 											readWriteBuffer.get(byteArr);
 											
-											HTTPExchange exchange = mapSocketChannelsToHTTPExchanges.computeIfAbsent(clientChannel, sc -> new HTTPExchange(sc));
+											HTTPExchange exchange = mapSocketChannelsToHTTPExchanges.computeIfAbsent(clientChannel, sc -> new HTTPExchange(sc, HTTPChannelHandler.this, key));
 											
 											try {
 												exchange.addBytes(byteArr);
 
 												if (exchange.isFinishedReadingRequestBody()) {
-													Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "=== Finished Reading Request ===");
-													System.out.println(exchange.getFirstLine());
-													exchange.getRequestHeaders().entrySet().stream().forEach(mapEntry -> System.out.format("%s: %s\n", mapEntry.getKey(), mapEntry.getValue()));
-													System.out.println();
-													if (! exchange.getRequestBody().isEmpty() ) {
-														System.out.println(exchange.getRequestBody());
-													}
-
-													String response = "HTTP/1.1 200 OK\r\n" +
-															"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
-															"Content-length: 33\r\n" +
-															"\r\n" +
-															"<html>Here is your website</html>";
-
-													readWriteBuffer.clear();
-													readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
-													readWriteBuffer.flip();
-													clientChannel.write(readWriteBuffer);
-
-													clientChannel.close();
-													key.cancel();
-													mapSelectionKeysToClientChannels.remove(key);
-													mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+													HTTPServer.handle(exchange);
 												}
 											}
 											catch (HTTPRequestTooLongException e) {
@@ -128,6 +128,10 @@ public class HTTPChannelHandler {
 			}
 		}
 		
+	}
+
+	public HTTPChannelHandler(HTTPServer aHttpServer) {
+		HTTPServer = aHttpServer;
 	}
 
 	public void add(SocketChannel aClientSocketChannel) throws IOException {
@@ -169,10 +173,18 @@ public class HTTPChannelHandler {
 		stop = true;
 		if (selector != null) {
 			try {
+				mapSelectionKeysToClientChannels.clear();
+				mapSocketChannelsToHTTPExchanges.clear();
+				selectionKeysToRemove.clear();
 				selector.close();
 			} catch (IOException e) {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when closing HTTPChannelHandler Selector", e);
 			}
 		}
+	}
+
+	public void remove(SelectionKey aSelectionKey) {
+		selectionKeysToRemove.add(aSelectionKey);
+		selector.wakeup();
 	}
 }

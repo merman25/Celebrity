@@ -7,10 +7,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Map;
 
 import com.merman.celebrity.client.theme.ThemeManager;
 import com.merman.celebrity.server.CelebrityMain;
+import com.merman.celebrity.server.HTTPExchangeWrapper;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
@@ -21,7 +23,6 @@ import com.merman.celebrity.server.analytics.UserAgentUtil;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
-import com.sun.net.httpserver.HttpExchange;
 
 public class ServeFileHandler extends AHttpHandler {
 	private String relativePath;
@@ -31,27 +32,27 @@ public class ServeFileHandler extends AHttpHandler {
 	}
 
 	@Override
-	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HttpExchange aExchange) throws IOException {
+	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HTTPExchangeWrapper aExchangeWrapper) throws IOException {
 		
 //		dumpRequest(aExchange);
 		if (Server.MAIN_FILE_NAME.equals(relativePath)
-				&& "/".equals( aExchange.getRequestURI().toString() )) {
+				&& "/".equals( aExchangeWrapper.getRequestURI().toString() )) {
 			if ( aSession == null
 					|| aSession.getPlayer() == null
 					|| aSession.getPlayer().getGame() == null
 					|| aSession.getPlayer().getGame().isExpired() ) {
 				Session session = SessionManager.createSession();
-				HttpExchangeUtil.setCookieResponseHeader(session, aExchange);
-				aExchange.getResponseHeaders().add( "Set-Cookie", String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
+				HttpExchangeUtil.setCookieResponseHeader(session, aExchangeWrapper);
+				aExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
 
 				
-				InetSocketAddress remoteAddress = aExchange.getRemoteAddress();
+				InetSocketAddress remoteAddress = aExchangeWrapper.getRemoteAddress();
 				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
 				session.setOriginalInetAddress(address);
 				
 				Browser browser = null;
 				String operatingSystem = null;
-				String userAgentString = HttpExchangeUtil.getHeaderValue("User-agent", aExchange);
+				String userAgentString = HttpExchangeUtil.getHeaderValue("User-agent", aExchangeWrapper);
 				if (userAgentString != null) {
 					browser = UserAgentUtil.getBrowserFromUserAgent(userAgentString);
 					operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
@@ -64,21 +65,21 @@ public class ServeFileHandler extends AHttpHandler {
 				if (websocketHandler != null) {
 					websocketHandler.stop();
 				}
-				aExchange.getResponseHeaders().add("Set-Cookie", String.format( "%s=%s; Max-Age=10", HttpExchangeUtil.COOKIE_RESTORE_KEY, HttpExchangeUtil.COOKIE_RESTORE_VALUE) );
+				aExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "%s=%s; Max-Age=10", HttpExchangeUtil.COOKIE_RESTORE_KEY, HttpExchangeUtil.COOKIE_RESTORE_VALUE) );
 			}
 		}
 		
 		
 		
-		serveFileContent(relativePath, aExchange);
+		serveFileContent(relativePath, aExchangeWrapper);
 	}
 
 	@Override
 	public String getContextName() {
-		return "serve file " + relativePath;
+		return "/" + relativePath;
 	}
 	
-	public static void serveFileContent( String aRelativePath, HttpExchange aExchange ) throws IOException {
+	public static void serveFileContent( String aRelativePath, HTTPExchangeWrapper aExchangeWrapper ) throws IOException {
 		File file = new File( Server.CLIENT_FILE_DIRECTORY.toFile(), aRelativePath );
 		byte[] responseBytes;
 		if ( file.exists() ) {
@@ -92,23 +93,30 @@ public class ServeFileHandler extends AHttpHandler {
 		}
 		
 		if ( aRelativePath.toLowerCase().endsWith(".css") ) {
-			aExchange.getResponseHeaders().set("content-type", "text/css");
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add("text/css");
 		}
 		else if ( aRelativePath.toLowerCase().endsWith( ".svg" ) ) {
-			aExchange.getResponseHeaders().set("content-type", "image/svg+xml" );
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add( "image/svg+xml" );
 		}
 		else if ( aRelativePath.toLowerCase().endsWith( ".js") ) {
-			aExchange.getResponseHeaders().set("content-type", "text/javascript");
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add( "text/javascript");
 		}
 				
 		
 		int bodyLength = responseBytes.length;
-		aExchange.sendResponseHeaders(HTTPResponseConstants.OK, bodyLength);
-		OutputStream os = aExchange.getResponseBody();
-		os.write(responseBytes);
-		os.close();
+		aExchangeWrapper.sendResponseHeaders(HTTPResponseConstants.OK_200, bodyLength);
+		OutputStream os = aExchangeWrapper.getResponseBody();
+		if (os != null) {
+			os.write(responseBytes);
+			os.close();
+		}
+		else {
+			aExchangeWrapper.setResponseBody( responseBytes );
+			aExchangeWrapper.sendResponse();
+			aExchangeWrapper.close();
+		}
 		
-		HttpExchangeUtil.logBytesSent(aExchange, bodyLength);
+		HttpExchangeUtil.logBytesSent(aExchangeWrapper, bodyLength);
 	}
 
 }
