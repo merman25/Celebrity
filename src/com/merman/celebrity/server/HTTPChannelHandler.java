@@ -6,26 +6,43 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 
 public class HTTPChannelHandler {
-	public boolean stop = false;
+	
+	/**
+	 * Ensure each thread has a unique index.
+	 */
+	private static SortedSet<Integer>               sUsedThreadIndices						= new TreeSet<>(Comparator.reverseOrder());
+	
+	/**
+	 * Ensure that we re-use old thread indices after we're done with them, rather than just increasing the index forever
+	 */
+	private static SortedSet<Integer>               sThreadIndicesToReUse					= new TreeSet<>();
+	
+	private boolean stop = false;
+	private int threadIndex;
 	
 	private Selector selector;
 	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
 	private Map<SocketChannel, HTTPExchange>		mapSocketChannelsToHTTPExchanges		= new HashMap<>();
 	private Set<SelectionKey>                       selectionKeysToRemove					= Collections.synchronizedSet(new HashSet<>());
+	private ActivityMonitor                         activityMonitor							= new ActivityMonitor();
+	private volatile long                           lastActivityTimeStampNanos;
 	
 	private ByteBuffer readWriteBuffer = ByteBuffer.allocate(1024 * 1024); // 1 MB buffer. As of 16/1/21, total size of client directory is 312 kB, so 1 MB is loads.
 
-	private HTTPServer HTTPServer;
+	private HTTPServer httpServer;
 	
 	private class MyReadFromChannelRunnable
 	implements Runnable {
@@ -49,15 +66,7 @@ public class HTTPChannelHandler {
 					
 					if (! selectionKeysToRemove.isEmpty()) {
 						for (SelectionKey key : selectionKeysToRemove) {
-							try {
-								key.cancel();
-								SocketChannel clientChannel = mapSelectionKeysToClientChannels.remove(key);
-								mapSocketChannelsToHTTPExchanges.remove(clientChannel);
-								clientChannel.close();
-							}
-							catch (IOException e) {
-								Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException closing client channel", e);
-							}
+							removeKeyNow(key);
 						}
 						
 						selectionKeysToRemove.clear();
@@ -67,6 +76,9 @@ public class HTTPChannelHandler {
 					synchronized (HTTPChannelHandler.this) {
 						if (! stop) {
 							// if selector.select() was woken up by a real selection, and not by invocation of selector.close()
+							
+							activityMonitor.startMonitoring();
+							
 							for (SelectionKey key : selector.selectedKeys()) {
 								if (key.isReadable()) {
 									SocketChannel clientChannel = mapSelectionKeysToClientChannels.get(key);
@@ -79,9 +91,7 @@ public class HTTPChannelHandler {
 									try {
 										int bytesRead = clientChannel.read(readWriteBuffer.clear());
 										if (bytesRead < 0) {
-											key.cancel();
-											mapSelectionKeysToClientChannels.remove(key);
-											mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+											removeKeyNow(key);
 										}
 										else if (bytesRead > 0) {
 											// We do sometimes read 0 bytes, for whatever reason
@@ -95,30 +105,28 @@ public class HTTPChannelHandler {
 												exchange.addBytes(byteArr);
 
 												if (exchange.isFinishedReadingRequestBody()) {
-													HTTPServer.handle(exchange);
+													httpServer.handle(exchange);
 												}
 											}
 											catch (HTTPRequestTooLongException e) {
-												clientChannel.close();
-												key.cancel();
-												mapSelectionKeysToClientChannels.remove(key);
-												mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+												removeKeyNow(key);
 												
-												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, e);
+												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "HTTP Request too long", e);
 											}
 										}
 
-									} catch (IOException e) {
+									}
+									catch (IOException e) {
 										Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException when reading clientChannel ", e); // TODO associate with Session and/or IP
 									}
-									
-//									Scanner scanner = new Scanner(clientChannel);
-//									scanner.useDelimiter("\\r\\n");
-//									while (scanner.hasNext()) {
-//										System.out.println(scanner.next());
-//									}
 								}
 							}
+							
+							activityMonitor.endMonitoring();
+							int percentageTimeActiveInLastPeriod = activityMonitor.getPercentageTimeActiveInLastPeriod();
+							
+							httpServer.reportActivityLevel(HTTPChannelHandler.this, percentageTimeActiveInLastPeriod);
+							lastActivityTimeStampNanos = System.nanoTime();
 						}
 					}
 				}
@@ -131,7 +139,8 @@ public class HTTPChannelHandler {
 	}
 
 	public HTTPChannelHandler(HTTPServer aHttpServer) {
-		HTTPServer = aHttpServer;
+		httpServer = aHttpServer;
+		activityMonitor.setMonitoringPeriodMillis(100);
 	}
 
 	public void add(SocketChannel aClientSocketChannel) throws IOException {
@@ -147,25 +156,24 @@ public class HTTPChannelHandler {
 	
 	protected synchronized void start() throws IOException {
 		if (selector == null) {
+			synchronized (sUsedThreadIndices) {
+				if (! sThreadIndicesToReUse.isEmpty()) {
+					threadIndex = sThreadIndicesToReUse.first();
+					sThreadIndicesToReUse.remove(threadIndex);
+				}
+				else if (sUsedThreadIndices.isEmpty()) {
+					threadIndex = 1;
+				}
+				else {
+					Integer highestIndex = sUsedThreadIndices.first();
+					threadIndex = highestIndex + 1;
+				}
+				
+				sUsedThreadIndices.add(threadIndex);
+			}
+			lastActivityTimeStampNanos = System.nanoTime();
 			selector = Selector.open();
-			new Thread(new MyReadFromChannelRunnable(), "HTTPChannelHandler").start();
-			
-//			new JFrame("HTTP Server") {{
-//				getContentPane().add( new JPanel() {{
-//					add( new JButton( new AbstractAction("Stop") {
-//
-//						@Override
-//						public void actionPerformed(ActionEvent aArg0) {
-//							HTTPChannelHandler.this.stop();
-//						}
-//					}) );
-//				}} );
-//
-//				pack();
-//				setLocationRelativeTo(null);
-//				setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//				setVisible(true);
-//			}};
+			new Thread(new MyReadFromChannelRunnable(), "HTTPChannelHandler-" + threadIndex).start();
 		}
 	}
 	
@@ -177,6 +185,12 @@ public class HTTPChannelHandler {
 				mapSocketChannelsToHTTPExchanges.clear();
 				selectionKeysToRemove.clear();
 				selector.close();
+				selector = null;
+				
+				synchronized (sUsedThreadIndices) {
+					sUsedThreadIndices.remove(threadIndex);
+					sThreadIndicesToReUse.add(threadIndex);
+				}
 			} catch (IOException e) {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when closing HTTPChannelHandler Selector", e);
 			}
@@ -186,5 +200,33 @@ public class HTTPChannelHandler {
 	public void remove(SelectionKey aSelectionKey) {
 		selectionKeysToRemove.add(aSelectionKey);
 		selector.wakeup();
+	}
+
+	private void removeKeyNow(SelectionKey aKey) {
+		try {
+			aKey.cancel();
+			SocketChannel clientChannel = mapSelectionKeysToClientChannels.remove(aKey);
+			mapSocketChannelsToHTTPExchanges.remove(clientChannel);
+			clientChannel.close();
+		}
+		catch (IOException e) {
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException closing client channel", e);
+		}
+	}
+
+	public long getDurationSinceLastActivityMillis() {
+		long currentTimeStamp = System.nanoTime();
+		long durationNanos = currentTimeStamp - lastActivityTimeStampNanos;
+		long durationMillis = durationNanos / 1_000_000;
+		return durationMillis;
+	}
+	
+	public int getNumActiveKeys() {
+		return mapSelectionKeysToClientChannels.size();
+	}
+	
+	public synchronized int getPercentageTimeActiveInLastPeriod() {
+		// This method is synchronized to avoid having to make the methods of ActivityMonitor synchronized
+		return activityMonitor.getPercentageTimeActiveInLastPeriod();
 	}
 }

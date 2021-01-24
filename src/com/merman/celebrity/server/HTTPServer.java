@@ -9,8 +9,14 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.merman.celebrity.server.handlers.AHttpHandler;
 import com.merman.celebrity.server.logging.Log;
@@ -28,9 +34,11 @@ public class HTTPServer {
 	private ServerSocketChannel serverSocketChannel;
 	private SelectionKey serverKey;
 	private Selector selector;
-	
-	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
-	private HTTPChannelHandler                      channelHandler							= new HTTPChannelHandler(this);
+
+	private static final Object                     HASHMAP_VALUE							= new Object();
+	private Map<HTTPChannelHandler, Object>         availableChannelHandlers				= new ConcurrentHashMap<>();
+	private Map<HTTPChannelHandler, Object>	     	busyChannelHandlers						= new ConcurrentHashMap<>();
+	private Timer                                   removeUnusedChannelHandlersTimer;
 	
 	private Map<URI, AHttpHandler>               	handlerMap								= new HashMap<>();
 	
@@ -70,67 +78,30 @@ public class HTTPServer {
 											continue;
 										}
 										
+										HTTPChannelHandler channelHandler = null;
+										if (! availableChannelHandlers.isEmpty()) {
+											channelHandler = availableChannelHandlers.keySet().iterator().next();
+										}
+										else if (! busyChannelHandlers.isEmpty()) {
+											HTTPChannelHandler previouslyBusyChannelHandler = busyChannelHandlers.keySet().iterator().next();
+											if (previouslyBusyChannelHandler.getPercentageTimeActiveInLastPeriod() == 0) {
+												busyChannelHandlers.remove(previouslyBusyChannelHandler);
+												availableChannelHandlers.put(previouslyBusyChannelHandler, HASHMAP_VALUE);
+												channelHandler = previouslyBusyChannelHandler;
+											}
+										}
+										
+										if (channelHandler == null) {
+											channelHandler = new HTTPChannelHandler(HTTPServer.this);
+											availableChannelHandlers.put(channelHandler, HASHMAP_VALUE);
+										}
 										channelHandler.add(clientSocketChannel);
-
 									}
 									catch (IOException e) {
 										Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException on accepting new connection to ServerSocketChannel. ClientSocketChannel", clientSocketChannel, "exception", e);
 									}
 								}
 
-//								if (key.isReadable()) {
-//									SocketChannel clientChannel = mapSelectionKeysToClientChannels.get(key);
-//									if (clientChannel == null) {
-//										// Shouldn't ever happen, but I'm copying some example code
-//										Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Readable key", key, "from this server's selector", selector, "could not find SocketChannel");
-//										continue;
-//									}
-//
-//									try {
-//										int bytesRead = clientChannel.read(readWriteBuffer.clear());
-//										if (bytesRead < 0) {
-//											key.cancel();
-//											mapSelectionKeysToClientChannels.remove(key);
-//										}
-//										else if (bytesRead > 0) {
-//											// We do sometimes read 0 bytes, for whatever reason
-//											byte[] byteArr = new byte[bytesRead];
-//											readWriteBuffer.flip();
-//											readWriteBuffer.get(byteArr);
-//
-//											String string = new String(byteArr, StandardCharsets.US_ASCII);
-////											string = string.replaceAll("\r(?!\n)", "\\r\r")
-////															.replaceAll("(?<!\r)\n", "\\n\n")
-////															.replace("\r\n", "\\r\\n\r\n");
-//
-////											System.out.println("=== BEGIN MESSAGE ===");
-//											System.out.print(string);
-////											System.out.println("=== END MESSAGE ===");
-//
-//											String response = "HTTP/1.1 200 OK\r\n" +
-//													"Date: Sat, 16 Jan 2021 18:52:27 GMT\r\n" +
-//													"Content-length: 28\r\n" +
-//													"Set-cookie: session=e1262a4b-9953-4699-a8cb-446ec496d7e9; Max-Age=3600\r\n" +
-//													"Set-cookie: theme=default; Max-Age=7200\r\n" +
-//													"\r\n" +
-//													"<html>Does this work?</html>";
-//
-//											readWriteBuffer.clear();
-//											readWriteBuffer.put(response.getBytes(StandardCharsets.US_ASCII));
-//											readWriteBuffer.flip();
-//											clientChannel.write(readWriteBuffer);
-//										}
-//
-//									} catch (IOException e) {
-//										Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "IOException when reading clientChannel ", e); // TODO associate with Session and/or IP
-//									}
-//
-////									Scanner scanner = new Scanner(clientChannel);
-////									scanner.useDelimiter("\\r\\n");
-////									while (scanner.hasNext()) {
-////										System.out.println(scanner.next());
-////									}
-//								}
 							}
 						}
 					}
@@ -140,7 +111,42 @@ public class HTTPServer {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception in HTTP Server", e);
 			}
 		}
+	}
+	
+	private class MyRemoveUnusedChannelHandlersTimerTask
+	extends TimerTask {
 
+		@Override
+		public void run() {
+			synchronized (HTTPServer.this) {
+				List<HTTPChannelHandler> noLongerBusyChannelHandlers = new ArrayList<>();
+				
+				/* Some handlers may have reported themselves busy, but then had no subsequent activity,
+				 * so are blocking on Selector.select(). Can stop counting them as busy.
+				 */
+				for (Iterator<HTTPChannelHandler> channelHandlerIterator = busyChannelHandlers.keySet().iterator(); channelHandlerIterator.hasNext();) {
+					HTTPChannelHandler httpChannelHandler = channelHandlerIterator.next();
+					if (httpChannelHandler.getPercentageTimeActiveInLastPeriod() == 0) {
+						channelHandlerIterator.remove();
+						noLongerBusyChannelHandlers.add(httpChannelHandler);
+					}
+				}
+				
+				for (HTTPChannelHandler channelHandler : noLongerBusyChannelHandlers) {
+					availableChannelHandlers.put(channelHandler, HASHMAP_VALUE);
+				}
+				
+				for (Iterator<HTTPChannelHandler> channelHandlerIterator = availableChannelHandlers.keySet().iterator(); channelHandlerIterator.hasNext();) {
+					HTTPChannelHandler httpChannelHandler = channelHandlerIterator.next();
+
+					if (httpChannelHandler.getNumActiveKeys() == 0
+							&& httpChannelHandler.getDurationSinceLastActivityMillis() >= 10000 ) {
+						httpChannelHandler.stop();
+						channelHandlerIterator.remove();
+					}
+				}
+			}
+		}
 	}
 
 	public HTTPServer(int aPortNumber, boolean aLocalHost) {
@@ -209,14 +215,14 @@ public class HTTPServer {
 			serverSocketChannel.bind( inetSocketAddress );
 			listen = true;
 			thread.start();
+			
+			removeUnusedChannelHandlersTimer = new Timer("Remove unused HTTP channel handlers", true);
+			removeUnusedChannelHandlersTimer.schedule(new MyRemoveUnusedChannelHandlersTimerTask(), 10000, 10000);
 
 			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Serving HTTP requests at address", inetSocketAddress.getAddress(), "on port", portNumber );
 		}
 	}
 
-	/**
-	 * Will not stop until a new client connects, because no timeout set on server socket.
-	 */
 	public synchronized void stop() {
 		listen = false;
 		if (selector != null) {
@@ -238,6 +244,10 @@ public class HTTPServer {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when closing HTTPServer ServerSocketChannel", e);
 			}
 			serverSocketChannel = null;
+		}
+		if (removeUnusedChannelHandlersTimer != null) {
+			removeUnusedChannelHandlersTimer.cancel();
+			removeUnusedChannelHandlersTimer = null;
 		}
 	}
 
@@ -278,6 +288,19 @@ public class HTTPServer {
 		}
 		catch (IOException e) {
 			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException handling exchange", aExchange, "URI", uri, "handler", handler, "exception", e);
+		}
+	}
+
+	public void reportActivityLevel(HTTPChannelHandler aChannelHandler, int aPercentageTimeActiveInLastPeriod) {
+		if (aPercentageTimeActiveInLastPeriod > 50) {
+			if (! busyChannelHandlers.containsKey(aChannelHandler)) {
+					availableChannelHandlers.remove(aChannelHandler);
+					busyChannelHandlers.put(aChannelHandler, HASHMAP_VALUE);
+			}
+		}
+		else if ( ! availableChannelHandlers.containsKey(aChannelHandler)) {
+			busyChannelHandlers.remove(aChannelHandler);
+			availableChannelHandlers.put(aChannelHandler, HASHMAP_VALUE);
 		}
 	}
 }
