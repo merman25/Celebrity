@@ -39,9 +39,7 @@ public class NotifyClientGameEventListener implements IGameEventListener {
 		if ( ! ( aGameEvent instanceof TurnTimeRemainingEvent ) ) {
 			JSONObject gameJSONObject = GameManager.toJSONObject(aGameEvent.getGame(), websocketHandler.getSession().getSessionID(), true);
 			jsonObject = JSONUtil.combine( jsonObject, gameJSONObject );
-			propertyMap.put("GameState", GameManager.serialise(aGameEvent.getGame(), websocketHandler.getSession().getSessionID(), true));
 		}
-		String jsonString = JSONUtil.serialiseMap(propertyMap);
 		
 		return jsonObject.toString();
 	}
