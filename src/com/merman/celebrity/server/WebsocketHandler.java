@@ -47,6 +47,7 @@ public class WebsocketHandler {
 	private static final int             PONG_BYTE                                   = 0x8A;
 
 	private static final String          STOP                                        = "__STOP__";
+	private static final String          PONG     									 = "__PONG__";
 	private static final String          CLOSE_CONNECTION_MESSAGE                    = "03E9";
 
 	private static IntPool               sThreadIndexPool                            = new IntPool();
@@ -82,6 +83,7 @@ public class WebsocketHandler {
 					long bytesReceived = 1;
 					int firstByteOfMessage = nextByte;
 					if ( firstByteOfMessage == MESSAGE_START_BYTE_AS_INT
+							|| firstByteOfMessage == PING_BYTE
 							|| firstByteOfMessage == PONG_BYTE
 							|| firstByteOfMessage == CLOSE_CONNECTION_BYTE ) {
 
@@ -116,6 +118,12 @@ public class WebsocketHandler {
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
 										lastSeenTimeMillis = System.currentTimeMillis();
+										log( LogMessageType.DEBUG, LogMessageSubject.GENERAL, "pong received (zero-length message)" );
+									}
+									else if ( firstByteOfMessage == PING_BYTE ) {
+										lastSeenTimeMillis = System.currentTimeMillis();
+										log( LogMessageType.DEBUG, LogMessageSubject.GENERAL, "ping received (zero-length message)" );
+										enqueueMessage(PONG);
 									}
 									else {
 										log( LogMessageType.INFO, LogMessageSubject.GENERAL, "zero-length message received" );
@@ -147,6 +155,29 @@ public class WebsocketHandler {
 
 									if ( message.equals("initial-test") ) {
 										enqueueMessage("gotcha");
+									}
+									else if ( firstByteOfMessage == PING_BYTE ) {
+										/* RFC 6455:
+										 *   A Ping frame MAY include "Application data".
+										 * 
+										 * it's also allowed to be empty. If it includes data, we have to pong back
+										 * with the same data.
+										 * 
+										 * In practice, I hadn't noticed any browsers sending pings, until my Cypress
+										 * tests started receiving them all the time (but only when testing on Firefox,
+										 * and only when testing on the live server). The message sent with it was
+										 * the string "PING".
+										 * 
+										 * It was very noticeable as it caused the tests to fail (this class fails as
+										 * soon as it receives an unexpected byte through the InputStream, a bit extreme
+										 * but it's good for spotting unexpected situations), so I don't think it
+										 * was happening before.
+										 */
+										log( LogMessageType.DEBUG, LogMessageSubject.GENERAL, "ping received", message );
+										enqueueMessage(PONG + message);
+									}
+									else if ( firstByteOfMessage == PONG_BYTE ) {
+										log( LogMessageType.DEBUG, LogMessageSubject.GENERAL, "pong received", message );
 									}
 									else {
 										log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Message from socket", message );
@@ -184,8 +215,28 @@ public class WebsocketHandler {
 					if ( STOP.equals(message) ) {
 						continue;
 					}
-					byte messageStartByte = message.isEmpty() ? (byte) PING_BYTE : MESSAGE_START_BYTE;
-					sendMessage(messageStartByte, message);
+					byte messageStartByte;
+					String messageContent = message;
+					if ( message.isEmpty() ) {
+						messageStartByte = (byte) PING_BYTE;
+					}
+					else if (message.startsWith(PONG)) {
+						/* RFC 6455:
+						 *   A Pong frame sent in response to a Ping frame must have identical
+   						 *   "Application data" as found in the message body of the Ping frame
+   						 *   being replied to.
+   						 * 
+   						 * we hack a solution here by concatenating the pong string
+   						 * to the ping "Application data", and now removing the prefix again.
+						 */
+						messageStartByte	= (byte) PONG_BYTE;
+						messageContent 		= message.substring(PONG.length());
+					}
+					else {
+						messageStartByte = MESSAGE_START_BYTE;
+					}
+					
+					sendMessage(messageStartByte, messageContent);
 
 				}
 				catch ( InterruptedException e ) {
