@@ -118,7 +118,6 @@ public class WebsocketHandler {
 								if ( messageLength == 0 ) {
 									if ( firstByteOfMessage == PONG_BYTE ) {
 										lastSeenTimeMillis = System.currentTimeMillis();
-										log( LogMessageType.DEBUG, LogMessageSubject.GENERAL, "pong received (zero-length message)" );
 									}
 									else if ( firstByteOfMessage == PING_BYTE ) {
 										lastSeenTimeMillis = System.currentTimeMillis();
