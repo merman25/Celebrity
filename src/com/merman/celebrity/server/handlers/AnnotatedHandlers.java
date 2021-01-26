@@ -18,19 +18,22 @@ import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.annotations.StartNewSession;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 
 public class AnnotatedHandlers {
+	
+	@StartNewSession
 	@HTTPRequest(requestName = "username", argNames = {"username"})
 	public static void setUsername(Session session, String username) {
 		if (username == null
 				|| username.trim().isEmpty() ) {
 			throw new IllegalServerRequestException( String.format("Session [%s], illegal user name [%s]", session, username), null);
 		}
-		Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "Session", session, "Username", username);
+		Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "Session", session, "IP", session.getOriginalInetAddress(), "Username", username);
 		session.getPlayer().setName(username);
 	}
 	
@@ -97,7 +100,7 @@ public class AnnotatedHandlers {
 		if (gameID == null) {
 			throw new IllegalServerRequestException( String.format("Session [%s], player [%s] provided null game ID", session, session.getPlayer()), null);
 		}
-		Map<String, String>	responseMap		= new HashMap<String, String>();
+		Map<String, String>	responseMap		= new HashMap<>();
 		
 		Game game = GameManager.getGame(gameID);
 		if ( gameID.trim().toLowerCase().startsWith("test")) {
@@ -494,7 +497,7 @@ public class AnnotatedHandlers {
 		else {
 			List<Player> allReferencedPlayers = game.getAllReferencedPlayers();
 			long currentTimeMillis = System.currentTimeMillis();
-			Map<Player, Long>		mapActivePlayersToLastSeenDurations		= new LinkedHashMap<Player, Long>();
+			Map<Player, Long>		mapActivePlayersToLastSeenDurations		= new LinkedHashMap<>();
 			for (Player player: allReferencedPlayers) {
 				if ( ! player.isExpired() ) {
 					Session playerSession = SessionManager.getSession(player.getSessionID());

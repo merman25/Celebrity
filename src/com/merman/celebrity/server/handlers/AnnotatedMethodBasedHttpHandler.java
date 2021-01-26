@@ -6,6 +6,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +22,11 @@ import com.merman.celebrity.game.Player;
 import com.merman.celebrity.server.HTTPExchangeWrapper;
 import com.merman.celebrity.server.HTTPResponseConstants;
 import com.merman.celebrity.server.Session;
+import com.merman.celebrity.server.SessionManager;
+import com.merman.celebrity.server.analytics.Browser;
+import com.merman.celebrity.server.analytics.UserAgentUtil;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.annotations.StartNewSession;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
 import com.merman.celebrity.server.logging.Log;
@@ -33,6 +39,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	private final String name;
 	private final Method method;
 	private final List<MyMethodArg> methodArgs;
+	private final boolean createSession;
 	
 	private static class MyMethodArg {
 		private String name;
@@ -64,6 +71,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 		name = requestName;
 		method = aMethod;
 		methodArgs = new ArrayList<>();
+		createSession = aMethod.getAnnotation(StartNewSession.class) != null;
 		
 		Parameter[] parameters = method.getParameters();
 		String[] argNames = httpRequestAnnotation.argNames();
@@ -94,12 +102,33 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 
 	@Override
 	protected void _handle(Session aSession, Map<String, Object> aRequestBodyAsMap, HTTPExchangeWrapper aHttpExchangeWrapper) throws IOException {
-		if (aSession == null) {
+		Session session;
+		if (aSession != null) {
+			session = aSession;
+		}
+		else if (! isCreateSession()) {
 			throw new NullSessionException();
+		}
+		else {
+			session = SessionManager.createSession();
+
+			InetSocketAddress remoteAddress = aHttpExchangeWrapper.getRemoteAddress();
+			InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
+			session.setOriginalInetAddress(address);
+
+			Browser browser = null;
+			String operatingSystem = null;
+			String userAgentString = HttpExchangeUtil.getHeaderValue("User-agent", aHttpExchangeWrapper);
+			if (userAgentString != null) {
+				browser = UserAgentUtil.getBrowserFromUserAgent(userAgentString);
+				operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
+			}
+
+			Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "New session", session, "IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
 		}
 
 		Object[] argValues = new Object[methodArgs.size() + 1];
-		argValues[0] = aSession;
+		argValues[0] = session;
 		for (int i = 0; i < methodArgs.size(); i++) {
 			MyMethodArg methodArg = methodArgs.get(i);
 			String argName = methodArg.name;
@@ -119,7 +148,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 							parameterValueList.add(null);
 						}
 						else {
-							throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s], list elements should be strings, but found [%s]", aSession.getPlayer(), aSession, getName(), argName, element == null ? null : element.getClass()), String.format("Error: value [%s] should be text", element) );
+							throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s], list elements should be strings, but found [%s]", session.getPlayer(), session, getName(), argName, element == null ? null : element.getClass()), String.format("Error: value [%s] should be text", element) );
 						}
 					});
 					parameterValue = parameterValueList;
@@ -138,23 +167,23 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				
 				
 			} catch (ParseException e) {
-				throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s] at index [%,d], cannot parse [%s] as %s", aSession.getPlayer(), aSession, getName(), argName, i, value, parameterType.getSimpleName()), String.format("Error: cannot parse \"%s\" as %s", value, parameterType.getSimpleName()));
+				throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s] at index [%,d], cannot parse [%s] as %s", session.getPlayer(), session, getName(), argName, i, value, parameterType.getSimpleName()), String.format("Error: cannot parse \"%s\" as %s", value, parameterType.getSimpleName()));
 			}
 			catch (IllegalServerRequestException e) {
 				throw e;
 			}
 			catch (RuntimeException e) {
-				Player player = aSession == null ? null : aSession.getPlayer();
-				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Session", aSession, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
+				Player player = session == null ? null : session.getPlayer();
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Session", session, "Player", player, "Handler", getContextName(), "Request body", aRequestBodyAsMap, "Exception", e);
 			}
 		}
 
-		HttpExchangeUtil.setCookieResponseHeader(aSession, aHttpExchangeWrapper);
+		HttpExchangeUtil.setCookieResponseHeader(session, aHttpExchangeWrapper);
 
 		try {
 			Object responseObject = method.invoke(null, argValues);
 			
-			Game game = aSession.getPlayer().getGame();
+			Game game = session.getPlayer().getGame();
 			if (game != null) {
 				aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
 			}
@@ -184,11 +213,11 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				throw (RuntimeException) cause;
 			}
 			else {
-				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Handler", getName(), "Session", aSession, "Player", aSession.getPlayer(), "Game", aSession.getPlayer().getGame(), "exception", e, "caused by", cause );
+				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Handler", getName(), "Session", session, "Player", session.getPlayer(), "Game", session.getPlayer().getGame(), "exception", e, "caused by", cause );
 			}
 		} catch (IllegalAccessException | IllegalArgumentException e) {
-			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", aSession, "Player", aSession.getPlayer(), "HTTPHandler", getName(), "Exception", e);
-			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], exception [%s]", aSession.getPlayer(), aSession, getName(), e), null);
+			Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Session", session, "Player", session.getPlayer(), "HTTPHandler", getName(), "Exception", e);
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], exception [%s]", session.getPlayer(), session, getName(), e), null);
 		}
 	}
 
@@ -211,5 +240,9 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 
 	public String getName() {
 		return name;
+	}
+
+	public boolean isCreateSession() {
+		return createSession;
 	}
 }

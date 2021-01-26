@@ -113,7 +113,8 @@ addServerRequestClickListener(
 		}
 
 		return true;
-	}
+	},
+	tryToOpenSocket
 );
 
 
@@ -1292,9 +1293,10 @@ function clearNotification() {
 }
 
 export function restoreWebsocketIfNecessary() {
-	if (webSocket == null
-		|| webSocket.readyState === WebSocket.CLOSED
-		|| webSocket.readyState === WebSocket.CLOSING) {
+	if (( webSocket == null
+			|| webSocket.readyState === WebSocket.CLOSED
+			|| webSocket.readyState === WebSocket.CLOSING)
+		&& getCookie('session')) {
 		tryToOpenSocket();
 	}
 }
