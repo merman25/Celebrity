@@ -91,7 +91,6 @@ for (let i = 0; i < gameSpecs.length; i++) {
     describe(`Player ${gameSpec.index + 1} [${gameSpec.playerNames[gameSpec.index]}]`, () => {
         it(`Plays spec ${i}: ${gameSpec.description}`, () => {
             cy.visit(URL);
-            cy.request(`${URL}/setTesting`);
 
             const index = gameSpec.index;
             const playerName = gameSpec.playerNames[index];
@@ -148,6 +147,7 @@ export function playGame(clientState) {
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID, clientState);
     }
+    cy.request(`${URL}/setTesting`);
     checkDOMContent(DOMSpecs, clientState);
 
     // Check I and the other players are listed, ready to be put into teams
