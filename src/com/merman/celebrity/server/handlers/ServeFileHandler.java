@@ -3,6 +3,8 @@ package com.merman.celebrity.server.handlers;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -16,6 +18,11 @@ import com.merman.celebrity.server.Server;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.analytics.Browser;
+import com.merman.celebrity.server.analytics.UserAgentUtil;
+import com.merman.celebrity.server.logging.Log;
+import com.merman.celebrity.server.logging.LogMessageSubject;
+import com.merman.celebrity.server.logging.LogMessageType;
 
 public class ServeFileHandler extends AHttpHandler {
 	private String relativePath;
@@ -36,6 +43,19 @@ public class ServeFileHandler extends AHttpHandler {
 					|| aSession.getPlayer().getGame().isExpired()
 					|| HttpExchangeUtil.getCookie(aExchangeWrapper).get("theme") == null ) {
 				aExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
+				
+				InetSocketAddress remoteAddress = aExchangeWrapper.getRemoteAddress();
+				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
+
+				Browser browser = null;
+				String operatingSystem = null;
+				String userAgentString = HttpExchangeUtil.getHeaderValue("User-agent", aExchangeWrapper);
+				if (userAgentString != null) {
+					browser = UserAgentUtil.getBrowserFromUserAgent(userAgentString);
+					operatingSystem = UserAgentUtil.getOperatingSystemFromUserAgent(userAgentString);
+				}
+
+				Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "New visit from IP", address, "Browser", browser, "OS", operatingSystem, "User-agent", userAgentString );
 			}
 			else {
 				// Page was refreshed
@@ -46,8 +66,6 @@ public class ServeFileHandler extends AHttpHandler {
 				aExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "%s=%s; Max-Age=10", HttpExchangeUtil.COOKIE_RESTORE_KEY, HttpExchangeUtil.COOKIE_RESTORE_VALUE) );
 			}
 		}
-		
-		
 		
 		serveFileContent(relativePath, aExchangeWrapper);
 	}
