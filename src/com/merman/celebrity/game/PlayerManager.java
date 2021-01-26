@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.merman.celebrity.server.cleanup.CleanupHelper;
 import com.merman.celebrity.server.cleanup.IExpiredEntityRemover;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
+import com.merman.celebrity.util.IntPool;
 
 public class PlayerManager {
-	private static AtomicInteger     maxPublicUniqueID = new AtomicInteger();
-	private static SortedMap<Integer, Player> playerMap         = new TreeMap<>();
+	private static IntPool        				sPlayerPublicIDPool		= new IntPool();
+	private static SortedMap<Integer, Player> 	sPlayerMap         		= new TreeMap<>();
 	
 	private static class MyExpiredPlayerRemover
 	implements IExpiredEntityRemover<Player> {
@@ -22,7 +22,8 @@ public class PlayerManager {
 		public void remove(Player aPlayer) {
 			Log.log(LogMessageType.INFO, LogMessageSubject.SESSIONS, "Removing player", aPlayer);
 			synchronized (PlayerManager.class) {
-				playerMap.remove(aPlayer.getPublicUniqueID());
+				sPlayerMap.remove(aPlayer.getPublicUniqueID());
+				sPlayerPublicIDPool.push(aPlayer.getPublicUniqueID());
 			}
 		}
 	}
@@ -33,7 +34,7 @@ public class PlayerManager {
 		@Override
 		public Iterator<Player> iterator() {
 			synchronized (PlayerManager.class) {
-				return new ArrayList(playerMap.values()).iterator();
+				return new ArrayList(sPlayerMap.values()).iterator();
 			}
 		}
 	}
@@ -44,17 +45,17 @@ public class PlayerManager {
 
 	public static synchronized Player createPlayer() {
 		Player player = new Player();
-		player.setPublicUniqueID(maxPublicUniqueID.incrementAndGet());
-		playerMap.put(player.getPublicUniqueID(), player);
+		player.setPublicUniqueID(sPlayerPublicIDPool.pop());
+		sPlayerMap.put(player.getPublicUniqueID(), player);
 		
 		return player;
 	}
 	
 	public static synchronized Player getPlayer(int aPublicUniqueId) {
-		return playerMap.get(aPublicUniqueId);
+		return sPlayerMap.get(aPublicUniqueId);
 	}
 	
 	public static synchronized int getNumPlayers() {
-		return playerMap.size();
+		return sPlayerMap.size();
 	}
 }

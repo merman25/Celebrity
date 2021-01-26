@@ -8,7 +8,9 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -28,25 +30,27 @@ import com.merman.celebrity.server.handlers.HttpExchangeUtil;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
+import com.merman.celebrity.util.IntPool;
 
 public class WebsocketHandler {
-	private static final byte            MESSAGE_START_BYTE                = (byte) 0x81;                         // -127
-	private static final int             MESSAGE_START_BYTE_AS_INT         = 0x81;                                // 129
+	private static final byte            MESSAGE_START_BYTE                          = (byte) 0x81;                         // -127
+	private static final int             MESSAGE_START_BYTE_AS_INT                   = 0x81;                                // 129
 
-	private static final int             LENGTH_BYTE_SUBTRACTION_CONSTANT  = 128;
-	private static final byte            LENGTH_MAGNITUDE_16_BIT_INDICATOR = 126;
-	private static final byte            LENGTH_MAGNITUDE_64_BIT_INDICATOR = 127;
-	
-	private static final int 			 MAX_LENGTH_16_BITS				   = 65536;
-	
-	private static final int             CLOSE_CONNECTION_BYTE			   = 0x88;
-	private static final int             PING_BYTE						   = 0x89;
-	private static final int             PONG_BYTE						   = 0x8A;
-	
-	private static final String          STOP                              = "__STOP__";
-	private static final String          CLOSE_CONNECTION_MESSAGE          = "03E9";
-	
-	private static AtomicInteger threadCount = new AtomicInteger();
+	private static final int             LENGTH_BYTE_SUBTRACTION_CONSTANT            = 128;
+	private static final byte            LENGTH_MAGNITUDE_16_BIT_INDICATOR           = 126;
+	private static final byte            LENGTH_MAGNITUDE_64_BIT_INDICATOR           = 127;
+
+	private static final int             MAX_LENGTH_16_BITS                          = 65536;
+
+	private static final int             CLOSE_CONNECTION_BYTE                       = 0x88;
+	private static final int             PING_BYTE                                   = 0x89;
+	private static final int             PONG_BYTE                                   = 0x8A;
+
+	private static final String          STOP                                        = "__STOP__";
+	private static final String          CLOSE_CONNECTION_MESSAGE                    = "03E9";
+
+	private static IntPool               sThreadIndexPool                            = new IntPool();
+	private static Map<Integer, AtomicInteger> sMapThreadIndicesToNumberOfFinalisedThreads = Collections.synchronizedMap(new HashMap<>());
 	
 	private final Socket socket;
 	private volatile boolean started;
@@ -226,6 +230,33 @@ public class WebsocketHandler {
 		}
 	}
 	
+	/**
+	 * Thread which handles returning of index to {@link #sThreadIndexPool} on finalisation.
+	 */
+	private static class MyThread
+	extends Thread {
+		private int threadIndex;
+		
+		public MyThread(int aThreadIndex, Runnable aTarget, String aName) {
+			super(aTarget, aName);
+			threadIndex = aThreadIndex;
+		}
+
+		@Override
+		protected void finalize() throws Throwable {
+			int numFinalisedThreadsWithThisIndex = sMapThreadIndicesToNumberOfFinalisedThreads.computeIfAbsent(threadIndex, i -> new AtomicInteger(0)).incrementAndGet();
+			if (numFinalisedThreadsWithThisIndex >= 2) {
+				/* Doesn't account for ping timer, the 3rd thread which uses the same index.
+				 * But that always ends at the same time as the others, so shouldn't be a problem
+				 * in practice.
+				 */
+				sMapThreadIndicesToNumberOfFinalisedThreads.remove(threadIndex);
+				sThreadIndexPool.push(threadIndex);
+			}
+			super.finalize();
+		}
+	}
+	
 
 	public WebsocketHandler(Socket aSocket) {
 		socket = aSocket;
@@ -321,9 +352,9 @@ public class WebsocketHandler {
 		started = true;
 		listen = true;
 
-		int threadNumber = threadCount.incrementAndGet();
-		new Thread(inputStreamRunnable,  "Websocket-InputStream-"  + threadNumber).start();
-		new Thread(outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
+		int threadNumber = sThreadIndexPool.pop();
+		new MyThread(threadNumber, inputStreamRunnable,  "Websocket-InputStream-"  + threadNumber).start();
+		new MyThread(threadNumber, outputStreamRunnable, "Websocket-OutputStream-" + threadNumber).start();
 
 		pingTimer = new Timer("ping-timer-" + threadNumber);
 		pingTimer.schedule(new MyPingTimerTask(), 5000, 10000);

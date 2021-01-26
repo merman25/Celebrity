@@ -6,29 +6,19 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
+import com.merman.celebrity.util.IntPool;
 
 public class HTTPChannelHandler {
 	
-	/**
-	 * Ensure each thread has a unique index.
-	 */
-	private static SortedSet<Integer>               sUsedThreadIndices						= new TreeSet<>(Comparator.reverseOrder());
-	
-	/**
-	 * Ensure that we re-use old thread indices after we're done with them, rather than just increasing the index forever
-	 */
-	private static SortedSet<Integer>               sThreadIndicesToReUse					= new TreeSet<>();
+	private static IntPool                          sThreadIndexPool						= new IntPool();
 	
 	private boolean stop = false;
 	private int threadIndex;
@@ -156,21 +146,7 @@ public class HTTPChannelHandler {
 	
 	protected synchronized void start() throws IOException {
 		if (selector == null) {
-			synchronized (sUsedThreadIndices) {
-				if (! sThreadIndicesToReUse.isEmpty()) {
-					threadIndex = sThreadIndicesToReUse.first();
-					sThreadIndicesToReUse.remove(threadIndex);
-				}
-				else if (sUsedThreadIndices.isEmpty()) {
-					threadIndex = 1;
-				}
-				else {
-					Integer highestIndex = sUsedThreadIndices.first();
-					threadIndex = highestIndex + 1;
-				}
-				
-				sUsedThreadIndices.add(threadIndex);
-			}
+			threadIndex = sThreadIndexPool.pop();
 			lastActivityTimeStampNanos = System.nanoTime();
 			selector = Selector.open();
 			new Thread(new MyReadFromChannelRunnable(), "HTTPChannelHandler-" + threadIndex).start();
@@ -187,10 +163,7 @@ public class HTTPChannelHandler {
 				selector.close();
 				selector = null;
 				
-				synchronized (sUsedThreadIndices) {
-					sUsedThreadIndices.remove(threadIndex);
-					sThreadIndicesToReUse.add(threadIndex);
-				}
+				sThreadIndexPool.push(threadIndex);
 			} catch (IOException e) {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException when closing HTTPChannelHandler Selector", e);
 			}
