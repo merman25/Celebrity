@@ -11,6 +11,7 @@ public enum BrowserBrand {
 	FIREFOX("Firefox", "Firefox/"),
 	EDGE("Edge", "Edg/"),
 	OPERA("Opera", "OPR/"),
+	ELECTRON("Electron", "Electron/"),
 	CHROME("Chrome", "Chrome/"),
 	SAFARI("Safari", "Safari/"),
 	IE("Internet Explorer", "rv:"),
