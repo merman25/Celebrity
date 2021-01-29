@@ -363,13 +363,6 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 		if (myGameState.myPlayerID && serverGameState.gameID)
 			await api.sendRemoveFromGameRequest(myGameState.myPlayerID);
 
-		// clear cookies
-		const cookies = document.cookie.split(/ *; */);
-		cookies.forEach(keyValPair => {
-			const key = keyValPair.split('=')[0];
-			clearCookie(key);
-		});
-
 		// reload page
 		location.reload();
 	}
