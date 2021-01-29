@@ -301,15 +301,11 @@ if [ "$FAST_MODE" == "true" ]; then
     TEST_TYPE="fast"
 fi
 
-RESULTS_DIR_PREFIX="$TEST_DIR/results"
+RESULTS_DIR="$TEST_DIR/results"
 
-if [ ! -d "$RESULTS_DIR_PREFIX"-fast ]; then
-    mkdir "$RESULTS_DIR_PREFIX"-fast
+if [ ! -d "$RESULTS_DIR" ]; then
+    mkdir "$RESULTS_DIR"
 fi
-if [ ! -d "$RESULTS_DIR_PREFIX"-full ]; then
-    mkdir "$RESULTS_DIR_PREFIX"-full
-fi
-RESULTS_DIR="$RESULTS_DIR_PREFIX"-"$TEST_TYPE"
 
 rm -f "RESULTS_DIR"/*
 
@@ -341,8 +337,7 @@ fi
 sleep 5
 cd "$START_DIR"
 TEST_DIR="$TEST_ROOT"/"$TSTAMP"
-RESULTS_DIR_PREFIX="$TEST_DIR/results"
-RESULTS_DIR="$RESULTS_DIR_PREFIX"-"$TEST_TYPE"
+RESULTS_DIR="$TEST_DIR/results"
 
 exec_command_in_new_window Dashboard bash dashboard.sh "$RESULTS_DIR" &
 
