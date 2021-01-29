@@ -448,7 +448,7 @@ function tryToOpenSocket(isFirstTime) {
 		webSocket.onopen = event => {
 			webSocket.send('initial-test');
 			if (isFirstTime) {
-				log('Screen width', window.screen.width, 'Screen height', window.screen.height);
+				logDeviceInfo();
 			}
 		};
 
@@ -1307,6 +1307,53 @@ function log() {
 			webSocket.send(message);
 		}
 }
+
+const browserBrands = [
+	{ name: 'Brave', detector: async () => (navigator.brave && await navigator.brave.isBrave() || false) },
+	{ name: "Firefox", marker: "Firefox/" },
+	{ name: "Edge", marker: "Edg/" },
+	{ name: "Opera", marker: "OPR/" },
+	{ name: "Electron", marker: "Electron/" },
+	{ name: "Chrome", marker: "Chrome/" },
+	{ name: "Safari", marker: "Safari/" },
+	{ name: "Internet Explorer", marker: "rv:" },
+];
+
+async function detectBrowser() {
+	const userAgent = navigator.userAgent;
+	const unknown = 'Unknown';
+	for (const browser of browserBrands) {
+		if (browser.detector) {
+			const result = await browser.detector();
+			if (result) {
+				return { name: browser.name, version: unknown };
+			}
+		}
+
+		if (browser.marker) {
+			const indexOfMarker = userAgent.indexOf(browser.marker);
+			if (indexOfMarker > 0) {
+				const indexOfEndOfMarkerString = indexOfMarker + browser.marker.length;
+				let indexOfEndOfVersionString = userAgent.indexOf(' ', indexOfEndOfMarkerString);
+				if (indexOfEndOfVersionString < 0) {
+					indexOfEndOfVersionString = userAgent.length;
+				}
+
+				const version = userAgent.substring(indexOfEndOfMarkerString, indexOfEndOfVersionString);
+
+				return { name: browser.name, version: version };
+			}
+		}
+	}
+
+	return { name: unknown, version: unknown }
+}
+
+async function logDeviceInfo() {
+	const browser = await detectBrowser();
+	log('Screen width', window.screen.width, 'Screen height', window.screen.height, 'Browser', browser.name, 'Version', browser.version);
+}
+
 
 function applyTheme() {
 	const theme = getCookie('theme');
