@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.merman.celebrity.game.Game;
@@ -154,6 +156,31 @@ public class WebsocketHandler {
 
 									if ( message.equals("initial-test") ) {
 										enqueueMessage("gotcha");
+									}
+									else if ( message.startsWith("JSON=")) {
+										try {
+											String jsonString = message.substring("JSON=".length());
+											JSONObject jsonObject = new JSONObject(jsonString);
+											Object object = jsonObject.get("log");
+											if (object instanceof JSONArray) {
+												JSONArray jsonLogArray = (JSONArray) object;
+												Object[] logArray = new Object[jsonLogArray.length() + 2];
+												logArray[0] = "Client log";
+												logArray[1] = "==>";
+												
+												for (int argIndex = 0; argIndex < jsonLogArray.length(); argIndex++) {
+													logArray[argIndex + 2] = jsonLogArray.get(argIndex);
+												}
+												log(LogMessageType.INFO, LogMessageSubject.SESSIONS, logArray);
+											}
+											else {
+												log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Don't know how to handle JSONObject with log", object);
+											}
+										}
+										catch (JSONException e) {
+											// We also arrive here if object has no value for "log"
+											log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Invalid or non-log JSON string from message", message, "Exception", e);
+										}
 									}
 									else if ( firstByteOfMessage == PING_BYTE ) {
 										/* RFC 6455:

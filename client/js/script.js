@@ -114,7 +114,7 @@ addServerRequestClickListener(
 
 		return true;
 	},
-	tryToOpenSocket
+	() => tryToOpenSocket(true)
 );
 
 
@@ -369,7 +369,7 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 });
 
 if (getCookie('restore') === 'true') {
-	tryToOpenSocket();
+	tryToOpenSocket(false);
 }
 
 const messageOnReload = getCookie('messageOnReload');
@@ -427,7 +427,7 @@ function setChildren(elementOrID, ...children) {
 	appendChildren.apply(this, [element, ...children]);
 }
 
-function tryToOpenSocket() {
+function tryToOpenSocket(isFirstTime) {
 	try {
 		const currentURL = window.location.href;
 		const currentHostName = currentURL.replace(/^[a-zA-Z]+:\/\//, '')
@@ -447,6 +447,9 @@ function tryToOpenSocket() {
 		};
 		webSocket.onopen = event => {
 			webSocket.send('initial-test');
+			if (isFirstTime) {
+				log('Screen width', window.screen.width, 'Screen height', window.screen.height);
+			}
 		};
 
 		webSocket.onmessage = evt => {
@@ -1290,8 +1293,19 @@ export function restoreWebsocketIfNecessary() {
 			|| webSocket.readyState === WebSocket.CLOSED
 			|| webSocket.readyState === WebSocket.CLOSING)
 		&& getCookie('session')) {
-		tryToOpenSocket();
+		tryToOpenSocket(false);
 	}
+}
+
+function log() {
+	restoreWebsocketIfNecessary();
+	// arguments is not an array, it's an object. Here we make it an array
+	const args = Array.prototype.slice.apply(arguments); 
+	if (webSocket
+		&& webSocket.readyState == WebSocket.OPEN) {
+			const message = 'JSON=' + JSON.stringify({log: args});
+			webSocket.send(message);
+		}
 }
 
 function applyTheme() {
