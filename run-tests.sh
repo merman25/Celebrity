@@ -295,12 +295,6 @@ fi
 sleep 1
 cd client
 TEST_DIR="../$TEST_ROOT"/"$TSTAMP"
-
-TEST_TYPE="full"
-if [ "$FAST_MODE" == "true" ]; then
-    TEST_TYPE="fast"
-fi
-
 RESULTS_DIR="$TEST_DIR/results"
 
 if [ ! -d "$RESULTS_DIR" ]; then
