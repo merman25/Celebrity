@@ -33,6 +33,8 @@ window.hackExport = {
 	api: api,
 };
 
+window.addEventListener('click', hideAllContextMenus);
+
 /* Might be useful later: event when DOM is fully loaded 
 document.addEventListener('DOMContentLoaded', () => {} );
 */
@@ -690,10 +692,6 @@ function addTeamlessPlayerContextMenu() {
 			ul.appendChild(makePlayerHostLi);
 		}
 
-		ul.addEventListener('mouseleave', event => {
-			hideAllContextMenus();
-		});
-
 		teamlessPlayerLi.addEventListener('contextmenu', event => {
 			event.preventDefault();
 
@@ -860,10 +858,6 @@ function addPlayerInTeamContextMenu() {
 			ul.appendChild(makePlayerHostLi);
 		}
 
-
-		ul.addEventListener('mouseleave', event => {
-			hideAllContextMenus();
-		});
 
 		playerInTeamTD.addEventListener('contextmenu', event => {
 			event.preventDefault();
