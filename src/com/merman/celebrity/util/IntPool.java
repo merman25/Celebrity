@@ -12,7 +12,7 @@ import java.util.TreeSet;
  * Values start at {@link #startValue}.
  * <p>
  * Useful for indexing objects with a finite lifetime, for which you want a unique index
- * for each existing objects, but are happy to re-use an index once it's no longer in use.
+ * for each existing object, but are happy to re-use an index once it's no longer in use.
  * The alternative is to just use a value which increases forever, but this becomes
  * annoying to read in the logs when the values get too large.
  */
@@ -24,22 +24,22 @@ public class IntPool {
 	private SortedSet<Integer>               indicesToReUse						= new TreeSet<>();
 	
 	public synchronized int pop() {
-		int threadIndex;
+		int index;
 		if (! indicesToReUse.isEmpty()) {
-			threadIndex = indicesToReUse.first();
-			indicesToReUse.remove(threadIndex);
+			index = indicesToReUse.first();
+			indicesToReUse.remove(index);
 		}
 		else if (usedIndices.isEmpty()) {
-			threadIndex = getStartValue();
+			index = getStartValue();
 		}
 		else {
 			Integer highestIndex = usedIndices.first();
-			threadIndex = highestIndex + 1;
+			index = highestIndex + 1;
 		}
 		
-		usedIndices.add(threadIndex);
+		usedIndices.add(index);
 		
-		return threadIndex;
+		return index;
 	}
 
 	public synchronized void push(int aNoLongerUsedIndex) {
