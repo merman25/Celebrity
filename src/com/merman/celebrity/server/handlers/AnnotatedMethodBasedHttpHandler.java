@@ -185,7 +185,7 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			
 			Game game = session.getPlayer().getGame();
 			if (game != null) {
-				aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
+				aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("set-cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getTheme(game).getName() ) );
 			}
 
 			if ( responseObject == null ) {

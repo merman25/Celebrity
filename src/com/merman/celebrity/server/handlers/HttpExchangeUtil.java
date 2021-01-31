@@ -172,8 +172,8 @@ public class HttpExchangeUtil {
 	}
 
 	public static void setCookieResponseHeader(Session aSession, HTTPExchangeWrapper aHttpExchangeWrapper) {
-		String cookieString = String.format("session=%s; Max-Age=%s", aSession.getSessionID(), aSession.getExpiryTime().getDurationToExpirySeconds());
-		aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add(cookieString);
+		String cookieString = String.format("session=%s; max-age=%s", aSession.getSessionID(), aSession.getExpiryTime().getDurationToExpirySeconds());
+		aHttpExchangeWrapper.getResponseHeaders().computeIfAbsent("set-cookie", s -> new ArrayList<>()).add(cookieString);
 	}
 
 	/**

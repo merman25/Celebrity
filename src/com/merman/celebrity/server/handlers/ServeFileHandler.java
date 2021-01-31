@@ -42,7 +42,7 @@ public class ServeFileHandler extends AHttpHandler {
 					|| aSession.getPlayer().getGame() == null
 					|| aSession.getPlayer().getGame().isExpired()
 					|| HttpExchangeUtil.getCookie(aExchangeWrapper).get("theme") == null ) {
-				aExchangeWrapper.getResponseHeaders().computeIfAbsent("Set-Cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
+				aExchangeWrapper.getResponseHeaders().computeIfAbsent("set-cookie", s -> new ArrayList<>()).add( String.format( "theme=%s; Max-Age=7200", ThemeManager.getCurrentTheme().getName() ) );
 				
 				InetSocketAddress remoteAddress = aExchangeWrapper.getRemoteAddress();
 				InetAddress address = remoteAddress == null ? null : remoteAddress.getAddress();
@@ -89,13 +89,13 @@ public class ServeFileHandler extends AHttpHandler {
 		}
 		
 		if ( aRelativePath.toLowerCase().endsWith(".css") ) {
-			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add("text/css");
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("content-type", s -> new ArrayList<>()).add("text/css");
 		}
 		else if ( aRelativePath.toLowerCase().endsWith( ".svg" ) ) {
-			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add( "image/svg+xml" );
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("content-type", s -> new ArrayList<>()).add( "image/svg+xml" );
 		}
 		else if ( aRelativePath.toLowerCase().endsWith( ".js") ) {
-			aExchangeWrapper.getResponseHeaders().computeIfAbsent("Content-type", s -> new ArrayList<>()).add( "text/javascript");
+			aExchangeWrapper.getResponseHeaders().computeIfAbsent("content-type", s -> new ArrayList<>()).add( "text/javascript");
 		}
 				
 		

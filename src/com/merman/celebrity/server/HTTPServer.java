@@ -274,6 +274,8 @@ public class HTTPServer {
 	}
 
 	public void handle(HTTPExchange aExchange) {
+//		System.out.print(aExchange.getCompleteRequest());
+		
 		URI uri = aExchange.getRequestURI();
 		AHttpHandler handler = handlerMap.get(uri);
 		try {

@@ -376,7 +376,7 @@ public class HTTPExchange {
 	}
 
 	public void sendResponse() throws IOException {
-		getResponseHeaders().put("Date", Arrays.asList( THREAD_LOCAL_DATE_FORMAT.get().format(new Date()) ));
+		getResponseHeaders().put("date", Arrays.asList( THREAD_LOCAL_DATE_FORMAT.get().format(new Date()) ));
 		
 		int sizeAllocationPerHeader = 100; // should be enough, if not StringBuilder will just expand
 		StringBuilder headerBuilder = new StringBuilder(sizeAllocationPerHeader * getResponseHeaders().size());
