@@ -8,7 +8,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.merman.celebrity.server.HTTPExchange;
-import com.merman.celebrity.server.HTTPRequestTooLongException;
+import com.merman.celebrity.server.HTTPMethod;
+import com.merman.celebrity.server.exceptions.HTTPRequestTooLongException;
 
 public class HTTPExchangeTest {
 	private static String getRequest = "GET / HTTP/1.1\r\n" +
@@ -65,10 +66,16 @@ public class HTTPExchangeTest {
 				case 2:
 					Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
 				case 1:
-					Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+					Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+					Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+					Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+					Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 					break;
 				case 0:
 					Assert.assertNull("First line should not yet have been read", httpExchange.getFirstLine());
+					Assert.assertEquals(charIndex < 4 ? null : HTTPMethod.GET, httpExchange.getMethod());
+					Assert.assertEquals(charIndex < 6 ? null : "/", httpExchange.getRequestURI() == null ? null : httpExchange.getRequestURI().toString());
+					Assert.assertNull("HTTP Protocol should not have been read", httpExchange.getHTTPProtocolString());
 					break;
 				}
 
@@ -115,10 +122,16 @@ public class HTTPExchangeTest {
 			case 2:
 				Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
 			case 1:
-				Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+				Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+				Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+				Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+				Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 				break;
 			case 0:
 				Assert.assertNull("First line should not yet have been read", httpExchange.getFirstLine());
+				Assert.assertNull("Method should not have been read", httpExchange.getMethod());
+				Assert.assertNull("Request URI should not have been read", httpExchange.getRequestURI());
+				Assert.assertNull("HTTP Protocol should not have been read", httpExchange.getHTTPProtocolString());
 				break;
 			}
 
@@ -157,10 +170,16 @@ public class HTTPExchangeTest {
 				Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
 			case 2:
 				Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
-				Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+				Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+				Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+				Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+				Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 				break;
 			case 0:
 				Assert.assertNull("First line should not yet have been read", httpExchange.getFirstLine());
+				Assert.assertNull("Method should not have been read", httpExchange.getMethod());
+				Assert.assertNull("Request URI should not have been read", httpExchange.getRequestURI());
+				Assert.assertNull("HTTP Protocol should not have been read", httpExchange.getHTTPProtocolString());
 				break;
 			}
 
@@ -191,7 +210,10 @@ public class HTTPExchangeTest {
 		Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 		Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
 		Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
-		Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+		Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+		Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+		Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+		Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 	}
 	
 	@Test
@@ -228,7 +250,10 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
 			Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
-			Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+			Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+			Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+			Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+			Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 		}
 	}
 	
@@ -266,7 +291,10 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
 			Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
-			Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+			Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+			Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+			Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+			Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 		}
 	}
 	
@@ -304,7 +332,10 @@ public class HTTPExchangeTest {
 			Assert.assertEquals( Arrays.asList( "1" ), httpExchange.getRequestHeaders().get( "DNT" ) );
 			Assert.assertEquals( Arrays.asList( "keep-alive" ), httpExchange.getRequestHeaders().get( "Connection" ) );
 			Assert.assertEquals( Arrays.asList( "localhost:8000" ), httpExchange.getRequestHeaders().get( "Host" ) );
-			Assert.assertNotNull("First line should have been read", httpExchange.getFirstLine());
+			Assert.assertEquals("GET / HTTP/1.1", httpExchange.getFirstLine());
+			Assert.assertEquals(HTTPMethod.GET, httpExchange.getMethod());
+			Assert.assertEquals("/", httpExchange.getRequestURI().toString());
+			Assert.assertEquals("HTTP/1.1", httpExchange.getHTTPProtocolString());
 		}
 	}
 	

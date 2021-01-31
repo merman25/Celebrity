@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.merman.celebrity.server.exceptions.HTTPException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
@@ -98,10 +99,10 @@ public class HTTPChannelHandler {
 													httpServer.handle(exchange);
 												}
 											}
-											catch (HTTPRequestTooLongException e) {
+											catch (HTTPException e) {
 												removeKeyNow(key);
 												
-												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "HTTP Request too long", e);
+												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception handling HTTP Request", e);
 											}
 										}
 

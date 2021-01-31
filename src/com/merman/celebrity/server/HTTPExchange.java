@@ -19,67 +19,75 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.merman.celebrity.server.exceptions.HTTPException;
+import com.merman.celebrity.server.exceptions.HTTPRequestTooLongException;
+import com.merman.celebrity.server.exceptions.UnknownHTTPMethodException;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 
 public class HTTPExchange {
-	private static final String HEADER_DELIMITER = "\r\n";
-	private static final char	HEADER_NAME_VALUE_SEPARATOR = ':';
-	public static final int DEFAULT_MAX_REQUEST_SIZE_IN_BYTES = 0x2000; // 8kb
-	private static final String HTTP_PROTOCOL_CODE_IN_RESPONSE_HEADER = "HTTP/1.1";
-	private static final String DATE_FORMAT_STRING = "EEE, dd MMM yyyy HH:mm:ss z";
-	
-	private int    maxRequestSizeInBytes = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
-	
-	private static final ThreadLocal<SimpleDateFormat> THREAD_LOCAL_DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+	private static final String                        HEADER_DELIMITER                                              = "\r\n";
+	private static final char                          HEADER_NAME_VALUE_SEPARATOR                                   = ':';
+	public static final int                            DEFAULT_MAX_REQUEST_SIZE_IN_BYTES                             = 0x2000;                                                             // 8kb
+	private static final String                        HTTP_PROTOCOL                                                 = "HTTP/1.1";
+	private static final String                        DATE_FORMAT_STRING                                            = "EEE, dd MMM yyyy HH:mm:ss z";
 
-		@Override
-		protected SimpleDateFormat initialValue() {
-			return new SimpleDateFormat(DATE_FORMAT_STRING, Locale.US);
-		}
-	};
-	
-	private SocketChannel clientSocketChannel;
-	private HTTPChannelHandler channelHandler;
-	private SelectionKey selectionKey;
 
-	private String firstLine; // Line saying GET/POST etc, giving the URL, HTTP version, etc
-	private String method;
-	private String requestURIPath;
-	private URI requestURI;
-	private String httpVersion;
+	private static final ThreadLocal<SimpleDateFormat> THREAD_LOCAL_DATE_FORMAT                                      = new ThreadLocal<SimpleDateFormat>() {
+
+																															@Override
+																															protected SimpleDateFormat initialValue() {
+																																return new SimpleDateFormat(DATE_FORMAT_STRING, Locale.US);
+																															}
+																														};
+																														
+	private static final int                           MAX_HTTP_METHOD_NAME_LENGTH									 = Arrays.asList(HTTPMethod.values()).stream()
+																															.mapToInt(method -> method.toString().length())
+																															.reduce(0, Math::max);
 	
-	private StringBuilder		completeRequest		= new StringBuilder(1024);
-	private Map<String, List<String>> modifiableRequestHeaders = new LinkedHashMap<>();
-	private Map<String, List<String>> unmodifiableRequestHeaders;
-	private Map<String, List<String>> responseHeaders = new LinkedHashMap<>();
-	private boolean staleUnmodifiableRequestHeaders = true;
-	
-	private boolean finishedReadingRequestHeaders;
-	private boolean finishedReadingRequestBody;
-	private int reportedRequestBodyLength = -1;
-	
-	private StringBuilder requestBodyBuilder = new StringBuilder();
-	private String requestBody;
-	
+	private int                                        maxRequestSizeInBytes                                         = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
+	private SocketChannel                              clientSocketChannel;
+	private HTTPChannelHandler                         channelHandler;
+	private SelectionKey                               selectionKey;
+
+	// Line saying GET/POST etc, giving the URL, HTTP version, etc
+	private String                                     firstLine;
+	private HTTPMethod                                 method;
+	private URI                                        requestURI;
+	private String                                     httpProtocolString;
+	private int                                        indexOfFirstWhitespaceChar                                    = -1;
+	private int                                        indexOfSecondWhitespaceChar                                   = -1;
+
+	private StringBuilder                              completeRequest                                               = new StringBuilder(1024);
+	private Map<String, List<String>>                  modifiableRequestHeaders                                      = new LinkedHashMap<>();
+	private Map<String, List<String>>                  unmodifiableRequestHeaders;
+	private Map<String, List<String>>                  responseHeaders                                               = new LinkedHashMap<>();
+	private boolean                                    staleUnmodifiableRequestHeaders                               = true;
+
+	private boolean                                    finishedReadingRequestHeaders;
+	private boolean                                    finishedReadingRequestBody;
+	private int                                        reportedRequestBodyLength                                     = -1;
+
+	private StringBuilder                              requestBodyBuilder                                            = new StringBuilder();
+	private String                                     requestBody;
+
 	/**
-	 * In the end the response has to be a byte arr (could be binary data),
-	 * but could be useful for debugging to initially set it as a string,
-	 * when it is text data.
+	 * In the end the response has to be a byte arr (could be binary data), but
+	 * could be useful for debugging to initially set it as a string, when it is
+	 * text data.
 	 */
-	private String responseBodyString;
-	private byte[] responseBody = new byte[0];
-
+	private String                                     responseBodyString;
+	private byte[]                                     responseBody                                                  = new byte[0];
 
 	// Buffer for reading a single header element, and indices into that buffer
-	private int currentHeaderElementNameValueSeparatorIndex = -1;
-	private int currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = -1;
-	private int currentHeaderElementBufferOffset = 0;
-	private byte[] currentHeaderElementBuffer = new byte[1024];
+	private int                                        currentHeaderElementNameValueSeparatorIndex                   = -1;
+	private int                                        currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = -1;
+	private int                                        currentHeaderElementBufferOffset                              = 0;
+	private byte[]                                     currentHeaderElementBuffer                                    = new byte[1024];
 
-	private HTTPResponseConstants responseCode = HTTPResponseConstants.Not_Found_404;
-	private int responseContentLength = -1;
+	private HTTPResponseConstants                      responseCode                                                  = HTTPResponseConstants.Not_Found_404;
+	private int                                        responseContentLength                                         = -1;
 	
 	
 	public HTTPExchange() {}
@@ -149,6 +157,36 @@ public class HTTPExchange {
 				byte newByte = aByteArr[newByteIndex];
 				currentHeaderElementBuffer[ currentHeaderElementBufferOffset++ ] = newByte;
 				completeRequest.append((char) newByte);
+				
+				// Check for HTTP method
+				if (indexOfFirstWhitespaceChar == -1) {
+					if (currentHeaderElementBufferOffset > MAX_HTTP_METHOD_NAME_LENGTH + 1) {
+						throw new UnknownHTTPMethodException("Unknown method (starts with [" + new String(currentHeaderElementBuffer, 0, currentHeaderElementBufferOffset - 1, StandardCharsets.US_ASCII) + "])");
+					}
+					else if (Character.isWhitespace(newByte)) {
+						indexOfFirstWhitespaceChar = currentHeaderElementBufferOffset - 1;
+						String methodName = new String(currentHeaderElementBuffer, 0, indexOfFirstWhitespaceChar, StandardCharsets.US_ASCII);
+						try {
+							method = HTTPMethod.valueOf(methodName);
+						}
+						catch (IllegalArgumentException e) {
+							throw new UnknownHTTPMethodException("Unknown method [" + methodName + "]");
+						}
+					}
+				}
+				// Check for URI
+				else if (indexOfSecondWhitespaceChar == -1) {
+					if (Character.isWhitespace(newByte)) {
+						indexOfSecondWhitespaceChar = currentHeaderElementBufferOffset - 1;
+						String requestURIString = new String(currentHeaderElementBuffer, indexOfFirstWhitespaceChar + 1, indexOfSecondWhitespaceChar - indexOfFirstWhitespaceChar - 1, StandardCharsets.US_ASCII);
+						try {
+							requestURI = new URI(requestURIString);
+						}
+						catch (URISyntaxException e) {
+							throw new HTTPException("URISyntax exception for string [" + requestURIString + "]", e);
+						}
+					}
+				}
 
 				if (newByte == HEADER_DELIMITER.charAt(1)) {
 					// Might have reached a delimiter, let's check
@@ -168,7 +206,7 @@ public class HTTPExchange {
 							currentHeaderIndexOfFirstNonWhiteSpaceCharacterAfterSeparator = headerElementBufferOffsetBeforeStartingCurrentHeaderElementWithinNewBytes + startOfValueIndexWithinNewBytes - offsetIntoNewByteArr;
 						}
 
-						addRequestHeaderFromBytesReadSoFar(2);
+						addRequestHeaderFromBytesReadSoFar(HEADER_DELIMITER.length());
 
 						// Reset variables
 						offsetIntoNewByteArr = newByteIndex + 1;
@@ -269,20 +307,15 @@ public class HTTPExchange {
 	}
 
 	private void processFirstLine(String aFirstLine) {
-		String[] componentArray = aFirstLine.split(" "); // can't be bothered going byte by byte any more
-		if ( componentArray.length < 3 ) {
-			throw new IllegalArgumentException("Not a valid first line of an HTTP request: " + aFirstLine);
+		if (indexOfSecondWhitespaceChar >= 0) {
+			httpProtocolString = new String(currentHeaderElementBuffer, indexOfSecondWhitespaceChar + 1, currentHeaderElementBufferOffset - indexOfSecondWhitespaceChar - HEADER_DELIMITER.length() - 1, StandardCharsets.US_ASCII);
+			if (! HTTP_PROTOCOL.equals(httpProtocolString)) {
+				throw new HTTPException("Unknown protocol [" + httpProtocolString + "]");
+			}
 		}
-		method = componentArray[0];
-		requestURIPath = componentArray[1];
-		try {
-			requestURI = new URI(requestURIPath);
+		else {
+			throw new HTTPException("Invalid first line [" + aFirstLine + "]");
 		}
-		catch (URISyntaxException e) {
-			// TODO stop handling this exchange
-			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "URISyntax exception for string", requestURIPath, "exception", e);
-		}
-		httpVersion = componentArray[2];
 	}
 
 	public boolean isFinishedReadingRequestHeaders() {
@@ -381,7 +414,7 @@ public class HTTPExchange {
 		int sizeAllocationPerHeader = 100; // should be enough, if not StringBuilder will just expand
 		StringBuilder headerBuilder = new StringBuilder(sizeAllocationPerHeader * getResponseHeaders().size());
 		
-		headerBuilder.append(HTTP_PROTOCOL_CODE_IN_RESPONSE_HEADER);
+		headerBuilder.append(HTTP_PROTOCOL);
 		headerBuilder.append(' ');
 		headerBuilder.append(responseCode.getCodePlusTextResponse());
 		headerBuilder.append(HEADER_DELIMITER);
@@ -416,5 +449,13 @@ public class HTTPExchange {
 
 	public void close() {
 		channelHandler.remove(selectionKey);
+	}
+
+	public HTTPMethod getMethod() {
+		return method;
+	}
+
+	public String getHTTPProtocolString() {
+		return httpProtocolString;
 	}
 }

@@ -1,6 +1,6 @@
-package com.merman.celebrity.server;
+package com.merman.celebrity.server.exceptions;
 
-public class HTTPRequestTooLongException extends RuntimeException {
+public class HTTPRequestTooLongException extends HTTPException {
 	private String request;
 
 	public HTTPRequestTooLongException(String aMessage, String aRequest) {
