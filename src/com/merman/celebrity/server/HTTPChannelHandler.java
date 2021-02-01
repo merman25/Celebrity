@@ -80,7 +80,7 @@ public class HTTPChannelHandler {
 									}
 									
 									try {
-										int bytesRead = clientChannel.read(readWriteBuffer.clear());
+										int bytesRead = clientChannel.read((ByteBuffer) readWriteBuffer.clear());
 										if (bytesRead < 0) {
 											removeKeyNow(key);
 										}
