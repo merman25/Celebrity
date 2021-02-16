@@ -147,7 +147,6 @@ export function playGame(clientState) {
     else {
         startHostingNewGame(clientState.playerName, clientState.gameID, clientState);
     }
-    cy.request(`${URL}/setTesting`);
     checkDOMContent(DOMSpecs, clientState);
 
     // Check I and the other players are listed, ready to be put into teams
@@ -735,6 +734,7 @@ function startHostingNewGame(playerName, gameID, clientState) {
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
+    cy.request(`${URL}/setTesting`);
     cy.get('[id=host]').click();
 
     cy.get('[id=gameIDDiv]')
@@ -833,6 +833,7 @@ export function joinGame(clientState) {
     cy.get('[id="nameSubmitButton"]').click();
     // Wait for client to send session ID to server via websocket, so that server can associate socket to session
     cy.wait(2000);
+    cy.request(`${URL}/setTesting`);
     cy.get('[id="join"]').click();
 
     if (clientState.gameID) {
