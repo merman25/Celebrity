@@ -3,10 +3,11 @@ const selectorsToShowOrHide = [
 		selector: '#divJoinOrHost',
 		styleFn: (myGameState, serverGameState) => myGameState.myName && !serverGameState.gameID,
 	},
-	{
+/*	{
 		selector: '#restoreGameDiv',
 		styleFn: (myGameState, serverGameState) => myGameState.myName && !serverGameState.gameID,
 	},
+*/
 	{
 		selector: '#divChooseName',
 		styleFn: (myGameState, serverGameState) => ! myGameState.myName,
