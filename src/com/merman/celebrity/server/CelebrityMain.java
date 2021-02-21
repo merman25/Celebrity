@@ -35,6 +35,7 @@ public class CelebrityMain {
 	private static boolean      sysOutLogging;
 	private static String       version                      = "NO_VERSION";
 	private static Path         dataDirectory			     = Paths.get(DATA_DIRECTORY_ROOT);
+	public static boolean       newServer;
 
 	public static void main(String[] args) throws IOException {
 		GameManager.deleteExisting = true;
@@ -73,7 +74,12 @@ public class CelebrityMain {
 
 		readVersion();
 		initLogging();
-		Log.log(LogMessageType.INFO, LogMessageSubject.RESTARTS, "Starting Celebrity Server Version", getVersion());
+		
+		/* Output this one line always to sysout, so that we see it even when live and when
+		 * all other logging output is going to files.
+		 */
+		System.out.format("Starting Celebrity Server Version %s, server code [%s]\n", getVersion(), newServer ? "New" : "Old");
+		Log.log(LogMessageType.INFO, LogMessageSubject.RESTARTS, "Starting Celebrity Server Version", getVersion(), "server code", newServer ? "New" : "Old" );
 		
 		Server server;
 		if (overridePort >= 0 ) {
@@ -97,8 +103,6 @@ public class CelebrityMain {
 				e.printStackTrace();
 			}
 		}
-		
-		System.out.format("Starting Celebrity Server Version %s\n", getVersion());
 	}
 
 	private static void initLogging() {
@@ -136,7 +140,7 @@ public class CelebrityMain {
 			}
 		}
 		else if ( aArgName.equals("create-files") ) {
-			if ( ! Arrays.asList("true", "false", "yes", "no", "y", "n").contains(aArgValue.toLowerCase() ) ) {
+			if ( ! Arrays.asList("true", "false").contains(aArgValue.toLowerCase() ) ) {
 				System.err.format("Error: cannot parse boolean: %s\n", aArgValue);
 				System.exit(4);
 			}
@@ -144,7 +148,7 @@ public class CelebrityMain {
 			GameManager.createFiles = createFiles;
 		}
 		else if ( aArgName.equals("delete-existing") ) {
-			if ( ! Arrays.asList("true", "false", "yes", "no", "y", "n").contains(aArgValue.toLowerCase() ) ) {
+			if ( ! Arrays.asList("true", "false").contains(aArgValue.toLowerCase() ) ) {
 				System.err.format("Error: cannot parse boolean: %s\n", aArgValue);
 				System.exit(5);
 			}
@@ -173,6 +177,14 @@ public class CelebrityMain {
 			else {
 				sysOutLogging = true;
 			}
+		}
+		else if ( aArgName.equals("new-server") ) {
+
+			if ( ! Arrays.asList("true", "false").contains(aArgValue.toLowerCase() ) ) {
+				System.err.format("Error: cannot parse boolean: %s\n", aArgValue);
+				System.exit(4);
+			}
+			newServer = Boolean.parseBoolean(aArgValue);
 		}
 		else {
 			System.err.format("Error: unknown argument: %s\n", aArgName);
