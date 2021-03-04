@@ -30,32 +30,37 @@ public class SocketChannelOutputHandler {
 	implements Runnable {
 		@Override
 		public void run() {
-			while (! stop) {
-				IOutputSender outputSender = null;
-				try {
-					outputSender = outputSenderQueue.take();
-				} catch (InterruptedException e) {
-				}
+			try {
+				while (! stop) {
+					IOutputSender outputSender = null;
+					try {
+						outputSender = outputSenderQueue.take();
+					} catch (InterruptedException e) {
+					}
 
-				synchronized (SocketChannelOutputHandler.this) {
-					if (! stop
-							&& outputSender != null ) {
-						activityMonitor.startMonitoring();
-						try {
-							outputSender.sendOutput(writeBuffer);
+					synchronized (SocketChannelOutputHandler.this) {
+						if (! stop
+								&& outputSender != null ) {
+							activityMonitor.startMonitoring();
+							try {
+								outputSender.sendOutput(writeBuffer);
+							}
+							catch (Exception e) {
+								Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Exception when sending output", e);
+							}
+
+							activityMonitor.endMonitoring();
+
+							int percentageTimeActiveInLastPeriod = activityMonitor.getPercentageTimeActiveInLastPeriod();
+							httpServer.reportActivityLevel(SocketChannelOutputHandler.this, percentageTimeActiveInLastPeriod);
+
+							lastActivityTimeStampNanos = System.nanoTime();
 						}
-						catch (Exception e) {
-							Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Exception when sending output", e);
-						}
-						
-						activityMonitor.endMonitoring();
-
-						int percentageTimeActiveInLastPeriod = activityMonitor.getPercentageTimeActiveInLastPeriod();
-						httpServer.reportActivityLevel(SocketChannelOutputHandler.this, percentageTimeActiveInLastPeriod);
-
-						lastActivityTimeStampNanos = System.nanoTime();
 					}
 				}
+			}
+			catch (RuntimeException e) {
+				Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Exception when sending output", e);
 			}
 		}
 	}
