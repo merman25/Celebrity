@@ -5,8 +5,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.merman.celebrity.server.exceptions.HTTPException;
@@ -29,6 +32,7 @@ public class HTTPChannelHandler {
 	private Map<SelectionKey, Object>               selectionKeysToRemove					= new ConcurrentHashMap<>();
 	private ActivityMonitor                         activityMonitor							= new ActivityMonitor();
 	private volatile long                           lastActivityTimeStampNanos;
+	private Map<SelectionKey, Long>					mapSelectionKeysToLastInputTimes		= new HashMap<>();
 	
 	private ByteBuffer readWriteBuffer = ByteBuffer.allocate(1024 * 1024); // 1 MB buffer. As of 16/1/21, total size of client directory is 312 kB, so 1 MB is loads.
 
@@ -85,6 +89,8 @@ public class HTTPChannelHandler {
 										}
 										else if (bytesRead > 0) {
 											// We do sometimes read 0 bytes, for whatever reason
+											
+											mapSelectionKeysToLastInputTimes.put(key, System.nanoTime());
 											byte[] byteArr = new byte[bytesRead]; // TODO don't allocate a new array each time
 											readWriteBuffer.flip();
 											readWriteBuffer.get(byteArr);
@@ -97,17 +103,6 @@ public class HTTPChannelHandler {
 												if (exchange.isFinishedReadingRequestBody()) {
 													httpServer.handle(exchange);
 													mapSocketChannelsToHTTPExchanges.remove(clientChannel); // if we get more bytes down the same channel, it's a new exchange
-													
-													/* FIXME
-													 * just because we have finished reading an HTTPRequest, doesn't mean we won't get
-													 * more bytes down the same channel with different requests. Since with
-													 * com.sun.net.httpserver.HttpExchange we need to close the OutputStream after writing
-													 * the response, I had assumed we needed to close the SocketChannel at this point also.
-													 * With the new code, it has become clear that new requests come down the same SocketChannel.
-													 * 
-													 * Means we should not close the channel after handling a single request, we need
-													 * a completely different mechanism for closing channels.
-													 */
 												}
 											}
 											catch (HTTPException e) {
@@ -137,7 +132,6 @@ public class HTTPChannelHandler {
 				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception in HTTP Channel Handler", e);
 			}
 		}
-		
 	}
 
 	public HTTPChannelHandler(HTTPServer aHttpServer) {
@@ -153,6 +147,7 @@ public class HTTPChannelHandler {
 		aClientSocketChannel.configureBlocking(false);
 		SelectionKey clientKey = aClientSocketChannel.register(selector, SelectionKey.OP_READ);
 		mapSelectionKeysToClientChannels.put(clientKey, aClientSocketChannel);
+		mapSelectionKeysToLastInputTimes.put(clientKey, System.nanoTime());
 		selector.wakeup();
 	}
 	
@@ -171,8 +166,12 @@ public class HTTPChannelHandler {
 		stop = true;
 		if (selector != null) {
 			try {
+				for (SelectionKey key : mapSelectionKeysToClientChannels.keySet()) {
+					removeKeyNow(key);
+				}
 				mapSelectionKeysToClientChannels.clear();
 				mapSocketChannelsToHTTPExchanges.clear();
+				mapSelectionKeysToLastInputTimes.clear();
 				selectionKeysToRemove.clear();
 				selector.close();
 				selector = null;
@@ -184,14 +183,17 @@ public class HTTPChannelHandler {
 		}
 	}
 	
-	public void remove(SelectionKey aSelectionKey) {
-		selectionKeysToRemove.put(aSelectionKey, HASHMAP_VALUE);
+	public void remove(SelectionKey... aSelectionKeys) {
+		for (SelectionKey selectionKey : aSelectionKeys) {
+			selectionKeysToRemove.put(selectionKey, HASHMAP_VALUE);
+		}
 		selector.wakeup();
 	}
 
 	private void removeKeyNow(SelectionKey aKey) {
 		try {
 			aKey.cancel();
+			mapSelectionKeysToLastInputTimes.remove(aKey);
 			SocketChannel clientChannel = mapSelectionKeysToClientChannels.remove(aKey);
 			mapSocketChannelsToHTTPExchanges.remove(clientChannel);
 			clientChannel.close();
@@ -215,5 +217,25 @@ public class HTTPChannelHandler {
 	public synchronized int getPercentageTimeActiveInLastPeriod() {
 		// This method is synchronized to avoid having to make the methods of ActivityMonitor synchronized
 		return activityMonitor.getPercentageTimeActiveInLastPeriod();
+	}
+	
+	synchronized void checkForExpiredChannels() {
+		int inactivityDurationThresholdInS = 5;
+		int inactivityDurationThresholdNanos = inactivityDurationThresholdInS * 1_000_000_000;
+		long nanoTime = System.nanoTime();
+		List<SelectionKey> keysToRemove = null;
+		for (Entry<SelectionKey, Long> mapEntry : mapSelectionKeysToLastInputTimes.entrySet()) {
+			long durationSinceLastInputNanos = nanoTime - mapEntry.getValue();
+			if (durationSinceLastInputNanos > inactivityDurationThresholdNanos) {
+				if (keysToRemove == null) {
+					keysToRemove = new ArrayList<>();
+				}
+				keysToRemove.add(mapEntry.getKey());
+			}
+		}
+
+		if (keysToRemove != null) {
+			remove(keysToRemove.toArray(new SelectionKey[ keysToRemove.size() ]));
+		}
 	}
 }

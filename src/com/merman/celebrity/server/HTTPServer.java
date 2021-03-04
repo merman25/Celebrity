@@ -188,6 +188,7 @@ public class HTTPServer {
 				
 				for (Iterator<HTTPChannelHandler> channelHandlerIterator = availableChannelHandlers.keySet().iterator(); channelHandlerIterator.hasNext();) {
 					HTTPChannelHandler httpChannelHandler = channelHandlerIterator.next();
+					httpChannelHandler.checkForExpiredChannels();
 
 					if (httpChannelHandler.getNumActiveKeys() == 0
 							&& httpChannelHandler.getDurationSinceLastActivityMillis() >= 10000 ) {
