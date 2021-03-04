@@ -5,11 +5,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.merman.celebrity.server.exceptions.HTTPException;
 import com.merman.celebrity.server.logging.Log;
@@ -18,6 +16,7 @@ import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.util.IntPool;
 
 public class HTTPChannelHandler {
+	private static final Object                     HASHMAP_VALUE                           = new Object();
 	
 	private static IntPool                          sThreadIndexPool						= new IntPool();
 	
@@ -27,7 +26,7 @@ public class HTTPChannelHandler {
 	private Selector selector;
 	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
 	private Map<SocketChannel, HTTPExchange>		mapSocketChannelsToHTTPExchanges		= new HashMap<>();
-	private Set<SelectionKey>                       selectionKeysToRemove					= Collections.synchronizedSet(new HashSet<>());
+	private Map<SelectionKey, Object>               selectionKeysToRemove					= new ConcurrentHashMap<>();
 	private ActivityMonitor                         activityMonitor							= new ActivityMonitor();
 	private volatile long                           lastActivityTimeStampNanos;
 	
@@ -56,7 +55,7 @@ public class HTTPChannelHandler {
 					}
 					
 					if (! selectionKeysToRemove.isEmpty()) {
-						for (SelectionKey key : selectionKeysToRemove) {
+						for (SelectionKey key : selectionKeysToRemove.keySet()) {
 							removeKeyNow(key);
 						}
 						
@@ -86,7 +85,7 @@ public class HTTPChannelHandler {
 										}
 										else if (bytesRead > 0) {
 											// We do sometimes read 0 bytes, for whatever reason
-											byte[] byteArr = new byte[bytesRead];
+											byte[] byteArr = new byte[bytesRead]; // TODO don't allocate a new array each time
 											readWriteBuffer.flip();
 											readWriteBuffer.get(byteArr);
 											
@@ -97,11 +96,23 @@ public class HTTPChannelHandler {
 
 												if (exchange.isFinishedReadingRequestBody()) {
 													httpServer.handle(exchange);
+													mapSocketChannelsToHTTPExchanges.remove(clientChannel); // if we get more bytes down the same channel, it's a new exchange
+													
+													/* FIXME
+													 * just because we have finished reading an HTTPRequest, doesn't mean we won't get
+													 * more bytes down the same channel with different requests. Since with
+													 * com.sun.net.httpserver.HttpExchange we need to close the OutputStream after writing
+													 * the response, I had assumed we needed to close the SocketChannel at this point also.
+													 * With the new code, it has become clear that new requests come down the same SocketChannel.
+													 * 
+													 * Means we should not close the channel after handling a single request, we need
+													 * a completely different mechanism for closing channels.
+													 */
 												}
 											}
 											catch (HTTPException e) {
 												removeKeyNow(key);
-												
+
 												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception handling HTTP Request", e);
 											}
 										}
@@ -146,6 +157,8 @@ public class HTTPChannelHandler {
 	}
 	
 	protected synchronized void start() throws IOException {
+		if (stop)
+			throw new IllegalStateException("Already stopped");
 		if (selector == null) {
 			threadIndex = sThreadIndexPool.pop();
 			lastActivityTimeStampNanos = System.nanoTime();
@@ -170,9 +183,9 @@ public class HTTPChannelHandler {
 			}
 		}
 	}
-
+	
 	public void remove(SelectionKey aSelectionKey) {
-		selectionKeysToRemove.add(aSelectionKey);
+		selectionKeysToRemove.put(aSelectionKey, HASHMAP_VALUE);
 		selector.wakeup();
 	}
 

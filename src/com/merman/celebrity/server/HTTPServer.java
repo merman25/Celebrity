@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.merman.celebrity.server.handlers.AHttpHandler;
 import com.merman.celebrity.server.logging.Log;
@@ -38,9 +40,14 @@ public class HTTPServer {
 	private static final Object                     HASHMAP_VALUE							= new Object();
 	private Map<HTTPChannelHandler, Object>         availableChannelHandlers				= new ConcurrentHashMap<>();
 	private Map<HTTPChannelHandler, Object>	     	busyChannelHandlers						= new ConcurrentHashMap<>();
+	private Map<SocketChannelOutputHandler, Object> availableSocketChannelOutputHandlers	= new ConcurrentHashMap<>();
+	private Map<SocketChannelOutputHandler, Object> busySocketChannelOutputHandlers			= new ConcurrentHashMap<>();
 	private Timer                                   removeUnusedChannelHandlersTimer;
 	
 	private Map<URI, AHttpHandler>               	handlerMap								= new HashMap<>();
+	
+	private Thread                                  processOutputQueueThread;
+	private BlockingQueue<IOutputSender>			outputSenderQueue						= new LinkedBlockingQueue<>();
 	
 	private class MyListenForConnectionsRunnable
 	implements Runnable {
@@ -113,6 +120,49 @@ public class HTTPServer {
 		}
 	}
 	
+	private class MyProcessOutputQueueRunnable
+	implements Runnable {
+		@Override
+		public void run() {
+			try {
+				while (listen) {
+					IOutputSender outputSender = null;
+					try {
+						outputSender = outputSenderQueue.take();
+					}
+					catch (InterruptedException e) {
+						Log.log(LogMessageType.DEBUG, LogMessageSubject.HTTP_REQUESTS, "ProcessOutputQueue thread interrupted" );
+					}
+					
+					if (listen
+							&& outputSender != null) {
+						SocketChannelOutputHandler outputHandler = null;
+						if (! availableSocketChannelOutputHandlers.isEmpty()) {
+							outputHandler = availableSocketChannelOutputHandlers.keySet().iterator().next();
+						}
+						else if (! busySocketChannelOutputHandlers.isEmpty()) {
+							SocketChannelOutputHandler previouslyBusySocketChannelOutputHandler = busySocketChannelOutputHandlers.keySet().iterator().next();
+							if (previouslyBusySocketChannelOutputHandler.getPercentageTimeActiveInLastPeriod() == 0) {
+								busySocketChannelOutputHandlers.remove(previouslyBusySocketChannelOutputHandler);
+								availableSocketChannelOutputHandlers.put(previouslyBusySocketChannelOutputHandler, HASHMAP_VALUE);
+								outputHandler = previouslyBusySocketChannelOutputHandler;
+							}
+						}
+						
+						if (outputHandler == null) {
+							outputHandler = new SocketChannelOutputHandler(HTTPServer.this);
+							availableSocketChannelOutputHandlers.put(outputHandler, HASHMAP_VALUE);
+						}
+						outputHandler.add(outputSender);
+					}
+				}
+			}
+			catch (RuntimeException e) {
+				Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception in HTTP Server", e);
+			}
+		}
+	}
+	
 	private class MyRemoveUnusedChannelHandlersTimerTask
 	extends TimerTask {
 
@@ -145,6 +195,35 @@ public class HTTPServer {
 						channelHandlerIterator.remove();
 					}
 				}
+				
+
+				List<SocketChannelOutputHandler> noLongerBusySocketChannelHandlers = new ArrayList<>();
+				
+				/* Some handlers may have reported themselves busy, but then had no subsequent activity,
+				 * so are blocking on Selector.select(). Can stop counting them as busy.
+				 */
+				for (Iterator<SocketChannelOutputHandler> socketChannelHandlerIterator = busySocketChannelOutputHandlers.keySet().iterator(); socketChannelHandlerIterator.hasNext();) {
+					SocketChannelOutputHandler socketChannelHandler = socketChannelHandlerIterator.next();
+					if (socketChannelHandler.getPercentageTimeActiveInLastPeriod() == 0) {
+						socketChannelHandlerIterator.remove();
+						noLongerBusySocketChannelHandlers.add(socketChannelHandler);
+					}
+				}
+				
+				for (SocketChannelOutputHandler socketChannelHandler : noLongerBusySocketChannelHandlers) {
+					availableSocketChannelOutputHandlers.put(socketChannelHandler, HASHMAP_VALUE);
+				}
+				
+				for (Iterator<SocketChannelOutputHandler> socketChannelHandlerIterator = availableSocketChannelOutputHandlers.keySet().iterator(); socketChannelHandlerIterator.hasNext();) {
+					SocketChannelOutputHandler socketChannelHandler = socketChannelHandlerIterator.next();
+
+					if (socketChannelHandler.getQueueSize() == 0
+							&& socketChannelHandler.getDurationSinceLastActivityMillis() >= 10000 ) {
+						socketChannelHandler.stop();
+						socketChannelHandlerIterator.remove();
+					}
+				}
+			
 			}
 		}
 	}
@@ -216,6 +295,9 @@ public class HTTPServer {
 			listen = true;
 			thread.start();
 			
+			processOutputQueueThread = new Thread(new MyProcessOutputQueueRunnable(), "Process Output Queue");
+			processOutputQueueThread.start();
+			
 			removeUnusedChannelHandlersTimer = new Timer("Remove unused HTTP channel handlers", true);
 			removeUnusedChannelHandlersTimer.schedule(new MyRemoveUnusedChannelHandlersTimerTask(), 10000, 10000);
 
@@ -245,6 +327,9 @@ public class HTTPServer {
 			}
 			serverSocketChannel = null;
 		}
+		if (processOutputQueueThread != null) {
+			processOutputQueueThread.interrupt();
+		}
 		if (removeUnusedChannelHandlersTimer != null) {
 			removeUnusedChannelHandlersTimer.cancel();
 			removeUnusedChannelHandlersTimer = null;
@@ -272,7 +357,7 @@ public class HTTPServer {
 			throw new RuntimeException("URISyntaxException", e);
 		}
 	}
-
+	
 	public void handle(HTTPExchange aExchange) {
 //		System.out.print(aExchange.getCompleteRequest());
 		
@@ -281,11 +366,11 @@ public class HTTPServer {
 		try {
 			if (handler == null) {
 				aExchange.setResponseHeaders(HTTPResponseConstants.Not_Found_404, 0);
-				aExchange.sendResponse();
-				aExchange.close();
+				outputSenderQueue.add(aExchange);
 			}
 			else {
 				handler.handleWrapper(new HTTPExchangeWrapper(aExchange));
+				outputSenderQueue.add(aExchange);
 			}
 		}
 		catch (IOException e) {
@@ -303,6 +388,19 @@ public class HTTPServer {
 		else if ( ! availableChannelHandlers.containsKey(aChannelHandler)) {
 			busyChannelHandlers.remove(aChannelHandler);
 			availableChannelHandlers.put(aChannelHandler, HASHMAP_VALUE);
+		}
+	}
+
+	public void reportActivityLevel(SocketChannelOutputHandler aSocketChannelOutputHandler, int aPercentageTimeActiveInLastPeriod) {
+		if (aPercentageTimeActiveInLastPeriod > 50) {
+			if (! busySocketChannelOutputHandlers.containsKey(aSocketChannelOutputHandler)) {
+					availableSocketChannelOutputHandlers.remove(aSocketChannelOutputHandler);
+					busySocketChannelOutputHandlers.put(aSocketChannelOutputHandler, HASHMAP_VALUE);
+			}
+		}
+		else if ( ! availableSocketChannelOutputHandlers.containsKey(aSocketChannelOutputHandler)) {
+			busySocketChannelOutputHandlers.remove(aSocketChannelOutputHandler);
+			availableSocketChannelOutputHandlers.put(aSocketChannelOutputHandler, HASHMAP_VALUE);
 		}
 	}
 }

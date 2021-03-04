@@ -98,8 +98,6 @@ public abstract class AHttpHandler implements IContextHandler {
 		}
 		else {
 			aExchangeWrapper.setResponseBody( aResponse, responseBytes );
-			aExchangeWrapper.sendResponse();
-			aExchangeWrapper.close();
 		}
 		
 		HttpExchangeUtil.logBytesSent(aExchangeWrapper, bodyLength);

@@ -26,7 +26,8 @@ import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
 
-public class HTTPExchange {
+public class HTTPExchange
+implements IOutputSender {
 	private static final String                        HEADER_DELIMITER                                              = "\r\n";
 	private static final char                          HEADER_NAME_VALUE_SEPARATOR                                   = ':';
 	public static final int                            DEFAULT_MAX_REQUEST_SIZE_IN_BYTES                             = 0x2000;                                                             // 8kb
@@ -408,7 +409,7 @@ public class HTTPExchange {
 		return requestURI;
 	}
 
-	public void sendResponse() throws IOException {
+	public void sendResponse(ByteBuffer aBuffer) throws IOException {
 		getResponseHeaders().put("date", Arrays.asList( THREAD_LOCAL_DATE_FORMAT.get().format(new Date()) ));
 		
 		int sizeAllocationPerHeader = 100; // should be enough, if not StringBuilder will just expand
@@ -441,10 +442,19 @@ public class HTTPExchange {
 		System.arraycopy(headerBytes, 0, responseBytes, 0, headerBytes.length);
 		System.arraycopy(responseBody, 0, responseBytes, headerBytes.length, responseBody.length);
 		
-		ByteBuffer buffer = ByteBuffer.allocate(responseBytes.length); // TODO don't allocate new buffers all the time
-		buffer.put(responseBytes);
-		buffer.flip();
-		clientSocketChannel.write(buffer);
+		for( int offset = 0, bytesToSend = responseBytes.length; bytesToSend > 0; ) {
+			aBuffer.clear();
+			int bytesToSendInThisIteration = Math.min(bytesToSend, aBuffer.limit());
+			aBuffer.put(responseBytes, offset, bytesToSendInThisIteration);
+			aBuffer.flip();
+
+			while (aBuffer.hasRemaining()) {
+				clientSocketChannel.write(aBuffer);
+			}
+			
+			offset += bytesToSendInThisIteration;
+			bytesToSend -= bytesToSendInThisIteration;
+		}
 	}
 
 	public void close() {
@@ -457,5 +467,11 @@ public class HTTPExchange {
 
 	public String getHTTPProtocolString() {
 		return httpProtocolString;
+	}
+
+	@Override
+	public void sendOutput(ByteBuffer aBuffer) throws IOException {
+		sendResponse(aBuffer);
+		close();
 	}
 }

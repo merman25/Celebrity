@@ -117,24 +117,6 @@ public class HTTPExchangeWrapper {
 	}
 
 	
-	public void sendResponse() throws IOException {
-		if (sunHTTPExchange != null) {
-			
-		}
-		else {
-			mermanHTTPExchange.sendResponse();
-		}
-	}
-	
-	public void close() {
-		if (sunHTTPExchange != null) {
-			
-		}
-		else {
-			mermanHTTPExchange.close();
-		}
-	}
-	
 	public URI getRequestURI() {
 		if (sunHTTPExchange != null) {
 			return sunHTTPExchange.getRequestURI();

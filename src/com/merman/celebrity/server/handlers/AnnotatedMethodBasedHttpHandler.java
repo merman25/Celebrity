@@ -194,10 +194,6 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 				if (responseBody != null) {
 					responseBody.close();
 				}
-				else {
-					aHttpExchangeWrapper.sendResponse();
-					aHttpExchangeWrapper.close();
-				}
 				HttpExchangeUtil.logBytesSent(aHttpExchangeWrapper, 0);
 			}
 			else if ( responseObject instanceof String ) {

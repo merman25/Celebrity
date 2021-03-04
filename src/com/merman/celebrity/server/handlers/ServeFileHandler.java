@@ -108,8 +108,6 @@ public class ServeFileHandler extends AHttpHandler {
 		}
 		else {
 			aExchangeWrapper.setResponseBody( responseBytes );
-			aExchangeWrapper.sendResponse();
-			aExchangeWrapper.close();
 		}
 		
 		HttpExchangeUtil.logBytesSent(aExchangeWrapper, bodyLength);
