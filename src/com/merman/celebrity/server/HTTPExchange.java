@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TimeZone;
 
 import com.merman.celebrity.server.exceptions.HTTPException;
 import com.merman.celebrity.server.exceptions.HTTPRequestTooLongException;
@@ -39,7 +40,9 @@ implements IOutputSender {
 
 																															@Override
 																															protected SimpleDateFormat initialValue() {
-																																return new SimpleDateFormat(DATE_FORMAT_STRING, Locale.US);
+																																SimpleDateFormat simpleDateFormat = new SimpleDateFormat(DATE_FORMAT_STRING, Locale.US);
+																																simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+																																return simpleDateFormat;
 																															}
 																														};
 																														
