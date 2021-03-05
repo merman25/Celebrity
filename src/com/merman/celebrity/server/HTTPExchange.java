@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.merman.celebrity.server.exceptions.HTTPException;
 import com.merman.celebrity.server.exceptions.HTTPRequestTooLongException;
@@ -50,6 +53,8 @@ implements IOutputSender {
 																															.mapToInt(method -> method.toString().length())
 																															.reduce(0, Math::max);
 	
+	private static final Pattern                       CONTENT_TYPE_CHARSET_VALUE_PATTERN							 = Pattern.compile("charset *= *([\\w-]+)", Pattern.CASE_INSENSITIVE );
+	
 	private int                                        maxRequestSizeInBytes                                         = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
 	private SocketChannel                              clientSocketChannel;
 //	private HTTPChannelHandler                         channelHandler;
@@ -63,7 +68,7 @@ implements IOutputSender {
 	private int                                        indexOfFirstWhitespaceChar                                    = -1;
 	private int                                        indexOfSecondWhitespaceChar                                   = -1;
 
-	private StringBuilder                              completeRequest                                               = new StringBuilder(1024);
+	private List<Byte>                                 completeRequest                                               = new ArrayList<>(1024);
 	private Map<String, List<String>>                  modifiableRequestHeaders                                      = new LinkedHashMap<>();
 	private Map<String, List<String>>                  unmodifiableRequestHeaders;
 	private Map<String, List<String>>                  responseHeaders                                               = new LinkedHashMap<>();
@@ -73,8 +78,10 @@ implements IOutputSender {
 	private boolean                                    finishedReadingRequestBody;
 	private int                                        reportedRequestBodyLength                                     = -1;
 
-	private StringBuilder                              requestBodyBuilder                                            = new StringBuilder();
+	private int                                        requestBodyArrOffset;
+	private byte[]		                               requestBodyArr	                                             = new byte[0];
 	private String                                     requestBody;
+	private Charset                                    requestBodyCharSet                                            = StandardCharsets.UTF_8;
 
 	/**
 	 * In the end the response has to be a byte arr (could be binary data), but
@@ -118,9 +125,12 @@ implements IOutputSender {
 		
 		// Check size
 		int maxRequestSizeInBytes = getMaxRequestSizeInBytes();
-		if ( completeRequest.length() + aByteArr.length > maxRequestSizeInBytes ) {
-			completeRequest.append(new String(aByteArr, 0, maxRequestSizeInBytes - completeRequest.length(), StandardCharsets.US_ASCII));
-			throw new HTTPRequestTooLongException(String.format("HTTP request exceeded max size [%,d B]", maxRequestSizeInBytes), completeRequest.toString());
+		if ( completeRequest.size() + aByteArr.length > maxRequestSizeInBytes ) {
+			int numBytesToAdd = maxRequestSizeInBytes - completeRequest.size();
+			for (int byteIndex = 0; byteIndex < numBytesToAdd; byteIndex++) {
+				completeRequest.add(aByteArr[byteIndex]);
+			}
+			throw new HTTPRequestTooLongException(String.format("HTTP request exceeded max size [%,d B]", maxRequestSizeInBytes), getCompleteRequest() );
 		}
 		
 		// Check we can fit everything into buffer
@@ -160,7 +170,7 @@ implements IOutputSender {
 			for (int newByteIndex = 0; newByteIndex < aByteArr.length; newByteIndex++) {
 				byte newByte = aByteArr[newByteIndex];
 				currentHeaderElementBuffer[ currentHeaderElementBufferOffset++ ] = newByte;
-				completeRequest.append((char) newByte);
+				completeRequest.add(newByte);
 				
 				// Check for HTTP method
 				if (indexOfFirstWhitespaceChar == -1) {
@@ -254,12 +264,17 @@ implements IOutputSender {
 		
 		if ( finishedReadingRequestHeaders ) {
 			if ( getReportedRequestBodyLength() > 0) {
-				for(int newByteIndex = offsetIntoNewByteArr; newByteIndex < aByteArr.length && requestBodyBuilder.length() < getReportedRequestBodyLength(); newByteIndex++ ) {
-					requestBodyBuilder.append((char) aByteArr[newByteIndex]);
+				if (requestBodyArr.length == 0) {
+					requestBodyArr = new byte[ getReportedRequestBodyLength() ];
+				}
+				for(int newByteIndex = offsetIntoNewByteArr; newByteIndex < aByteArr.length && requestBodyArrOffset < requestBodyArr.length; newByteIndex++ ) {
+					byte nextByte = aByteArr[newByteIndex];
+					requestBodyArr[ requestBodyArrOffset++ ] = nextByte;
+					completeRequest.add(nextByte);
 				}
 
-				if ( requestBodyBuilder.length() >= getReportedRequestBodyLength() ) {
-					requestBody = requestBodyBuilder.toString();
+				if ( requestBodyArrOffset >= getReportedRequestBodyLength() ) {
+					requestBody = new String( requestBodyArr, requestBodyCharSet );
 					finishedReadingRequestBody = true;
 				}
 			}
@@ -290,6 +305,21 @@ implements IOutputSender {
 				}
 				catch (NumberFormatException e) {
 					Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Cannot parse content-length string", headerValue);
+				}
+			}
+			else if (headerName.equalsIgnoreCase("content-type")) {
+				Matcher matcher = CONTENT_TYPE_CHARSET_VALUE_PATTERN.matcher(headerValue);
+				if (matcher.find()) {
+					String charsetName = matcher.group(1);
+					try {
+						Charset specifiedCharset = Charset.forName(charsetName);
+						if (specifiedCharset != null) {
+							requestBodyCharSet = specifiedCharset;
+						}
+					}
+					catch (RuntimeException e) {
+						Log.log(LogMessageType.ERROR, LogMessageSubject.HTTP_REQUESTS, "Unknown charset", charsetName);
+					}
 				}
 			}
 		}
@@ -405,7 +435,11 @@ implements IOutputSender {
 	}
 	
 	public String getCompleteRequest() {
-		return completeRequest.toString();
+		byte[] completeRequestArr = new byte[ completeRequest.size() ];
+		for (int byteIndex = 0; byteIndex < completeRequestArr.length; byteIndex++) {
+			completeRequestArr[ byteIndex ] = completeRequest.get(byteIndex);
+		}
+		return new String(completeRequestArr, requestBodyCharSet);
 	}
 
 	public URI getRequestURI() {
