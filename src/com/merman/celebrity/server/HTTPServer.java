@@ -24,8 +24,6 @@ import com.merman.celebrity.server.handlers.AHttpHandler;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
-import com.merman.celebrity.server.logging.Logger;
-import com.merman.celebrity.server.logging.outputters.PrintStreamOutputter;
 
 public class HTTPServer {
 
@@ -341,11 +339,6 @@ public class HTTPServer {
 		return localHost;
 	}
 
-	public static void main(String[] args) throws IOException {
-		Log.addLogger(LogMessageSubject.GENERAL, new Logger(null, new PrintStreamOutputter(System.out)));
-		new HTTPServer(8000, true).start();
-	}
-	
 	public void addHandler(AHttpHandler aHandler) {
 		addHandler(aHandler.getContextName(), aHandler);
 	}
