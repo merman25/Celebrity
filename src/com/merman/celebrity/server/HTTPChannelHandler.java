@@ -7,9 +7,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.merman.celebrity.server.exceptions.HTTPException;
@@ -29,6 +31,7 @@ public class HTTPChannelHandler {
 	private Selector selector;
 	private Map<SelectionKey, SocketChannel>		mapSelectionKeysToClientChannels		= new HashMap<>();
 	private Map<SocketChannel, HTTPExchange>		mapSocketChannelsToHTTPExchanges		= new HashMap<>();
+	private Set<SocketChannel>						websocketChannels						= new HashSet<>();
 	private Map<SelectionKey, Object>               selectionKeysToRemove					= new ConcurrentHashMap<>();
 	private ActivityMonitor                         activityMonitor							= new ActivityMonitor();
 	private volatile long                           lastActivityTimeStampNanos;
@@ -95,20 +98,26 @@ public class HTTPChannelHandler {
 											readWriteBuffer.flip();
 											readWriteBuffer.get(byteArr);
 											
-											HTTPExchange exchange = mapSocketChannelsToHTTPExchanges.computeIfAbsent(clientChannel, sc -> new HTTPExchange(sc, HTTPChannelHandler.this, key));
-											
-											try {
-												exchange.addBytes(byteArr);
-
-												if (exchange.isFinishedReadingRequestBody()) {
-													httpServer.handle(exchange);
-													mapSocketChannelsToHTTPExchanges.remove(clientChannel); // if we get more bytes down the same channel, it's a new exchange
-												}
+											if (websocketChannels.contains(clientChannel)) {
+												// TODO handle with a WebsocketMessage
 											}
-											catch (HTTPException e) {
-												removeKeyNow(key);
+											else {
 
-												Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception handling HTTP Request", e);
+												HTTPExchange exchange = mapSocketChannelsToHTTPExchanges.computeIfAbsent(clientChannel, sc -> new HTTPExchange(sc, HTTPChannelHandler.this, key));
+
+												try {
+													exchange.addBytes(byteArr);
+
+													if (exchange.isFinishedReadingRequestBody()) {
+														httpServer.handle(exchange);
+														mapSocketChannelsToHTTPExchanges.remove(clientChannel); // if we get more bytes down the same channel, it's a new exchange
+													}
+												}
+												catch (HTTPException e) {
+													removeKeyNow(key);
+
+													Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Exception handling HTTP Request", e);
+												}
 											}
 										}
 
@@ -237,5 +246,9 @@ public class HTTPChannelHandler {
 		if (keysToRemove != null) {
 			remove(keysToRemove.toArray(new SelectionKey[ keysToRemove.size() ]));
 		}
+	}
+
+	public void addToWebsocketChannelSet(SocketChannel aClientSocketChannel) {
+		websocketChannels.add(aClientSocketChannel);
 	}
 }

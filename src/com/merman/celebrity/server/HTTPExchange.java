@@ -57,8 +57,8 @@ implements IOutputSender {
 	
 	private int                                        maxRequestSizeInBytes                                         = DEFAULT_MAX_REQUEST_SIZE_IN_BYTES;
 	private SocketChannel                              clientSocketChannel;
-//	private HTTPChannelHandler                         channelHandler;
-//	private SelectionKey                               selectionKey;
+	private HTTPChannelHandler                         channelHandler;
+	private SelectionKey                               selectionKey;
 
 	// Line saying GET/POST etc, giving the URL, HTTP version, etc
 	private String                                     firstLine;
@@ -105,8 +105,8 @@ implements IOutputSender {
 
 	public HTTPExchange(SocketChannel aClientSocketChannel, HTTPChannelHandler aHttpChannelHandler, SelectionKey aKey) {
 		clientSocketChannel = aClientSocketChannel;
-//		channelHandler = aHttpChannelHandler;
-//		selectionKey = aKey;
+		channelHandler = aHttpChannelHandler;
+		selectionKey = aKey;
 	}
 
 	public SocketChannel getClientSocketChannel() {
@@ -510,5 +510,13 @@ implements IOutputSender {
 	public void sendOutput(ByteBuffer aBuffer) throws IOException {
 		sendResponse(aBuffer);
 //		close();
+	}
+
+	public HTTPChannelHandler getChannelHandler() {
+		return channelHandler;
+	}
+
+	public SelectionKey getSelectionKey() {
+		return selectionKey;
 	}
 }

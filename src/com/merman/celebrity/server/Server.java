@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import com.merman.celebrity.game.GameManager;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.server.handlers.AnnotatedMethodBasedHttpHandler;
+import com.merman.celebrity.server.handlers.OpenWebsocketRequestHandler;
 import com.merman.celebrity.server.handlers.ServeFileHandler;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
@@ -92,6 +93,8 @@ public class Server {
 			for ( AnnotatedMethodBasedHttpHandler handler : handlers ) {
 				httpServer.addHandler("/" + handler.getContextName(), handler);
 			}
+			
+			httpServer.addHandler(new OpenWebsocketRequestHandler());
 
 			httpServer.start();
 		}

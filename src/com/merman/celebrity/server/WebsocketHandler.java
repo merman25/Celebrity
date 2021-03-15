@@ -1,5 +1,17 @@
 package com.merman.celebrity.server;
 
+import static com.merman.celebrity.server.WebsocketUtil.CLOSE_CONNECTION_BYTE;
+import static com.merman.celebrity.server.WebsocketUtil.CLOSE_CONNECTION_MESSAGE;
+import static com.merman.celebrity.server.WebsocketUtil.LENGTH_BYTE_SUBTRACTION_CONSTANT;
+import static com.merman.celebrity.server.WebsocketUtil.LENGTH_MAGNITUDE_16_BIT_INDICATOR;
+import static com.merman.celebrity.server.WebsocketUtil.LENGTH_MAGNITUDE_64_BIT_INDICATOR;
+import static com.merman.celebrity.server.WebsocketUtil.MESSAGE_START_BYTE;
+import static com.merman.celebrity.server.WebsocketUtil.MESSAGE_START_BYTE_AS_INT;
+import static com.merman.celebrity.server.WebsocketUtil.PING_BYTE;
+import static com.merman.celebrity.server.WebsocketUtil.PONG;
+import static com.merman.celebrity.server.WebsocketUtil.PONG_BYTE;
+import static com.merman.celebrity.server.WebsocketUtil.STOP;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,22 +47,6 @@ import com.merman.celebrity.server.logging.LogMessageType;
 import com.merman.celebrity.util.IntPool;
 
 public class WebsocketHandler {
-	private static final byte            MESSAGE_START_BYTE                          = (byte) 0x81;                         // -127
-	private static final int             MESSAGE_START_BYTE_AS_INT                   = 0x81;                                // 129
-
-	private static final int             LENGTH_BYTE_SUBTRACTION_CONSTANT            = 128;
-	private static final byte            LENGTH_MAGNITUDE_16_BIT_INDICATOR           = 126;
-	private static final byte            LENGTH_MAGNITUDE_64_BIT_INDICATOR           = 127;
-
-	private static final int             MAX_LENGTH_16_BITS                          = 65536;
-
-	private static final int             CLOSE_CONNECTION_BYTE                       = 0x88;
-	private static final int             PING_BYTE                                   = 0x89;
-	private static final int             PONG_BYTE                                   = 0x8A;
-
-	private static final String          STOP                                        = "__STOP__";
-	private static final String          PONG     									 = "__PONG__";
-	private static final String          CLOSE_CONNECTION_MESSAGE                    = "03E9";
 
 	private static IntPool               sThreadIndexPool                            = new IntPool();
 	private static Map<Integer, AtomicInteger> sMapThreadIndicesToNumberOfFinalisedThreads = Collections.synchronizedMap(new HashMap<>());
@@ -108,7 +104,7 @@ public class WebsocketHandler {
 								bytesReceived += 8;
 							}
 
-							long messageLength = toLength(lengthByteArray);
+							long messageLength = WebsocketUtil.toLength(lengthByteArray, 0);
 
 							if ( messageLength < 0 ) {
 								throw new RuntimeException("Negative message length: " + messageLength);
@@ -141,7 +137,7 @@ public class WebsocketHandler {
 									for ( int totalBytesRead = 0; ( totalBytesRead += inputStream.read(encodedMessage, totalBytesRead, encodedMessage.length - totalBytesRead ) ) < encodedMessage.length; );
 									bytesReceived += encodedMessage.length;
 									
-									byte[] decodedMessage = decode(key, encodedMessage);
+									byte[] decodedMessage = WebsocketUtil.decode(key, encodedMessage);
 									String message;
 									if ( firstByteOfMessage == CLOSE_CONNECTION_BYTE ) {
 										message = bytesToHex(decodedMessage);
@@ -282,13 +278,7 @@ public class WebsocketHandler {
 		}
 		
 		synchronized void sendMessage( byte aMessageStartByte, String aMessage ) throws IOException {
-			byte[] messageBytes = aMessage.getBytes(StandardCharsets.UTF_8);
-			byte[] lengthArray = toLengthArray(messageBytes.length);
-
-			byte[] frame = new byte[messageBytes.length + lengthArray.length + 1];
-			frame[0] = aMessageStartByte;
-			System.arraycopy(lengthArray, 0, frame, 1, lengthArray.length);
-			System.arraycopy(messageBytes, 0, frame, lengthArray.length + 1, messageBytes.length);
+			byte[] frame = WebsocketUtil.toWebsocketFrame(aMessageStartByte, aMessage);
 
 			socket.getOutputStream().write(frame);
 			CelebrityMain.bytesSent.accumulateAndGet(frame.length, Long::sum);
@@ -360,66 +350,6 @@ public class WebsocketHandler {
 				
 			}.start();
 		}
-	}
-
-	private long toLength(byte[] aLengthByteArray) {
-		long length = 0;
-		int lengthMagnitudeIndicator = aLengthByteArray[0];
-		if ( lengthMagnitudeIndicator < 0 ) {
-			throw new IllegalArgumentException("Illegal magnitude indicator: " + aLengthByteArray[0]);
-		}
-		else if ( lengthMagnitudeIndicator < LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
-			length = lengthMagnitudeIndicator;
-		}
-		else if ( lengthMagnitudeIndicator == LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
-			int byteOneAsInt = aLengthByteArray[1];
-			int byteTwoAsInt = aLengthByteArray[2];
-			
-			if ( byteOneAsInt < 0 ) {
-				byteOneAsInt = 256 + byteOneAsInt;
-			}
-			if ( byteTwoAsInt < 0 ) {
-				byteTwoAsInt = 256 + byteTwoAsInt;
-			}
-			length = ( ( byteOneAsInt << 8 ) | byteTwoAsInt );
-		}
-		else {
-			assert aLengthByteArray[0] == LENGTH_MAGNITUDE_64_BIT_INDICATOR;
-			
-			for (int i = 1; i < 9; i++) {
-				int shiftAmount = 8 * (8-i);
-				long byteAsLong = aLengthByteArray[i];
-				if ( byteAsLong < 0 ) {
-					byteAsLong = 256 + byteAsLong;
-				}
-				length |= ( byteAsLong << shiftAmount );
-			}
-		}
-		return length;
-	}
-	
-	public static byte[] toLengthArray(long aLength) {
-		byte[] lengthArray;
-		if ( aLength < LENGTH_MAGNITUDE_16_BIT_INDICATOR ) {
-			lengthArray = new byte[1];
-			lengthArray[0] = (byte) aLength;
-		}
-		else if ( aLength < MAX_LENGTH_16_BITS ) {
-			lengthArray = new byte[3];
-			lengthArray[0] = LENGTH_MAGNITUDE_16_BIT_INDICATOR;
-			lengthArray[1] = (byte) (aLength >> 8);
-			lengthArray[2] = (byte) (aLength & 255);
-		}
-		else {
-			lengthArray = new byte[9];
-			lengthArray[0] = LENGTH_MAGNITUDE_64_BIT_INDICATOR;
-			for (int i = 1; i < 9; i++) {
-				int shiftAmount = 8 * (8-i);
-				lengthArray[i] = (byte) (aLength >> shiftAmount);
-			}
-		}
-		
-		return lengthArray;
 	}
 
 	public synchronized void start() throws IOException {
@@ -550,14 +480,6 @@ public class WebsocketHandler {
 		Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "Websocket handshake failed. IP", socket.getInetAddress());
 		stop();
 		return false;
-	}
-	
-	private static byte[] decode(byte[] aKey, byte[] aEncodedMessage) {
-		byte[] decodedMessage = new byte[aEncodedMessage.length];
-		for (int i = 0; i < aEncodedMessage.length; i++) {
-			decodedMessage[i] = (byte) (aEncodedMessage[i] ^ aKey[i & 0x3]);
-		}
-		return decodedMessage;
 	}
 	
 	public void enqueueMessage(String aMessage) {

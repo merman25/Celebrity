@@ -27,7 +27,7 @@ import com.merman.celebrity.game.Team;
 import com.merman.celebrity.server.CelebrityMain;
 import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
-import com.merman.celebrity.server.WebsocketHandler;
+import com.merman.celebrity.server.WebsocketUtil;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.handlers.AnnotatedHandlers;
 import com.merman.celebrity.util.SharedRandom;
@@ -619,9 +619,21 @@ public class ServerTest {
 	
 	@Test
 	public void testToLengthArray() {
-		Assert.assertEquals("[10]", Arrays.toString( WebsocketHandler.toLengthArray(10) ));
-		Assert.assertEquals("[126, 3, -42]", Arrays.toString( WebsocketHandler.toLengthArray(982) ));
-		Assert.assertEquals("[127, 0, 0, 0, 0, 0, 1, 90, 23]", Arrays.toString( WebsocketHandler.toLengthArray(88599) ));
+		Assert.assertEquals("[10]", Arrays.toString( WebsocketUtil.toLengthArray(10) ));
+		Assert.assertEquals("[126, 3, -42]", Arrays.toString( WebsocketUtil.toLengthArray(982) ));
+		Assert.assertEquals("[127, 0, 0, 0, 0, 0, 1, 90, 23]", Arrays.toString( WebsocketUtil.toLengthArray(88599) ));
+	}
+	
+	@Test
+	public void testToLength() {
+		Assert.assertEquals(10, WebsocketUtil.toLength( new byte[] { 10 }, 0));
+		Assert.assertEquals(10, WebsocketUtil.toLength( new byte[] { WebsocketUtil.MESSAGE_START_BYTE, 10 }, 1));
+
+		Assert.assertEquals(982, WebsocketUtil.toLength( new byte[] { 126, 3, -42 }, 0));
+		Assert.assertEquals(982, WebsocketUtil.toLength( new byte[] { WebsocketUtil.MESSAGE_START_BYTE, 126, 3, -42 }, 1));
+
+		Assert.assertEquals(88599, WebsocketUtil.toLength( new byte[] { 127, 0, 0, 0, 0, 0, 1, 90, 23 }, 0));
+		Assert.assertEquals(88599, WebsocketUtil.toLength( new byte[] { WebsocketUtil.MESSAGE_START_BYTE, 127, 0, 0, 0, 0, 0, 1, 90, 23 }, 1));
 	}
 	
 	@Test

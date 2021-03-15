@@ -21,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.merman.celebrity.server.handlers.AHttpHandler;
+import com.merman.celebrity.server.handlers.APredicateBasedHttpHandler;
+import com.merman.celebrity.server.handlers.OpenWebsocketRequestHandler;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
@@ -42,6 +44,7 @@ public class HTTPServer {
 	private Map<SocketChannelOutputHandler, Object> busySocketChannelOutputHandlers			= new ConcurrentHashMap<>();
 	private Timer                                   removeUnusedChannelHandlersTimer;
 	
+	private List<APredicateBasedHttpHandler>		predicateBasedHandlerList				= new ArrayList<>();
 	private Map<URI, AHttpHandler>               	handlerMap								= new HashMap<>();
 	
 	private Thread                                  processOutputQueueThread;
@@ -343,6 +346,10 @@ public class HTTPServer {
 		addHandler(aHandler.getContextName(), aHandler);
 	}
 	
+	public void addHandler(APredicateBasedHttpHandler aHandler) {
+		predicateBasedHandlerList.add(aHandler);
+	}
+	
 	public void addHandler(String aURI, AHttpHandler aHandler) {
 		try {
 			URI uri = new URI(aURI);
@@ -355,8 +362,7 @@ public class HTTPServer {
 	public void handle(HTTPExchange aExchange) {
 //		System.out.print(aExchange.getCompleteRequest());
 		
-		URI uri = aExchange.getRequestURI();
-		AHttpHandler handler = handlerMap.get(uri);
+		AHttpHandler handler = retrieveHandler(aExchange);
 		try {
 			if (handler == null) {
 				aExchange.setResponseHeaders(HTTPResponseConstants.Not_Found_404, 0);
@@ -365,11 +371,26 @@ public class HTTPServer {
 			else {
 				handler.handleWrapper(new HTTPExchangeWrapper(aExchange));
 				outputSenderQueue.add(aExchange);
+				if (handler instanceof OpenWebsocketRequestHandler) {
+					aExchange.getChannelHandler().addToWebsocketChannelSet( aExchange.getClientSocketChannel() );
+				}
 			}
 		}
 		catch (IOException e) {
-			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException handling exchange", aExchange, "URI", uri, "handler", handler, "exception", e);
+			Log.log(LogMessageType.ERROR, LogMessageSubject.GENERAL, "IOException handling exchange", aExchange, "URI", aExchange.getRequestURI(), "handler", handler, "exception", e);
 		}
+	}
+
+	private AHttpHandler retrieveHandler(HTTPExchange aExchange) {
+		for (APredicateBasedHttpHandler httpHandler : predicateBasedHandlerList) {
+			if (httpHandler.shouldHandle(aExchange)) {
+				return httpHandler;
+			}
+		}
+		
+		URI uri = aExchange.getRequestURI();
+		AHttpHandler handler = handlerMap.get(uri);
+		return handler;
 	}
 
 	public void reportActivityLevel(HTTPChannelHandler aChannelHandler, int aPercentageTimeActiveInLastPeriod) {
