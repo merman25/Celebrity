@@ -89,6 +89,20 @@
             <button id="submitGameParamsButton">Set</button>
           </div>
         </form>
+        
+        <div id="inGameSettingsDiv" style="display:block">
+          <div class="clear"></div>
+          <hr>
+          <button id="showInGameSettingsButton"></button>
+          <div id="inGameSettingsControlsDiv" style="display:none">
+            <div class="col-label">
+              <label for="showNamesCheckBox">Display celebrity names at end of turn</label>
+            </div>
+            <div class="col-textfield">
+              <input id="showNamesCheckBox" type="checkbox">
+            </div>
+          </div>
+        </div>
       
         <div id="allocateTeamsDiv">
           <div class="clear"></div>
@@ -102,6 +116,7 @@
       </div>
       
       <div id="playGameDiv">
+        <div class="clear"></div>
         <hr>
         <button id="startGameButton" style="display:none">Start Game</button>
         <button id="startNextRoundButton" class="buttonForBotToClick" style="display:none">Start Next Round</button>

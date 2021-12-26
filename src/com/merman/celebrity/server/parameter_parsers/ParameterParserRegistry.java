@@ -16,6 +16,7 @@ public class ParameterParserRegistry {
 
 	static {
 		putFormat(Integer.class, new IntegerParameterFormat());
+		putFormat(boolean.class, new BooleanParameterFormat());
 	}
 	
 	public static synchronized <T> T parseParameter(String aParameterAsString, Class<T> aClass) throws ParseException {

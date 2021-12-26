@@ -192,3 +192,10 @@ export async function sendMakePlayerHostRequest(playerID) {
 export async function sendRevokeSubmittedNamesRequest() {
     return await sendRequest('revokeSubmittedNames');
 }
+
+export async function sendSetCelebrityNameDisplayRequest(displayBool) {
+    const data = JSON.stringify( {displayNames: displayBool} );
+    const requestResult = await sendRequest('setDisplayCelebrityNames', data);
+
+    return requestResult;
+}

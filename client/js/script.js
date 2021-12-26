@@ -25,6 +25,8 @@ const myGameState = {
 	sentStartTurn: false,
 	sentStartRound: false,
 	sentStartGame: false,
+
+	editingSettings: false,
 };
 
 window.hackExport = {
@@ -370,6 +372,17 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 	}
 });
 
+document.getElementById('showInGameSettingsButton').addEventListener('click', () => { 
+	myGameState.editingSettings = ! myGameState.editingSettings;
+	setDOMElementVisibility(myGameState, serverGameState);
+});
+
+addServerRequestClickListener(
+	document.getElementById('showNamesCheckBox'),
+	api.sendSetCelebrityNameDisplayRequest,
+	() => document.getElementById('showNamesCheckBox').checked
+);
+
 if (getCookie('restore') === 'true') {
 	tryToOpenSocket(false);
 }
@@ -567,6 +580,7 @@ function processGameStateObject(newGameStateObject) {
 	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
 
+	document.getElementById('showNamesCheckBox').checked = serverGameState.displayCelebNames;
 	setDOMElementVisibility(myGameState, serverGameState);
 
 	applyTheme();
@@ -1007,9 +1021,11 @@ function updateScoresForRound(serverGameState) {
 				createDOMElement('h3', name),
 				createDOMElement('text', `Score: ${namesAchieved.length}`),
 			);
-			const ol = createDOMElement('ol');
-			subDiv.appendChild(ol);
-			namesAchieved.forEach(name => ol.appendChild(createDOMElement('li', name, { classList: ['achievedNameLi', `team${teamIndex}`] })));
+			if (serverGameState.displayCelebNames) {
+				const ol = createDOMElement('ol');
+				subDiv.appendChild(ol);
+				namesAchieved.forEach(name => ol.appendChild(createDOMElement('li', name, { classList: ['achievedNameLi', `team${teamIndex}`] })));
+			}
 			div.appendChild(subDiv);
 		});
 

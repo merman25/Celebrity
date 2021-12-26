@@ -84,6 +84,10 @@ const selectorsToShowOrHide = [
 		selector: '#mySubmittedNamesDiv',
 		styleFn: (myGameState, serverGameState) => myGameState.mySubmittedNameList,
 	},
+	{
+		selector: '#inGameSettingsControlsDiv',
+		styleFn: (myGameState, serverGameState) => myGameState.editingSettings,
+	},
 ];
 
 const setDOMElementVisibility = function (myGameState, serverGameState) {

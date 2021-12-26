@@ -220,6 +220,7 @@ public class GameManager {
  		            		   .put( "name", team.getTeamName() )
  		            		   .put( "namesAchieved", aGame.getMapTeamsToAchievedNames().get( team ) ) )
  		               .collect( Collectors.toList() ) )
+                .put( "displayCelebNames", aGame.isDisplayCelebNames() )
                 ;
 		if ( aForClient ) {
 			jsonObject

@@ -157,6 +157,15 @@ th, td {
     vertical-align: middle;
 }
 
+#showInGameSettingsButton{
+    background-image: url("icons/settings_32.png");
+    background-repeat: no-repeat;
+    height: 36px; 
+    width: 36px;
+    vertical-align: middle;
+}
+
+
 #changeNameListButton {
     margin-left: 2rem;
 }

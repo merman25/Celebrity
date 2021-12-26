@@ -572,4 +572,20 @@ public class AnnotatedHandlers {
 	public static void setTesting(Session aSession) {
 		aSession.setTestSession(true);
 	}
+	
+	@HTTPRequest( requestName = "setDisplayCelebrityNames", argNames = "displayNames" )
+	public static void setDisplayCelebrityNames(Session aSession, boolean aDisplayCelebrityNames) {
+		Player player = aSession.getPlayer();
+		Game game = player.getGame();
+		
+		if (game == null) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], tried to set the display of celebrity names when not part of any game", player, aSession), null);
+		}
+		
+		if (game.getHost() != player) {
+			throw new IllegalServerRequestException(String.format("Player [%s], session [%s], tried to set the display of celebrity names in game [%s] when the host is [%s]", player, aSession, game, game.getHost()), "Error: you are not the host, you can't change the game settings");
+		}
+		
+		game.setDisplayCelebNames(aDisplayCelebrityNames);
+	}
 }

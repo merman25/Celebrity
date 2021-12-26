@@ -31,6 +31,7 @@ import com.merman.celebrity.game.events.NotifyClientGameEventListener;
 import com.merman.celebrity.game.events.RemoveNameListGameEvent;
 import com.merman.celebrity.game.events.RemovePlayerGameEvent;
 import com.merman.celebrity.game.events.SetCurrentNameIndexGameEvent;
+import com.merman.celebrity.game.events.SetDisplayCelebNamesGameEvent;
 import com.merman.celebrity.game.events.SetHostGameEvent;
 import com.merman.celebrity.game.events.SetNameListGameEvent;
 import com.merman.celebrity.game.events.SetPassOnNameIndexGameEvent;
@@ -55,6 +56,7 @@ public class Game implements ICanExpire {
 	private List<Player>              playersWithoutTeams         = new ArrayList<>();
 	private Map<Player, Team>         mapPlayersToTeams           = new LinkedHashMap<Player, Team>();
 	private GameStatus                status                      = GameStatus.WAITING_FOR_PLAYERS;
+	private boolean                   displayCelebNames			  = true;
 	
 	/* Use a sorted Map, so that if we're using a fixed random seed, the shuffled name list will
 	 * always be the same.
@@ -760,5 +762,15 @@ public class Game implements ICanExpire {
 
 	public void setRandom(Random aRandom) {
 		random = aRandom;
+	}
+
+	public boolean isDisplayCelebNames() {
+		return displayCelebNames;
+	}
+
+	public synchronized void setDisplayCelebNames(boolean aDisplayCelebNames) {
+		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "setDisplayCelebNames", aDisplayCelebNames);
+		displayCelebNames = aDisplayCelebNames;
+		fireGameEvent(new SetDisplayCelebNamesGameEvent(this, aDisplayCelebNames));
 	}
 }
