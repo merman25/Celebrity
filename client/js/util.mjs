@@ -82,3 +82,63 @@ export function generateRandomFunction(stringSeed = null) {
 
 	return randFn;
 }
+
+/* ============= Calculating number of teams/number of players
+*/
+
+/* 
+ * We want to divide P players into T teams such that at most one team
+ * has a size different from the others, and its size differs by only 1.
+ * 
+ * We also want each team to have a size of at least 2.
+ * 
+ * In other words, we want to find n satisfying one of the following (in all of the below, / signifies integer division):
+ * 
+ * 1. nT = P, n > 1
+ * 2. n(T-1) + n + 1 = P, n > 1
+ * 3. n(T-1) + n - 1 = P, n > 2
+ * 
+ * (2) simplifies to nT + 1 = P, which is true if and only if P%T == 1 and n == P/T
+ * 
+ * (3) can be re-written as wanting to find some other n such that
+ *   (n+1)(T-1) + n = P, n > 1
+ * which simplifies to nT + T - 1 = P, which is true if and only if P%T == T-1 and n == P/T
+ * 
+ * This function returns an object with the following fields:
+ * - success: true if such an n exists, false otherwise. If success is false, all other fields are null or undefined.
+ * - numEqualTeams: number of teams of an equal size (T in case 1 above, T-1 in cases 2 and 3)
+ * - sizeOfEqualTeams: number of players in the equal-sized teams (i.e. n, or n+1 in the re-written case 3)
+ * - sizeOfUnequalTeam: 0 if we're in case 1, sizeOfEqualTeams+1 or sizeOfEqualTeams-1 as appropriate otherwise
+*/
+export const teamDivision = (numPlayers, numTeams) => {
+	const returnValue = { success: false };
+	if (! Number.isInteger(numPlayers) || numPlayers < 4) {
+		return returnValue;
+	}
+	else if (! Number.isInteger(numTeams) || numTeams < 2) {
+		return returnValue;
+	}
+
+	const modulus = numPlayers % numTeams;
+	const intRatio = (numPlayers - modulus) / numTeams;
+	if (modulus === 0) {
+		returnValue.success = true;
+		returnValue.numEqualTeams = numTeams;
+		returnValue.sizeOfEqualTeams = intRatio;
+		returnValue.sizeOfUnequalTeam = 0;
+	}
+	else if (modulus === 1) {
+		returnValue.success = true;
+		returnValue.numEqualTeams = numTeams - 1;
+		returnValue.sizeOfEqualTeams = intRatio;
+		returnValue.sizeOfUnequalTeam = intRatio + 1;
+	}
+	else if (modulus === numTeams - 1) {
+		returnValue.success = true;
+		returnValue.numEqualTeams = numTeams - 1;
+		returnValue.sizeOfEqualTeams = intRatio + 1;
+		returnValue.sizeOfUnequalTeam = intRatio;
+	}
+
+	return returnValue;
+}
