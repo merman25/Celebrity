@@ -4,7 +4,7 @@
  * when calling the api function.
 */
 
-import * as common from './script.js';
+import * as common from './script.mjs';
 
 /* Function to send a request to the server. All other functions in this file delegate
  * to this function. It provides error handling by ensuring the appropriate notification

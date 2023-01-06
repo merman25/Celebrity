@@ -48,3 +48,29 @@ describe('Team Division', function () {
     assert.equal(result.sizeOfUnequalTeam, 2);
   });
 });
+
+describe('Possible numbers of teams', function () {
+  it('Should give expected results', function() {
+    assert.equal(util.possibleNumbersOfTeams(1).length, 0);
+    assert.equal(util.possibleNumbersOfTeams(2).length, 0);
+    assert.equal(util.possibleNumbersOfTeams(3).length, 0);
+
+    assert.deepEqual(util.possibleNumbersOfTeams(4), [2]);
+    assert.deepEqual(util.possibleNumbersOfTeams(5), [2]);
+    assert.deepEqual(util.possibleNumbersOfTeams(6), [2,3]);
+    assert.deepEqual(util.possibleNumbersOfTeams(7), [2,3]);
+    assert.deepEqual(util.possibleNumbersOfTeams(8), [2,3,4]);
+    assert.deepEqual(util.possibleNumbersOfTeams(9), [2,3,4]);
+    assert.deepEqual(util.possibleNumbersOfTeams(10), [2,3,5]);
+    assert.deepEqual(util.possibleNumbersOfTeams(11), [2,3,4,5]);
+    assert.deepEqual(util.possibleNumbersOfTeams(12), [2,3,4,6]);
+    assert.deepEqual(util.possibleNumbersOfTeams(13), [2,3,4,6]);
+    assert.deepEqual(util.possibleNumbersOfTeams(14), [2,3,5,7]);
+    assert.deepEqual(util.possibleNumbersOfTeams(15), [2,3,4,5,7]);
+    assert.deepEqual(util.possibleNumbersOfTeams(16), [2,3,4,5,8]);
+    assert.deepEqual(util.possibleNumbersOfTeams(17), [2,3,4,6,8]);
+    assert.deepEqual(util.possibleNumbersOfTeams(18), [2,3,6,9]);
+    assert.deepEqual(util.possibleNumbersOfTeams(19), [2,3,4,5,6,9]);
+    assert.deepEqual(util.possibleNumbersOfTeams(20), [2,3,4,5,7,10]);
+  });
+});

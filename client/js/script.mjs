@@ -1,5 +1,5 @@
-import * as util from './util.js';
-import * as api from './api-calls.js';
+import * as util from './util.mjs';
+import * as api from './api-calls.mjs';
 
 let webSocket = null;
 let firstSocketMessage = true;

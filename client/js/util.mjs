@@ -127,13 +127,13 @@ export const teamDivision = (numPlayers, numTeams) => {
 		returnValue.sizeOfEqualTeams = intRatio;
 		returnValue.sizeOfUnequalTeam = 0;
 	}
-	else if (modulus === 1) {
+	else if (modulus === 1 && intRatio > 1) {
 		returnValue.success = true;
 		returnValue.numEqualTeams = numTeams - 1;
 		returnValue.sizeOfEqualTeams = intRatio;
 		returnValue.sizeOfUnequalTeam = intRatio + 1;
 	}
-	else if (modulus === numTeams - 1) {
+	else if (modulus === numTeams - 1 && intRatio > 1) {
 		returnValue.success = true;
 		returnValue.numEqualTeams = numTeams - 1;
 		returnValue.sizeOfEqualTeams = intRatio + 1;
@@ -141,4 +141,25 @@ export const teamDivision = (numPlayers, numTeams) => {
 	}
 
 	return returnValue;
+}
+
+/*
+ * Returns a list of the numbers of teams that numPlayers players can be divided into.
+ * 
+ * For example, if numPlayers is 9, this function will return [2, 3, 4]. This corresponds to:
+ * - 2: a team of 4 and a team of 5
+ * - 3: 3 teams of 3
+ * - 4: 3 teams of 2, 1 team of 3
+*/
+export const possibleNumbersOfTeams = (numPlayers) => {
+	const result = [];
+
+	for (let m=2; m < numPlayers; m++) {
+		const teamDivisionResult = teamDivision(numPlayers, m);
+		if (teamDivisionResult.success) {
+			result.push(m);
+		}
+	}
+
+	return result;
 }
