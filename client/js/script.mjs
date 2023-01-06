@@ -1,5 +1,6 @@
 import * as util from './util.mjs';
 import * as api from './api-calls.mjs';
+import * as domManipulation from './dom-manipulation.mjs';
 
 let webSocket = null;
 let firstSocketMessage = true;
@@ -76,7 +77,7 @@ const addServerRequestClickListener = function(
 
 				if (myGameStateMutator) {
 					myGameStateMutator.apply(null, [inputArguments, myGameState]);
-					setDOMElementVisibility(myGameState, serverGameState);
+					domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 				}
 
 				if (myGameStateReverter) {
@@ -124,7 +125,7 @@ addServerRequestClickListener(
 
 document.getElementById('join').addEventListener('click', () => {
 	myGameState.willJoin = true;
-	setDOMElementVisibility(myGameState, serverGameState);
+	domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 });
 
 addServerRequestClickListener(
@@ -148,7 +149,7 @@ addServerRequestClickListener(
 		const gameResponse = response.GameResponse;
 		if (gameResponse === 'OK' || gameResponse === 'TestGameCreated') {
 			// TODO check why this changes any visibility. It seems to, but where do we change either of the state objects?
-			setDOMElementVisibility(myGameState, serverGameState);
+			domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 		}
 		else {
 			alert('Unknown Game ID');
@@ -241,7 +242,7 @@ addServerRequestClickListener(
 		myGameState.currentNameIndex++;
 
 		if (myGameState.currentNameIndex >= serverGameState.totalNames) {
-			setDOMElementVisibility(myGameState, serverGameState);
+			domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 			finishRound();
 		}
 
@@ -374,7 +375,7 @@ document.getElementById('exitGameButton').addEventListener('click', async () => 
 
 document.getElementById('showInGameSettingsButton').addEventListener('click', () => { 
 	myGameState.editingSettings = ! myGameState.editingSettings;
-	setDOMElementVisibility(myGameState, serverGameState);
+	domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 });
 
 addServerRequestClickListener(
@@ -396,7 +397,7 @@ if (messageOnReload != null
 	showNotification(messageOnReload);
 }
 
-setDOMElementVisibility(myGameState, serverGameState);
+domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 
 // Handle device going to sleep - see https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
 // Set the name of the hidden property and the change event for visibility
@@ -581,7 +582,7 @@ function processGameStateObject(newGameStateObject) {
 	updateTotalScores(serverGameState);
 
 	document.getElementById('showNamesCheckBox').checked = serverGameState.displayCelebNames;
-	setDOMElementVisibility(myGameState, serverGameState);
+	domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 
 	applyTheme();
 
@@ -608,7 +609,7 @@ function setTestTriggerIfNecessary(myGameState, serverGameState) {
 
 function updateDOMForReadyToStartNextTurn(myGameState, serverGameState) {
 	const readyToStartNextTurn = serverGameState.status == 'READY_TO_START_NEXT_TURN';
-	setDOMElementVisibility(myGameState, serverGameState);
+	domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 
 	if (readyToStartNextTurn) {
 		if (myGameState.iAmPlaying) {
@@ -731,7 +732,7 @@ function updateDOMForWaitingForNames(myGameState, serverGameState) {
 
 		if (numPlayersToWaitFor == null
 			|| numPlayersToWaitFor == '0') {
-			setDOMElementVisibility(myGameState, serverGameState);
+			domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 		}
 	}
 
@@ -1136,7 +1137,7 @@ function setGameStatus(newStatus) {
 
 	if (myGameState.statusAtLastUpdate != 'READY_TO_START_NEXT_TURN'
 		&& newStatus == 'READY_TO_START_NEXT_TURN') {
-		setDOMElementVisibility(myGameState, serverGameState);
+		domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 		removeChildren('currentNameDiv');
 		let userRoundIndex = serverGameState.roundIndex;
 		if (userRoundIndex != null) {
@@ -1150,15 +1151,15 @@ function setGameStatus(newStatus) {
 
 	if (newStatus == 'READY_TO_START_NEXT_ROUND') {
 		document.getElementById('gameStatusDiv').textContent = 'Finished Round! See scores below';
-		setDOMElementVisibility(myGameState, serverGameState);
+		domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 	}
 	else {
-		setDOMElementVisibility(myGameState, serverGameState);
+		domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 	}
 
 	if (newStatus != 'READY_TO_START_NEXT_ROUND'
 		&& myGameState.statusAtLastUpdate == 'READY_TO_START_NEXT_ROUND') {
-		setDOMElementVisibility(myGameState, serverGameState);
+		domManipulation.setDOMElementVisibility(myGameState, serverGameState);
 	}
 
 	if (newStatus == 'ENDED') {
