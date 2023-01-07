@@ -92,7 +92,7 @@ public class AnnotatedHandlers {
 		}
 
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", game, "allocating teams" );
-		game.allocateTeams(true);
+		game.allocateTeams(2, true);
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})

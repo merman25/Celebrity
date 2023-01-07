@@ -47,6 +47,7 @@ import com.merman.celebrity.server.cleanup.ICanExpire;
 import com.merman.celebrity.server.logging.Log;
 import com.merman.celebrity.server.logging.LogMessageSubject;
 import com.merman.celebrity.server.logging.LogMessageType;
+import com.merman.celebrity.util.GameUtil;
 import com.merman.celebrity.util.SharedRandom;
 
 public class Game implements ICanExpire {
@@ -205,7 +206,7 @@ public class Game implements ICanExpire {
 		numNamesPerPlayer = aNumNamesPerPlayer;
 	}
 
-	public synchronized void allocateTeams(boolean aAllocateTeamsAtRandom) {
+	public synchronized void allocateTeams(int aNumTeams, boolean aAllocateTeamsAtRandom) {
 		Log.log(LogMessageType.DEBUG, LogMessageSubject.GENERAL, "Game", this, "allocateTeams. Random", aAllocateTeamsAtRandom);
 		List<Player>		playerList = new ArrayList<>( playersWithoutTeams );
 		for ( Team team : teamList ) {
@@ -222,37 +223,27 @@ public class Game implements ICanExpire {
 			Collections.shuffle(playerList, getRandom());
 		}
 		
-		Team team1 = new Team();
-		team1.setTeamName("Team 1");
-		Team team2 = new Team();
-		team2.setTeamName("Team 2");
-
-		int numPlayers = playerList.size();
-		int limit = ( numPlayers + 1 ) / 2; // if there's an odd number of players, we'll have more players in team 1 (looks neater)
-		
-		if ( numPlayers == 1 ) {
-			// special case: if only 1 player (used for testing only), put him in 1st team
-			team1.addPlayer(playerList.get(0));
-			mapPlayersToTeams.put(playerList.get(0), team1);
+		int numTeams = aNumTeams;
+		if (playerList.size() == 1) {
+			// special case: if only 1 player (used for testing only), have just 1 team
+			numTeams = 1;
 		}
-		else {
-			for (int i = 0; i < limit; i++) {
-				Player player = playerList.get(i);
-				team1.addPlayer(player);
-				mapPlayersToTeams.put(player, team1);
-			}
-
-			for (int i = limit; i < numPlayers; i++) {
-				Player player = playerList.get(i);
-				team2.addPlayer(player);
-				mapPlayersToTeams.put(player, team2);
+		List<List<Player>> allocatedTeams = GameUtil.allocateTeams(numTeams, playerList);
+		
+		for (int teamIndex = 0; teamIndex < allocatedTeams.size(); teamIndex++) {
+			List<Player> playerListForThisTeam = allocatedTeams.get(teamIndex);
+			
+			Team team = new Team();
+			team.setTeamName("Team " + (teamIndex+1));
+			teamList.add(team);
+			
+			for (int playerIndex = 0; playerIndex < playerListForThisTeam.size(); playerIndex++) {
+				Player player = playerListForThisTeam.get(playerIndex);
+				team.addPlayer(player);
+				mapPlayersToTeams.put(player, team);
 			}
 		}
 		
-		teamList.add(team1);
-		if ( numPlayers > 1 ) {
-			teamList.add(team2);
-		}
 		playersWithoutTeams.clear();
 		
 		nextTeamIndex = -1;

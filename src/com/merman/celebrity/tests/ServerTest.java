@@ -163,7 +163,7 @@ public class ServerTest {
 			AnnotatedHandlers.allocateTeams(hostSession);
 		}
 		else {
-			game.allocateTeams(false);
+			game.allocateTeams(2, false);
 		}
 		Assert.assertTrue("List of teamless players should be empty", game.getPlayersWithoutTeams().isEmpty());
 		List<Team> teamList = game.getTeamList();
