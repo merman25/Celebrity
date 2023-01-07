@@ -160,7 +160,7 @@ public class ServerTest {
 		Assert.assertEquals(aNumNamesPerPlayer, game.getNumNamesPerPlayer());
 		
 		if ( aAllocateTeamsAtRandom ) {
-			AnnotatedHandlers.allocateTeams(hostSession);
+			AnnotatedHandlers.allocateTeams(hostSession, 2);
 		}
 		else {
 			game.allocateTeams(2, false);
@@ -739,9 +739,9 @@ public class ServerTest {
 		assertThrows(() -> AnnotatedHandlers.setGameParams(hostSession, 1, 1, 1), 											IllegalServerRequestException.class);
 
 		// Allocate teams (host can do it multiple times)
-		assertThrows(() -> AnnotatedHandlers.allocateTeams(playerSession), 													IllegalServerRequestException.class);
-		AnnotatedHandlers.allocateTeams(hostSession);
-		AnnotatedHandlers.allocateTeams(hostSession);
+		assertThrows(() -> AnnotatedHandlers.allocateTeams(playerSession, 2), 													IllegalServerRequestException.class);
+		AnnotatedHandlers.allocateTeams(hostSession, 2);
+		AnnotatedHandlers.allocateTeams(hostSession, 2);
 		
 		// Things you can't do in this state
 		assertThrows(() -> AnnotatedHandlers.startGame(hostSession), 														IllegalServerRequestException.class,
@@ -755,7 +755,7 @@ public class ServerTest {
 
 		// Things you can't do in this state
 		assertThrows(() -> AnnotatedHandlers.sendNameRequest(hostSession), 													IllegalServerRequestException.class);
-		assertThrows(() -> AnnotatedHandlers.allocateTeams(hostSession), 													IllegalServerRequestException.class);
+		assertThrows(() -> AnnotatedHandlers.allocateTeams(hostSession, 2), 													IllegalServerRequestException.class);
 		assertThrows(() -> AnnotatedHandlers.startGame(hostSession), 														IllegalServerRequestException.class,
 				String.format("Player [%s], session [%s], game [%s], tried to start game while still waiting for [%,d] players", host, hostSession, game, 2));
 		

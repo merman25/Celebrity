@@ -79,8 +79,9 @@ export async function sendGameParams(numRounds, roundDuration, numNames) {
     return requestResult;
 }
 
-export async function sendAllocateTeamsRequest() {
-    await sendRequest('allocateTeams');
+export async function sendAllocateTeamsRequest(numTeams) {
+    const data = JSON.stringify({numTeams: numTeams});
+    await sendRequest('allocateTeams', data);
 }
 
 export async function sendGameIDResponseRequest(enteredGameID) {

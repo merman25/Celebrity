@@ -92,7 +92,7 @@ const selectorsToShowOrHide = [
 	},
 	{
 		selector: '#selectNumTeamsDiv',
-		styleFn: (myGameState, serverGameState) => serverGameState.players && util.possibleNumbersOfTeams( serverGameState.players.length ).length >= 0,
+		styleFn: (myGameState, serverGameState) => serverGameState.allPlayers && util.possibleNumbersOfTeams( serverGameState.allPlayers.length ).length >= 0,
 	},
 ];
 

@@ -193,7 +193,8 @@ addServerRequestClickListener(
 
 addServerRequestClickListener(
 	document.getElementById('teamsButton'),
-	api.sendAllocateTeamsRequest
+	api.sendAllocateTeamsRequest,
+	() => parseInt(document.getElementById('numTeamsDropdownList').value)
 );
 
 addServerRequestClickListener(
@@ -1087,11 +1088,22 @@ function updateTotalScores(serverGameState) {
 }
 
 function updateNumTeamsChooser(serverGameState) {
-	removeChildren('numTeamsDropdownList');
-	if (serverGameState.players) {
-		const possTeamNumbers = util.possibleNumbersOfTeams(serverGameState.players.length);
+	const numTeamsDropdownList = document.getElementById('numTeamsDropdownList');
+	const oldValue = numTeamsDropdownList.value;
+	removeChildren(numTeamsDropdownList);
+	if (serverGameState.allPlayers) {
+		const possTeamNumbers = util.possibleNumbersOfTeams(serverGameState.allPlayers.length);
+		let elementToSelect = null;
 		for (let teamSize of possTeamNumbers) {
-			appendChildren('numTeamsDropdownList', createDOMElement('option', teamSize));
+			const option = createDOMElement('option', teamSize);
+			appendChildren(numTeamsDropdownList, option);
+			if (teamSize == oldValue) {
+				elementToSelect = option;
+			}
+		}
+
+		if (elementToSelect) {
+			elementToSelect.selected = true;
 		}
 	}
 }
