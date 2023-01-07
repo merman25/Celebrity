@@ -154,10 +154,18 @@ export const teamDivision = (numPlayers, numTeams) => {
 export const possibleNumbersOfTeams = (numPlayers) => {
 	const result = [];
 
-	for (let m=2; m < numPlayers; m++) {
-		const teamDivisionResult = teamDivision(numPlayers, m);
-		if (teamDivisionResult.success) {
-			result.push(m);
+	if (numPlayers <= 1) {
+		result.push(1);
+	}
+	else if (numPlayers < 4) {
+		result.push(2);
+	}
+	else {
+		for (let m = 2; m < numPlayers; m++) {
+			const teamDivisionResult = teamDivision(numPlayers, m);
+			if (teamDivisionResult.success) {
+				result.push(m);
+			}
 		}
 	}
 

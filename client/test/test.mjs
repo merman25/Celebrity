@@ -8,6 +8,13 @@ describe('Team Division', function () {
     result = util.teamDivision(3, 2);
     assert.equal(result.success, false);
 
+    // 4 players, 2 teams of 2
+    result = util.teamDivision(4, 2);
+    assert.equal(result.success, true);
+    assert.equal(result.numEqualTeams, 2);
+    assert.equal(result.sizeOfEqualTeams, 2);
+    assert.equal(result.sizeOfUnequalTeam, 0);
+
     // 12 players, 2 teams of 6
     result = util.teamDivision(12, 2);
     assert.equal(result.success, true);
@@ -51,9 +58,9 @@ describe('Team Division', function () {
 
 describe('Possible numbers of teams', function () {
   it('Should give expected results', function() {
-    assert.equal(util.possibleNumbersOfTeams(1).length, 0);
-    assert.equal(util.possibleNumbersOfTeams(2).length, 0);
-    assert.equal(util.possibleNumbersOfTeams(3).length, 0);
+    assert.equal(util.possibleNumbersOfTeams(1).length, 1);
+    assert.equal(util.possibleNumbersOfTeams(2).length, 1);
+    assert.equal(util.possibleNumbersOfTeams(3).length, 1);
 
     assert.deepEqual(util.possibleNumbersOfTeams(4), [2]);
     assert.deepEqual(util.possibleNumbersOfTeams(5), [2]);

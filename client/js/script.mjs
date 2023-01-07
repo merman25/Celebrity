@@ -580,6 +580,7 @@ function processGameStateObject(newGameStateObject) {
 	updateCurrentPlayerInfo(myGameState, serverGameState);
 	updateScoresForRound(serverGameState);
 	updateTotalScores(serverGameState);
+	updateNumTeamsChooser(serverGameState);
 
 	document.getElementById('showNamesCheckBox').checked = serverGameState.displayCelebNames;
 	domManipulation.setDOMElementVisibility(myGameState, serverGameState);
@@ -1082,6 +1083,16 @@ function updateTotalScores(serverGameState) {
 		const table = createTableByColumn(true, tableColumns, attributesByColumn);
 
 		setChildren('totalScoresDiv', header, table);
+	}
+}
+
+function updateNumTeamsChooser(serverGameState) {
+	removeChildren('numTeamsDropdownList');
+	if (serverGameState.players) {
+		const possTeamNumbers = util.possibleNumbersOfTeams(serverGameState.players.length);
+		for (let teamSize of possTeamNumbers) {
+			appendChildren('numTeamsDropdownList', createDOMElement('option', teamSize));
+		}
 	}
 }
 
