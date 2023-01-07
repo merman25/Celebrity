@@ -102,15 +102,15 @@ public class GameUtilTest {
 		Assert.assertEquals(playerList, listOfAllPlayersInTeams);
 	}
 	
-	private static List<Object> list(int size) {
+	private static List<Object> list(int aSize) {
 		return Stream.generate( () -> new Object() )
-					.limit(size)
+					.limit(aSize)
 					.collect(Collectors.toList());
 	}
 	
-	private static void assertTeamSizesAre(int numTeams, int numPlayers, Integer... sizes) {
-		List<List<Object>> teamList = GameUtil.allocateTeams(numTeams, list(numPlayers));
+	private static void assertTeamSizesAre(int aNumTeams, int aNumPlayers, Integer... aSizes) {
+		List<List<Object>> teamList = GameUtil.allocateTeams(aNumTeams, list(aNumPlayers));
 		List<Integer> sizeList = teamList.stream().map(l -> l.size()).collect(Collectors.toList());
-		Assert.assertEquals(Arrays.asList(sizes), sizeList);
+		Assert.assertEquals(Arrays.asList(aSizes), sizeList);
 	}
 }

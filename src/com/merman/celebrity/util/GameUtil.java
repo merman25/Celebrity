@@ -28,26 +28,26 @@ public class GameUtil {
 	 * Client-side, we want to keep it to team numbers that people are likely to choose, to keep it simple.
 	 * Server-side, we can simplify the code by making it more generic. 
 	 * @param <P> The type of Player.
-	 * @param numTeams The number of teams in which to split the players. Must be ≥ 1.
-	 * @param playerList The list of players.
+	 * @param aNumTeams The number of teams in which to split the players. Must be ≥ 1.
+	 * @param aPlayerList The list of players.
 	 * @return A list of lists of players, such that the first <code>playerList.size() % numTeams</code> lists contain <code>playerList.size() / numTeams + 1</code>
 	 * players, and the remaining <code>numTeams - playerList.size() % numTeams</code> lists contain <code>playerList.size() / numTeams</code> players. Each
 	 * player in <code>playerList</code> occurs exactly once in exactly one of the returned lists. 
 	 */
-	public static <P> List<List<P>> allocateTeams(int numTeams, List<P> playerList) {
-		if (numTeams < 1) {
-			throw new IllegalArgumentException("numTeams must be >= 1. Value: " + numTeams);
+	public static <P> List<List<P>> allocateTeams(int aNumTeams, List<P> aPlayerList) {
+		if (aNumTeams < 1) {
+			throw new IllegalArgumentException("numTeams must be >= 1. Value: " + aNumTeams);
 		}
-		if (numTeams > playerList.size()) {
-			throw new IllegalArgumentException(String.format("numTeams (%,d) cannot be greater than number of players (%,d)", numTeams, playerList.size()));
+		if (aNumTeams > aPlayerList.size()) {
+			throw new IllegalArgumentException(String.format("numTeams (%,d) cannot be greater than number of players (%,d)", aNumTeams, aPlayerList.size()));
 		}
 		List<List<P>>		teamList			= new ArrayList<>();
-		int 				numPlayers 			= playerList.size();
-		int					playerTeamIntRatio	= numPlayers / numTeams;
-		int					remainder			= numPlayers % numTeams;
+		int 				numPlayers 			= aPlayerList.size();
+		int					playerTeamIntRatio	= numPlayers / aNumTeams;
+		int					remainder			= numPlayers % aNumTeams;
 		
 		int					numTeamsOfLargerSize 	= remainder;
-		int					numTeamsOfSmallerSize	= numTeams - numTeamsOfLargerSize;
+		int					numTeamsOfSmallerSize	= aNumTeams - numTeamsOfLargerSize;
 		int					smallerTeamSize			= playerTeamIntRatio;
 		int[]				teamNumbers				= { numTeamsOfLargerSize, numTeamsOfSmallerSize };
 		int[]				teamSizes				= { smallerTeamSize + 1, smallerTeamSize };
@@ -61,13 +61,13 @@ public class GameUtil {
 				List<P>		team		= new ArrayList<>();
 				teamList.add(team);
 				for ( int playerIndex = 0; playerIndex < teamSize; playerIndex++ ) {
-					team.add(playerList.get(playerListOffset + playerIndex));
+					team.add(aPlayerList.get(playerListOffset + playerIndex));
 				}
 				playerListOffset += teamSize;
 			}
 		}
 		
-		assert playerListOffset == playerList.size();
+		assert playerListOffset == aPlayerList.size();
 		
 		return teamList;
 	}
