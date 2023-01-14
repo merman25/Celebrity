@@ -1,4 +1,4 @@
-import * as util from "../util.js"
+import * as util from "../util.mjs"
 import { g, p, e } from "../constants";
 
 const playerNames = ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2', 'HAL 9000', 'Wall-E', 'T-1000', 'Soundwave', 'Robocop', 'CHAPPiE',

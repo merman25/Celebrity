@@ -4,7 +4,7 @@ import * as spec4Players from "./games/04-players"
 import * as specRestoredMiddle from "./games/rejoin-restored-game-middle-of-round"
 import * as specRestoredEnd from "./games/rejoin-restored-game-end-of-round"
 import * as randomGame from "./games/random"
-import * as util from "./util.js"
+import * as util from "./util.mjs"
 
 /* ============================
  * Global ENV vars
