@@ -50,6 +50,7 @@ ee 'rm -fr release' \
     && ee 'npm install' \
     && ee 'cd ..' \
     && ee 'fix_symlink_on_windows' \
+    && ee './client/node_modules/mocha/bin/_mocha'
     && ee 'bash run-tests.sh -fjkx' \
     && ee 'bash run-tests.sh -srwx' \
     && ee 'upload' \
