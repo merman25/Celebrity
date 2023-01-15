@@ -6,7 +6,7 @@ TEST_ROOT="./test_results"
 
 
 print_usage() {
-    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-o NUM_ROUNDS] [-m MIN_WAIT_TIME_IN_SEC] [-M MAX_WAIT_TIME_IN_SEC] [-g STAGGERED_DELAY_IN_SEC] [-p PORT] [-b BROWSER]\n"
+    printf "USAGE: $0 [-fhjrswxz] [-u URL] [-d SEED] [-n NUM_NAMES_PER_PLAYER] [-l NUM_PLAYERS] [-t NUM_TEAMS] [-o NUM_ROUNDS] [-m MIN_WAIT_TIME_IN_SEC] [-M MAX_WAIT_TIME_IN_SEC] [-g STAGGERED_DELAY_IN_SEC] [-p PORT] [-b BROWSER]\n"
     printf "\n"
     printf "\t-h:\t\t\t\tPrint this message and exit\n"
     printf "\t-f:\t\t\t\tFast mode (default off)\n"
@@ -22,6 +22,7 @@ print_usage() {
     printf "\t-d SEED:\t\t\tSpecify seed for random game\n"
     printf "\t-g STAGGERED_DELAY_IN_SEC:\tStaggered start of each player, with specified delay (default 0)\n"
     printf "\t-l NUM_PLAYERS:\t\t\tNumber of players\n"
+    printf "\t-t NUM_TEAMS:\t\t\tNumber of teams (applies to random game only, default nothing, so Cypress will default to 2)\n"
     printf "\t-m MIN_TIME:\t\t\tMin wait time in sec (slow mode only, default 5)\n"
     printf "\t-M MAX_TIME:\t\t\tMax wait time in sec (slow mode only, default 20)\n"
     printf "\t-n NUM_NAMES:\t\t\tNumber of names per player\n"
@@ -164,6 +165,7 @@ start_player() {
 
 	ENV=$(append_if_set "$ENV" "RANDOM" "true")
 	ENV=$(append_if_set "$ENV" "NUM_PLAYERS" "$num_players")
+	ENV=$(append_if_set "$ENV" "NUM_TEAMS" "$NUM_TEAMS")
 	ENV=$(append_if_set "$ENV" "SEED" "$seed")
 	ENV=$(append_if_set "$ENV" "NUM_NAMES_PER_PLAYER" "$NUM_NAMES_PER_PLAYER")
 	ENV=$(append_if_set "$ENV" "NUM_ROUNDS" "$NUM_ROUNDS")
@@ -190,7 +192,7 @@ START_SERVER="true"
 RANDOM_GAME="false"
 SEED=""
 PORT_BASE=10000
-while getopts "hfjkqrswxzb:d:g:l:m:M:n:o:p:u:" OPT; do
+while getopts "hfjkqrswxzb:d:g:l:t:m:M:n:o:p:u:" OPT; do
     case $OPT in
 	h)
 	    print_usage
@@ -234,6 +236,9 @@ while getopts "hfjkqrswxzb:d:g:l:m:M:n:o:p:u:" OPT; do
 	    ;;
 	l)
 	    NUM_PLAYERS="$OPTARG"
+	    ;;
+	t)
+	    NUM_TEAMS="$OPTARG"
 	    ;;
 	m)
 	    MIN_WAIT_TIME_IN_SEC="$OPTARG"
