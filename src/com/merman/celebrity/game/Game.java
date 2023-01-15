@@ -249,7 +249,7 @@ public class Game implements ICanExpire {
 		nextTeamIndex = -1;
 		incrementPlayer();
 		
-		fireGameEvent(new AllocateTeamsGameEvent(this));
+		fireGameEvent(new AllocateTeamsGameEvent(this, aNumTeams));
 	}
 
 	public synchronized void setNameList(Player aPlayer, List<String> aCelebNameList) {
