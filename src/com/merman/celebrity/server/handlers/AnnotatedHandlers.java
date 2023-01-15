@@ -92,7 +92,13 @@ public class AnnotatedHandlers {
 		}
 
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", game, "allocating teams" );
-		game.allocateTeams(aNumTeams, true);
+		
+		try {
+			game.allocateTeams(aNumTeams, true);
+		}
+		catch (IllegalArgumentException e) {
+			throw new IllegalServerRequestException(e.toString(), e.getMessage());
+		}
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
