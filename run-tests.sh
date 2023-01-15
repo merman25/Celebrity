@@ -65,9 +65,8 @@ exec_command_in_new_window() {
 
 exec_command_in_new_max_window() {
     if is_cygwin; then
-	# Don't know how to start cygwin maximised
 	shift 1 # ignore title, don't know how to set it
-	cygstart C:/cygwin64/bin/mintty.exe -i /Cygwin.ico "$*"
+	cygstart --maximize C:/cygwin64/bin/mintty.exe -i /Cygwin.ico "$*"
     else
 	title="$1"
 	shift 1
