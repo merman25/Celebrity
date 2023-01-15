@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/merman25/Celebrity#readme",
   "devDependencies": {
-    "cypress": "^4.4.1",
+    "cypress": "^4.12.1",
     "mocha": "^10.2.0"
   }
 }
