@@ -78,8 +78,8 @@ public class AnnotatedHandlers {
 		game.fireGameEvent(new SetGameParamsGameEvent(game, numRounds, roundDuration, numNames));
 	}
 	
-	@HTTPRequest( requestName = "allocateTeams" )
-	public static void allocateTeams(Session session) {
+	@HTTPRequest( requestName = "allocateTeams", argNames = {"numTeams"} )
+	public static void allocateTeams(Session session, Integer aNumTeams) {
 		Player player = session.getPlayer();
 		Game game = GameManager.getGameHostedByPlayer(player);
 		
@@ -92,7 +92,13 @@ public class AnnotatedHandlers {
 		}
 
 		Log.log(LogMessageType.INFO, LogMessageSubject.GENERAL, "Game", game, "allocating teams" );
-		game.allocateTeams(true);
+		
+		try {
+			game.allocateTeams(aNumTeams, true);
+		}
+		catch (IllegalArgumentException e) {
+			throw new IllegalServerRequestException(e.toString(), e.getMessage());
+		}
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})

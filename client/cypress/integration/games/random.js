@@ -1,4 +1,4 @@
-import * as util from "../util.js"
+import * as util from "../util.mjs"
 import { g, p, e } from "../constants";
 
 const playerNames = ['Marvin the Paranoid Android', 'Bender', 'Johnny 5', 'R2D2', 'HAL 9000', 'Wall-E', 'T-1000', 'Soundwave', 'Robocop', 'CHAPPiE',
@@ -49,12 +49,15 @@ export const generateGame = function (numPlayers, options) {
             }
         }
     }
-  
+
+    const numTeamsDesc = options.numTeams ? `, in ${options.numTeams} teams,` : '';
+
     const gameSpec = {
-        description: `${numPlayers}-player random game with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
+        description: `${numPlayers}-player random game${numTeamsDesc} with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
         restoredGame: false,
         playerNames: selectedPlayers,
         celebrityNames: selectedCelebNames,
+        numTeams: options.numTeams,
         turnIndexOffset: 0,
         preSetTurns: preSetTurns,
         takeContinuousRandomTurns: ! options.fastMode && options.slowMode,

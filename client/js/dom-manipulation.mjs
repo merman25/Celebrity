@@ -1,3 +1,5 @@
+import * as util from './util.mjs';
+
 const selectorsToShowOrHide = [
 	{
 		selector: '#divJoinOrHost',
@@ -88,9 +90,13 @@ const selectorsToShowOrHide = [
 		selector: '#inGameSettingsControlsDiv',
 		styleFn: (myGameState, serverGameState) => myGameState.editingSettings,
 	},
+	{
+		selector: '#selectNumTeamsDiv',
+		styleFn: (myGameState, serverGameState) => serverGameState.allPlayers && util.possibleNumbersOfTeams( serverGameState.allPlayers.length ).length > 1,
+	},
 ];
 
-const setDOMElementVisibility = function (myGameState, serverGameState) {
+export const setDOMElementVisibility = (myGameState, serverGameState) => {
 	selectorsToShowOrHide.forEach(({ selector, styleFn, visibleDisplay, mutators }) => {
 		const styleFnResult = styleFn(myGameState, serverGameState);
 

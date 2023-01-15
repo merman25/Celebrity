@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -223,7 +224,7 @@ public class GameManager {
                 .put( "displayCelebNames", aGame.isDisplayCelebNames() )
                 ;
 		if ( aForClient ) {
-			jsonObject
+			jsonObject 
             .put( "currentPlayer", toJSON( aGame.getCurrentPlayer() ) )
             .put( "yourName", playerRequesting.getName() )
             .put( "yourTeamIndex", aGame.getTeamList().indexOf( aGame.getMapPlayersToTeams().get(playerRequesting) ) )
@@ -232,6 +233,12 @@ public class GameManager {
 			.put( "players", aGame.getPlayersWithoutTeams().stream()
 					.map( player -> toJSON( player ) )
 					.collect( Collectors.toList() ) )
+			.put( "allPlayers", Stream.concat( aGame.getTeamList().stream()
+												.flatMap( team -> team.getPlayerList().stream() ),
+											   aGame.getPlayersWithoutTeams().stream() )
+									.map( player -> toJSON(player))
+									.collect( Collectors.toList() ) )
+								
 			.put( "numPlayersToWaitFor", aGame.getNumPlayersToWaitFor() )
 			.put( "turnCount", aGame.getTurnCount() )
 			// The game-global name index is the current index in the list of all celeb names across all rounds of the game.
@@ -331,7 +338,7 @@ public class GameManager {
 		game.setNumRounds(numRounds);
 		game.setNumNamesPerPlayer(numNamesPerPlayer);
 		game.setRoundDurationInSec(roundDurationInSec);
-		game.allocateTeams(true);
+		game.allocateTeams(2, true);
 		game.setStatus(GameStatus.WAITING_FOR_NAMES);
 		
 		final Game g = game;

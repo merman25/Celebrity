@@ -4,7 +4,7 @@
  * when calling the api function.
 */
 
-import * as common from './script.js';
+import * as common from './script.mjs';
 
 /* Function to send a request to the server. All other functions in this file delegate
  * to this function. It provides error handling by ensuring the appropriate notification
@@ -79,8 +79,9 @@ export async function sendGameParams(numRounds, roundDuration, numNames) {
     return requestResult;
 }
 
-export async function sendAllocateTeamsRequest() {
-    await sendRequest('allocateTeams');
+export async function sendAllocateTeamsRequest(numTeams) {
+    const data = JSON.stringify({numTeams: numTeams});
+    await sendRequest('allocateTeams', data);
 }
 
 export async function sendGameIDResponseRequest(enteredGameID) {

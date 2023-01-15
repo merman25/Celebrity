@@ -94,7 +94,8 @@ public class ServeFileHandler extends AHttpHandler {
 		else if ( aRelativePath.toLowerCase().endsWith( ".svg" ) ) {
 			aExchangeWrapper.getResponseHeaders().computeIfAbsent("content-type", s -> new ArrayList<>()).add( "image/svg+xml" );
 		}
-		else if ( aRelativePath.toLowerCase().endsWith( ".js") ) {
+		else if ( aRelativePath.toLowerCase().endsWith( ".js") 
+				||  aRelativePath.toLowerCase().endsWith( ".mjs") ) {
 			aExchangeWrapper.getResponseHeaders().computeIfAbsent("content-type", s -> new ArrayList<>()).add( "text/javascript");
 		}
 				

@@ -35,8 +35,8 @@ upload() {
 fix_symlink_on_windows() {
     # quick hack
     if is_cygwin; then
-	ee '/bin/rm client/cypress/integration/util.js'
-	ee '/bin/cp client/js/util.js client/cypress/integration'
+	ee '/bin/rm client/cypress/integration/util.mjs'
+	ee '/bin/cp client/js/util.mjs client/cypress/integration'
     fi
 }
 
@@ -50,6 +50,7 @@ ee 'rm -fr release' \
     && ee 'npm install' \
     && ee 'cd ..' \
     && ee 'fix_symlink_on_windows' \
+    && ee './client/node_modules/mocha/bin/_mocha'
     && ee 'bash run-tests.sh -fjkx' \
     && ee 'bash run-tests.sh -srwx' \
     && ee 'upload' \
