@@ -47,6 +47,7 @@ if (Cypress.env('INC_RESTORED')) {
 if (Cypress.env('RANDOM')) {
     const numPlayers = Cypress.env('NUM_PLAYERS');
     const playerIndex = Cypress.env('PLAYER_INDEX');
+    const numTeams = Cypress.env('NUM_TEAMS');
     let seed = Cypress.env('SEED');
     
     if (seed) {
@@ -66,6 +67,7 @@ if (Cypress.env('RANDOM')) {
         fastMode: Cypress.env('FAST_MODE'),
         numRounds: Cypress.env('NUM_ROUNDS'),
         numNamesPerPlayer: Cypress.env('NUM_NAMES_PER_PLAYER'),
+        numTeams: numTeams,
         slowMode: slowMode,
         minWaitTimeInSec: 5,
         maxWaitTimeInSec: 25,
@@ -101,6 +103,7 @@ for (let i = 0; i < gameSpecs.length; i++) {
                 otherPlayers: gameSpec.playerNames.filter(name => name !== playerName),
                 celebrityNames: gameSpec.celebrityNames[index],
                 iAmHosting: index === 0,
+                numTeams: gameSpec.numTeams,
                 gameID: gameSpec.gameID,
                 turnIndexOffset: gameSpec.turnIndexOffset,
                 preSetTurns: gameSpec.preSetTurns,
@@ -213,7 +216,7 @@ export function playGame(clientState) {
 
     if (clientState.iAmHosting) {
         if (!clientState.restoredGame) {
-            allocateTeams();
+            allocateTeams(clientState.numTeams);
         }
         else {
             // Put the players back into teams using the menu items
@@ -348,12 +351,12 @@ function getNames(clientState) {
     const teamIndex = clientState.teamIndex;
 
     // 'preSetTurns' is an array containing all turns taken by all players. Calculate the index we want.
-    const numTeams = 2;
-    const numPlayersPerTeam = numPlayers / numTeams; // NB: numPlayers may be odd
-
-    // If numPlayers is odd, team 0 has one more player than team 1.
-    const numPlayersInMyTeam = teamIndex == 0 ? Math.ceil(numPlayersPerTeam) : Math.floor(numPlayersPerTeam);
+    const numTeams = clientState.numTeams ? clientState.numTeams : 2;
+    const modulus = numPlayers % numTeams;
+    const remainder = (numPlayers - modulus) / numTeams;
+    const numPlayersInMyTeam = teamIndex < modulus ? remainder + 1 : remainder;
     const numTurnsBetweenMyTurns = numTeams * numPlayersInMyTeam;
+
     const turnIndex = turnIndexOffset + turnCounter * numTurnsBetweenMyTurns + numTeams * playerIndex + teamIndex;
     console.log(util.formatTime(), `turnCounter ${turnCounter}, numPlayers ${numPlayers}, teamIndex ${teamIndex}, numPlayersInMyTeam, ${numPlayersInMyTeam}, numTurnsBetweenMyTurns ${numTurnsBetweenMyTurns}, playerIndex ${playerIndex}, turnIndexOffset ${turnIndexOffset} ==> turnIndex ${turnIndex}`);
 
@@ -438,7 +441,11 @@ function getNames(clientState) {
                         });
                 }
                 else {
-                    clientState.namesPreviouslyOnScoresDiv = [[], []];
+                    clientState.namesPreviouslyOnScoresDiv = [];
+                    const numTeams = clientState.numTeams ? clientState.numTeams : 2;
+                    for (let i=0; i<numTeams; i++) {
+                        clientState.namesPreviouslyOnScoresDiv.push([]);
+                    }
                     takeMoves(clientState);
                     cy.scrollTo(0, 0); // Looks nicer when watching
                 }
@@ -686,37 +693,42 @@ function readScoresDiv(scoresDiv) {
 
     let thisTeamsScore;
     let totalScore = 0;
-    let prevTeamOffset = 0;
-    let seenNames = [[]];
+    let teamNameIndex = 0;
+    let seenNames = [];
+    let currentTeamIndex = 1;
+    const states = ['read-team', 'read-score', 'read-name'];
+    let stateIndex = -1;
+    let currentState = null;
     for(let scoreLineIndex=0; scoreLineIndex<scoresLines.length; scoreLineIndex++) {
         const text = scoresLines[scoreLineIndex];
         if (scoreLineIndex === 0) {
             assert.equal( text, 'Scores' );
+            currentState = states[stateIndex = ( stateIndex + 1 ) % states.length];
         }
-        else if (scoreLineIndex === 1) {
-            assert.equal(text, 'Team 1');
-        }
-        else if (scoreLineIndex === 2) {
-            const prefix = 'Score: ';
-            assert(text.startsWith(prefix), `text '${text} should start with '${prefix}'`);
-            const scoreString = text.substring(prefix.length);
-            thisTeamsScore = parseInt(scoreString);
-            totalScore += thisTeamsScore;
-        }
-        else if (scoreLineIndex < prevTeamOffset + thisTeamsScore + 3) {
-            seenNames[seenNames.length - 1].push(text);
-        }
-        else if (scoreLineIndex === thisTeamsScore + 3) {
-            assert.equal(text, 'Team 2');
+        else if (currentState === 'read-team') {
+            assert.equal(text, `Team ${currentTeamIndex++}`);
             seenNames.push([]);
+            teamNameIndex = scoreLineIndex;
+            currentState = states[stateIndex = ( stateIndex + 1 ) % states.length];
         }
-        else if (scoreLineIndex === thisTeamsScore + 4) {
+        else if (currentState === 'read-score') {
             const prefix = 'Score: ';
             assert(text.startsWith(prefix), `text '${text} should start with '${prefix}'`);
             const scoreString = text.substring(prefix.length);
             thisTeamsScore = parseInt(scoreString);
             totalScore += thisTeamsScore;
-            prevTeamOffset = scoreLineIndex - 2;
+            currentState = states[stateIndex = ( stateIndex + 1 ) % states.length];
+
+            if (thisTeamsScore === 0) {
+                // Special case, no names to read, need to go straight to read-team state for next line
+                currentState = states[stateIndex = ( stateIndex + 1 ) % states.length];
+            }
+        }
+        else if (currentState === 'read-name') {
+            seenNames[seenNames.length - 1].push(text);
+            if (scoreLineIndex === teamNameIndex + thisTeamsScore + 1) {
+                currentState = states[stateIndex = ( stateIndex + 1 ) % states.length];
+            }
         }
     }
 
@@ -773,7 +785,10 @@ function setGameParams(clientState) {
     cy.get('[id="submitGameParamsButton"]').click();
 }
 
-function allocateTeams() {
+function allocateTeams(numTeams) {
+    if (numTeams) {
+        cy.get('[id="numTeamsDropdownList"]').select(numTeams.toString());
+    }
     cy.get('[id="teamsButton"]').click();
 
     // Should still be visible after clicking - we're allowed to allocate again until Request Names is clicked

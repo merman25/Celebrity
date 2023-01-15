@@ -14,6 +14,7 @@ export const gameSpec = {
         ['Emily Blunt', 'Emma Thompson', 'Judi Dench', 'Carey Mulligan', 'Cate Blanchett', 'Rhea Seehorn']
     ],
     turnIndexOffset: 0,
+    numTeams: null,
 
     // 24 total
     preSetTurns: [

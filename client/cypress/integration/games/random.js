@@ -49,12 +49,15 @@ export const generateGame = function (numPlayers, options) {
             }
         }
     }
-  
+
+    const numTeamsDesc = options.numTeams ? `, in ${options.numTeams} teams,` : '';
+
     const gameSpec = {
-        description: `${numPlayers}-player random game with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
+        description: `${numPlayers}-player random game${numTeamsDesc} with ${numRounds} rounds and ${numNamesPerPlayer} names per player`,
         restoredGame: false,
         playerNames: selectedPlayers,
         celebrityNames: selectedCelebNames,
+        numTeams: options.numTeams,
         turnIndexOffset: 0,
         preSetTurns: preSetTurns,
         takeContinuousRandomTurns: ! options.fastMode && options.slowMode,

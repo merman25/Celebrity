@@ -17,6 +17,7 @@ export const gameSpec = {
     ],
 
     turnIndexOffset: 14,
+    numTeams: null,
     fastModeOverride: true,
 
     // 24 total
