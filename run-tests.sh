@@ -160,11 +160,10 @@ start_player() {
 	
 	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file"  &
     elif [ "$mode" == "rand" ]; then
-	num_players="$4"
-	seed="$5"
+	seed="$4"
 
 	ENV=$(append_if_set "$ENV" "RANDOM" "true")
-	ENV=$(append_if_set "$ENV" "NUM_PLAYERS" "$num_players")
+	ENV=$(append_if_set "$ENV" "NUM_PLAYERS" "$NUM_PLAYERS")
 	ENV=$(append_if_set "$ENV" "NUM_TEAMS" "$NUM_TEAMS")
 	ENV=$(append_if_set "$ENV" "SEED" "$seed")
 	ENV=$(append_if_set "$ENV" "NUM_NAMES_PER_PLAYER" "$NUM_NAMES_PER_PLAYER")
@@ -320,7 +319,7 @@ if [ "$RANDOM_GAME" == "true" ]; then
 	if [ $player_index -gt 0 ] && [ \! -z "$STAGGERED_DELAY_IN_SEC" ]; then
 	    sleep "$STAGGERED_DELAY_IN_SEC"
 	fi
-	start_player "rand" $player_index $FAST_MODE $NUM_PLAYERS $SEED
+	start_player "rand" $player_index $FAST_MODE $SEED
     done
 else
     NUM_PLAYERS=4
