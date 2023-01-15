@@ -538,6 +538,7 @@ function processGameStateObject(newGameStateObject) {
 		turnCount: serverGameState.turnCount,
 		gameGlobalNameIndex: serverGameState.gameGlobalNameIndex,
 		scores: serverGameState.namesAchieved.map(({name, namesAchieved}) => namesAchieved.length),
+		allPlayers: serverGameState.allPlayers,
 	};
 	if (serverGameState.roundIndex)
 		testBotInfo.roundIndex = serverGameState.roundIndex;

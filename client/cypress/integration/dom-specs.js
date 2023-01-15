@@ -101,4 +101,11 @@ export const DOMSpecs = [
             predicate: (testBotInfo, clientState) => ! clientState.iAmHosting
         }],
     },
+    {
+        selector: '[id="selectNumTeamsDiv"]',
+        visibleWhen: [{
+            predicate: (testBotInfo, clientState) => clientState.iAmHosting && testBotInfo != null && testBotInfo.gameStatus === 'WAITING_FOR_PLAYERS' && testBotInfo.allPlayers && testBotInfo.allPlayers.length >= 6,
+            invertible: true
+        }],
+    },
 ];
