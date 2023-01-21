@@ -66,24 +66,12 @@
       <div id="hostGameDiv" style="display:none">
         <form id="gameParamsForm" onsubmit="return false;">
           <hr>
-          <div class="col-label">
-            <label for="numRoundsField">Number of Rounds</label>
-          </div>
-          <div class="col-textfield">
-            <input id="numRoundsField" name="numRounds" type="number" value=3 size="10"><br>
-          </div>
-          <div class="col-label">
-            <label for="roundDurationField">Length of a Round in Seconds</label>
-          </div>
-          <div class="col-textfield">
-            <input id="roundDurationField" name="roundDuration" type="number" value=60 size="10"><br>
-          </div>
-          <div class="col-label">
-            <label for="numNamesField">Number of names from each player</label>
-          </div>
-          <div class="col-textfield">
-            <input id="numNamesField" name="numNames" type="number" value=6 size="10"><br>
-          </div>
+          <label for="numRoundsField" class="col-label">Number of Rounds</label>
+          <input id="numRoundsField" class="col-textfield" name="numRounds" type="number" value=3>
+          <label for="roundDurationField" class="col-label">Length of a Round in Seconds</label>
+          <input id="roundDurationField" class="col-textfield" name="roundDuration" type="number" value=60>
+          <label for="numNamesField" class="col-label">Number of names from each player</label>
+          <input id="numNamesField" class="col-textfield" name="numNames" type="number" value=6>
           <div class="clear"></div>
           <div class="col-label">
             <button id="submitGameParamsButton">Set</button>
