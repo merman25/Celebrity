@@ -91,8 +91,17 @@ const selectorsToShowOrHide = [
 		styleFn: (myGameState, serverGameState) => myGameState.editingSettings,
 	},
 	{
-		selector: '#selectNumTeamsDiv',
+		selector: '.revealable',
 		styleFn: (myGameState, serverGameState) => serverGameState.allPlayers && util.possibleNumbersOfTeams( serverGameState.allPlayers.length ).length > 1,
+		mutators: { 
+			false: e => {
+				e.style.animation = 'hideGradually 2s forwards';
+			},
+			true: e => {
+				e.style.display = '';
+				e.style.animation = 'showGradually 2s forwards';
+			}
+		}
 	},
 ];
 
@@ -112,7 +121,9 @@ export const setDOMElementVisibility = (myGameState, serverGameState) => {
 			mutator = mutators[styleFnResult];
 		}
 
-		document.querySelectorAll(selector)
-			.forEach(mutator);
+		if (mutator) {
+			document.querySelectorAll(selector)
+				.forEach(mutator);
+		}
 	});
 }

@@ -170,6 +170,10 @@ th, td {
     margin-left: 2rem;
 }
 
+#numTeamsDropdownList {
+    float: right;
+}
+
 .clear {
     clear: both;
 }
@@ -277,4 +281,26 @@ html.theme_christmas {
 
 a.theme_christmas {
     color: cyan;
+}
+
+@keyframes showGradually {
+    0% {
+        opacity: 0;
+        height: 0;
+    }
+    100% {
+        opacity: 1;
+        height: 1.4rem;
+    }
+}
+
+@keyframes hideGradually {
+    0% {
+        opacity: 1;
+        height: 1.4rem;
+    }
+    100% {
+        opacity: 0;
+        height: 0;
+    }
 }
