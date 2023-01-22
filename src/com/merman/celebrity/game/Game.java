@@ -55,28 +55,30 @@ public class Game implements ICanExpire {
 	private Player                    host;
 	private List<Team>                teamList                    = new ArrayList<>();
 	private List<Player>              playersWithoutTeams         = new ArrayList<>();
-	private Map<Player, Team>         mapPlayersToTeams           = new LinkedHashMap<Player, Team>();
+	private Map<Player, Team>         mapPlayersToTeams           = new LinkedHashMap<>();
 	private GameStatus                status                      = GameStatus.WAITING_FOR_PLAYERS;
 	private boolean                   displayCelebNames			  = true;
 	
 	/* Use a sorted Map, so that if we're using a fixed random seed, the shuffled name list will
-	 * always be the same.
+	 * always be the same, so long as all player names are distinct (which is the case in our tests).
+	 * 
+	 * In case 2 player names are the same, we also then compare by session ID
 	 */
-	private Map<Player, List<String>> mapPlayersToNameLists       = new TreeMap<Player, List<String>>(Comparator.comparing(Player::getName));
+	private Map<Player, List<String>> mapPlayersToNameLists       = new TreeMap<>(Comparator.comparing(Player::getName).thenComparing(Player::getSessionID));
 	private List<String>              masterNameList              = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
 	private Turn                      currentTurn;
 	private int                       previousNameIndex;
 	private int                       currentNameIndex;
-	private Map<Team, List<String>>   mapTeamsToAchievedNames     = new HashMap<Team, List<String>>();
+	private Map<Team, List<String>>   mapTeamsToAchievedNames     = new HashMap<>();
 
 	private int                       numRounds;
 	private int                       roundDurationInSec;
 	private int                       numNamesPerPlayer;
 
 	private int                       nextTeamIndex               = -1;
-	private Map<Team, Integer>        mapTeamsToNextPlayerIndices = new HashMap<Team, Integer>();
-	private Map<Team, List<Integer>>  mapTeamsToScores            = new HashMap<Team, List<Integer>>();
+	private Map<Team, Integer>        mapTeamsToNextPlayerIndices = new HashMap<>();
+	private Map<Team, List<Integer>>  mapTeamsToScores            = new HashMap<>();
 	private Player                    currentPlayer;
 
 	private int                       roundIndex;
