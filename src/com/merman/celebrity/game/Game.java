@@ -64,7 +64,7 @@ public class Game implements ICanExpire {
 	 * 
 	 * In case 2 player names are the same, we also then compare by session ID
 	 */
-	private Map<Player, List<String>> mapPlayersToNameLists       = new TreeMap<>(Comparator.comparing(Player::getName).thenComparing(Player::getSessionID));
+	private Map<Player, List<String>> mapPlayersToNameLists       = new TreeMap<>(Comparator.comparing(Player::getName).thenComparing( player -> player.getSessionID() == null ? "" : player.getSessionID() ));
 	private List<String>              masterNameList              = new ArrayList<>();
 	private List<String>              shuffledNameList            = new ArrayList<>();
 	private Turn                      currentTurn;
