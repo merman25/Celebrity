@@ -111,6 +111,10 @@ addServerRequestClickListener(
 			alert('Please enter a name');
 			return false;
 		}
+		else if (username.length > 200) {
+			alert('Max length 200 characters');
+			return false;
+		}
 		const usernameLooksLikeGameID = /^[ 0-9]+$/.test(username);
 		if (usernameLooksLikeGameID) {
 			alert('Names that look like game IDs are not allowed');
@@ -1244,10 +1248,14 @@ function addNameRequestForm() {
 		null,
 		null,
 		(nameArr) => {
-			for (name of nameArr) {
+			for (let name of nameArr) {
 				if (name == null
 					|| name.trim() === '') {
 					alert('Please enter some text for each name');
+					return false;
+				}
+				else if (name.length > 200) {
+					alert('Max length 200 characters');
 					return false;
 				}
 			}
