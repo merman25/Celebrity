@@ -18,6 +18,7 @@ import com.merman.celebrity.server.Session;
 import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.WebsocketHandler;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.annotations.MaxLength;
 import com.merman.celebrity.server.annotations.StartNewSession;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.logging.Log;
@@ -28,6 +29,7 @@ public class AnnotatedHandlers {
 	
 	@StartNewSession
 	@HTTPRequest(requestName = "username", argNames = {"username"})
+	@MaxLength(200)
 	public static void setUsername(Session session, String username) {
 		if (username == null
 				|| username.trim().isEmpty() ) {
@@ -102,6 +104,7 @@ public class AnnotatedHandlers {
 	}
 	
 	@HTTPRequest(requestName = "askGameIDResponse", argNames = {"gameID"})
+	@MaxLength(24)
 	public static Map<String, String> askGameIDResponse(Session session, String gameID) {
 		if (gameID == null) {
 			throw new IllegalServerRequestException( String.format("Session [%s], player [%s] provided null game ID", session, session.getPlayer()), null);
@@ -145,6 +148,7 @@ public class AnnotatedHandlers {
 	}
 	
 	@HTTPRequest(requestName = "nameList", argNames = {"nameList"})
+	@MaxLength(200)
 	public static void provideNames(Session session, List<String> nameList ) {
 		Player player = session.getPlayer();
 		Game game = player.getGame();

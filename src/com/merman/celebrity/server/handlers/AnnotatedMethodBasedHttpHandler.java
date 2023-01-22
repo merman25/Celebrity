@@ -26,6 +26,7 @@ import com.merman.celebrity.server.SessionManager;
 import com.merman.celebrity.server.analytics.Browser;
 import com.merman.celebrity.server.analytics.UserAgentUtil;
 import com.merman.celebrity.server.annotations.HTTPRequest;
+import com.merman.celebrity.server.annotations.MaxLength;
 import com.merman.celebrity.server.annotations.StartNewSession;
 import com.merman.celebrity.server.exceptions.IllegalServerRequestException;
 import com.merman.celebrity.server.exceptions.NullSessionException;
@@ -44,10 +45,23 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 	private static class MyMethodArg {
 		private String name;
 		private Class<?> clazz;
+		private int maxLength = Integer.MAX_VALUE;
 
 		public MyMethodArg(String aName, Class<?> aClass) {
 			name  = aName;
 			clazz = aClass;
+		}
+
+		public int getMaxLength() {
+			return maxLength;
+		}
+
+		public void setMaxLength(int aMaxLength) {
+			if (clazz != String.class
+					&& clazz != List.class) {
+				throw new IllegalArgumentException("Max length only supported for Strings and Lists. Class: " + clazz);
+			}
+			maxLength = aMaxLength;
 		}
 	}
 	
@@ -83,7 +97,8 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			throw new IllegalArgumentException("Length of argNames arr must be one less than the number of method parameters");
 		}
 		
-		
+		MaxLength maxLengthAnnotation = method.getAnnotation(MaxLength.class);
+
 		for (int paramIndex=1; paramIndex<parameters.length; paramIndex++) {
 			Parameter parameter = parameters[paramIndex];
 			if ( ! ParameterParserRegistry.formatDefinedForClass(parameter.getType())) {
@@ -91,6 +106,9 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 			}
 			
 			MyMethodArg methodArg = new MyMethodArg(argNames[paramIndex-1], parameter.getType());
+			if (maxLengthAnnotation != null) {
+				methodArg.setMaxLength(maxLengthAnnotation.value());
+			}
 			methodArgs.add(methodArg);
 		}
 	}
@@ -142,7 +160,12 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 					List<String>		parameterValueList		= new ArrayList<>();
 					jsonArray.forEach(element -> {
 						if (element instanceof String) {
-							parameterValueList.add((String) element);
+							String listElement = (String) element;
+							if (listElement != null
+									&& listElement.length() > methodArg.getMaxLength()) {
+								throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s], length [%,d] greater than max [%,d]", session.getPlayer(), session, getName(), argName, listElement.length(), methodArg.getMaxLength()), String.format("Error: max string length %,d", methodArg.getMaxLength()));
+							}
+							parameterValueList.add(listElement);
 						}
 						else if (element == JSONObject.NULL) {
 							parameterValueList.add(null);
@@ -153,15 +176,24 @@ public class AnnotatedMethodBasedHttpHandler extends AHttpHandler {
 					});
 					parameterValue = parameterValueList;
 				}
-				else if (value instanceof String
-						&& parameterType != String.class ) {
-					parameterValue = ParameterParserRegistry.parseParameter((String) value, parameterType);
-				}
-				else if (value == JSONObject.NULL) {
-					parameterValue = null;
-				}
 				else {
-					parameterValue = value;
+					if (value instanceof String) {
+						String stringValue = (String) value;
+						if (stringValue.length() > methodArg.getMaxLength()) {
+							throw new IllegalServerRequestException(String.format("Player [%s], session [%s], HTTPHandler [%s], argument [%s], length [%,d] greater than max [%,d]", session.getPlayer(), session, getName(), argName, stringValue.length(), methodArg.getMaxLength()), String.format("Error: max string length %,d", methodArg.getMaxLength()));
+						}
+					}
+					
+					if (value instanceof String
+							&& parameterType != String.class ) {
+						parameterValue = ParameterParserRegistry.parseParameter((String) value, parameterType);
+					}
+					else if (value == JSONObject.NULL) {
+						parameterValue = null;
+					}
+					else {
+						parameterValue = value;
+					}
 				}
 				argValues[i+1] = parameterValue;
 				
