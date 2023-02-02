@@ -158,7 +158,7 @@ start_player() {
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	
-	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file"  &
+	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file" '2>&1'  &
     elif [ "$mode" == "rand" ]; then
 	seed="$4"
 
@@ -172,7 +172,7 @@ start_player() {
 	port=$(($PORT_BASE + "$player_index"))
 	result_file="$RESULTS_DIR/player${player_index}-report"
 	
-	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file" &
+	exec_command_in_new_window "Player $(($player_index + 1))" npx cypress run -s cypress/integration/celebrity-tests.js --env "$ENV" $HEAD $EXIT "$BROWSER_STRING" -p $port '>' "$result_file" '2>&1' &
     else
 	echo "Error: unknown mode $mode"
 	print_usage
